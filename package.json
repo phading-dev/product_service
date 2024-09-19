@@ -1,0 +1,45 @@
+{
+  "name": "@phading/product_service",
+  "version": "0.1.0",
+  "description": "ProductService",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phading-dev/product_service.git"
+  },
+  "author": "Yuxuan Xie <teststaybaka@gmail.com> (http://www.yuxuanxie.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/phading-dev/product_service/issues"
+  },
+  "homepage": "https://github.com/phading-dev/product_service#readme",
+  "files": [
+    "**/*.d.ts",
+    "**/*.js",
+    "**/*.json"
+  ],
+  "devDependencies": {
+    "@selfage/bundler_cli": "^5.1.7",
+    "@selfage/cli": "^5.0.0",
+    "@selfage/generator_cli": "^2.2.2",
+    "@selfage/test_runner": "^5.0.1",
+    "@selfage/tsconfig": "^1.1.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.4",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@google-cloud/spanner": "^7.14.0",
+    "@google-cloud/storage": "^7.12.1",
+    "@phading/product_service_interface": "^0.5.3",
+    "@phading/user_activity_service_interface": "^0.2.2",
+    "@phading/user_service_interface": "^0.17.1",
+    "@phading/user_session_service_interface": "^0.8.5",
+    "@selfage/http_error": "^1.1.1",
+    "@selfage/message": "^3.5.5",
+    "@selfage/node_service_client": "^1.2.1",
+    "@selfage/service_handler": "^6.0.1",
+    "express": "^4.21.0",
+    "get-stream": "^6.0.1",
+    "sharp": "^0.33.5"
+  }
+}

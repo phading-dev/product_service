@@ -1,0 +1,90 @@
+{
+  "tables": [{
+    "name": "Season",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "publisherId",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN publisherId STRING(MAX) NOT NULL"
+    }, {
+      "name": "name",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN name STRING(MAX) NOT NULL"
+    }, {
+      "name": "description",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX) NOT NULL"
+    }, {
+      "name": "coverImagePath",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN coverImagePath STRING(MAX) NOT NULL"
+    }, {
+      "name": "createdTimestamp",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+    }],
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX) NOT NULL, coverImagePath STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)) PRIMARY KEY (seasonId ASC)",
+    "indexes": [{
+      "name": "ByCreatedTimestamp",
+      "createIndexDdl": "CREATE INDEX ByCreatedTimestamp ON Season(createdTimestamp DESC)"
+    }]
+  }, {
+    "name": "SeasonGrade",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "startTimestamp",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN startTimestamp TIMESTAMP NOT NULL"
+    }, {
+      "name": "endTimestamp",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN endTimestamp TIMESTAMP NOT NULL"
+    }, {
+      "name": "grade",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN grade FLOAT64 NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE SeasonGrade (seasonId STRING(MAX) NOT NULL, startTimestamp TIMESTAMP NOT NULL, endTimestamp TIMESTAMP NOT NULL, grade FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC, startTimestamp ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "indexes": [{
+      "name": "ByEndTimestamp",
+      "createIndexDdl": "CREATE INDEX ByEndTimestamp ON SeasonGrade(endTimestamp DESC)"
+    }]
+  }, {
+    "name": "Episode",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "episodeId",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN episodeId STRING(MAX) NOT NULL"
+    }, {
+      "name": "publisherId",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publisherId STRING(MAX) NOT NULL"
+    }, {
+      "name": "name",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN name STRING(MAX) NOT NULL"
+    }, {
+      "name": "description",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN description STRING(MAX) NOT NULL"
+    }, {
+      "name": "videoPath",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoPath STRING(MAX)"
+    }, {
+      "name": "videoLength",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoLength FLOAT64"
+    }, {
+      "name": "createdTimestamp",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+    }, {
+      "name": "scheduledPublishTimestamp",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN scheduledPublishTimestamp TIMESTAMP NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX) NOT NULL, videoPath STRING(MAX), videoLength FLOAT64, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), scheduledPublishTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (episodeId ASC)",
+    "indexes": [{
+      "name": "FromSeasonId",
+      "createIndexDdl": "CREATE INDEX FromSeasonId ON Episode(seasonId)"
+    }, {
+      "name": "ByCreatedTimestamp",
+      "createIndexDdl": "CREATE INDEX ByCreatedTimestamp ON Episode(createdTimestamp DESC)"
+    }, {
+      "name": "ByPublishedTimestamp",
+      "createIndexDdl": "CREATE INDEX ByPublishedTimestamp ON Episode(scheduledPublishTimestamp DESC)"
+    }]
+  }]
+}
