@@ -1,0 +1,728 @@
+- spannerDatabase:
+    name: ProductDatabase
+    tables:
+      - name: Season
+        columns:
+          - name: seasonId
+            type: string
+          - name: publisherId
+            type: string
+          - name: name
+            type: string
+          - name: description
+            type: string
+            nullable: true
+          - name: coverImageFilename
+            type: string
+          - name: createdTimestamp
+            type: timestamp
+            allowCommitTimestamp: true
+          - name: lastChangeTimestamp
+            type: timestamp
+            allowCommitTimestamp: true
+          - name: state
+            type: SeasonState
+            import: "@phading/product_service_interface/publisher/show/season_state"
+          - name: totalEpisodes
+            type: float64
+        primaryKeys:
+          - seasonId
+        indexes:
+          - name: ByLastChangeTimestamp
+            columns:
+              - name: lastChangeTimestamp
+                desc: true
+              - state
+      - name: SeasonGrade
+        columns:
+          - name: seasonId
+            type: string
+          - name: startTimestamp
+            type: timestamp
+          - name: endTimestamp
+            type: timestamp
+          - name: grade # From 1 to 99. A multiplier on the base price.
+            type: float64
+        primaryKeys:
+          - seasonId
+          - startTimestamp
+        interleave:
+          parentTable: Season
+          cascadeOnDelete: true
+        indexes:
+          - name: ByEndTimestamp
+            columns:
+              - name: endTimestamp
+                desc: true
+      - name: EpisodeDraft
+        columns:
+          - name: seasonId
+            type: string
+          - name: episodeId
+            type: string
+          - name: name
+            type: string
+            nullable: true
+          - name: videoFilename
+            type: string
+          - name: videoState
+            type: VideoState
+            import: "@phading/product_service_interface/publisher/show/video_state"
+          - name: resumableVideoUpload
+            type: ResumableVideoUpload
+            import: "@phading/product_service_interface/publisher/show/resumable_video_upload"
+          - name: videoUploadedTimestamp
+            type: timestamp
+            nullable: true
+          - name: videoLength
+            type: float64
+            nullable: true
+          - name: videoSize
+            type: float64
+            nullable: true
+        primaryKeys:
+          - seasonId
+          - episodeId
+        interleave:
+          parentTable: Season
+          cascadeOnDelete: true
+        indexes:
+          - name: ByUploadedTimestamp
+            columns:
+              - name: videoUploadedTimestamp
+                desc: true
+      - name: Episode
+        columns:
+          - name: seasonId
+            type: string
+          - name: episodeId
+            type: string
+          - name: name
+            type: string
+            nullable: true
+          - name: index
+            type: float64
+          - name: videoFilename
+            type: string
+          - name: videoLength
+            type: float64
+          - name: videoSize
+            type: float64
+          - name: publishedTimestamp
+            type: timestamp
+            allowCommitTimestamp: true
+          - name: premierTimestamp
+            type: timestamp
+        primaryKeys:
+          - seasonId
+          - episodeId
+        interleave:
+          parentTable: Season
+          cascadeOnDelete: true
+        indexes:
+          - name: ByIndex
+            columns:
+              - name: index
+                desc: true
+      - name: DeletingCoverImageFile
+        columns:
+          - name: filename
+            type: string
+        primaryKeys:
+          - filename
+      - name: DeletingVideoFile
+        columns:
+          - name: filename
+            type: string
+        primaryKeys:
+          - filename
+    selects:
+      # Season
+      - name: GetSeasonForConsumer
+        table:
+          name: Season
+          as: s
+        join:
+          - type: INNER
+            table:
+              name: SeasonGrade
+              as: sg
+            on:
+              op: =
+              leftColumn:
+                name: seasonId
+                table: s
+              rightColumn: seasonId
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn:
+                name: seasonId
+                table: s
+            - op: =
+              leftColumn:
+                name: state
+                table: s
+            - op: "<="
+              leftColumn:
+                name: startTimestamp
+                table: sg
+            - op: ">="
+              leftColumn:
+                name: endTimestamp
+                table: sg
+        getColumns:
+          - name: seasonId
+            table: s
+          - name: name
+            table: s
+          - name: description
+            table: s
+          - name: coverImageFilename
+            table: s
+          - name: totalEpisodes
+            table: s
+          - name: grade
+            table: sg
+      - name: GetSeasonDetails
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - name
+          - description
+          - coverImageFilename
+          - createdTimestamp
+          - lastChangeTimestamp
+          - state
+          - totalEpisodes
+      - name: GetSeasonTotalEpisodes
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - totalEpisodes
+          - state
+      - name: GetSeasonCoverImage
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - coverImageFilename
+          - state
+      - name: GetSeasonState
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - state
+      - name: GetLastSeasons
+        table: Season
+        where:
+          op: =
+          leftColumn: state
+        orderBy:
+          - column: lastChangeTimestamp
+            desc: true
+        limit: 20
+        getColumns:
+          - seasonId
+          - name
+          - coverImageFilename
+          - state
+          - totalEpisodes
+          - lastChangeTimestamp
+      - name: GetMoreSeasons
+        table: Season
+        where:
+          op: AND
+          exps:
+            - op: <
+              leftColumn: lastChangeTimestamp
+            - op: =
+              leftColumn: state
+        orderBy:
+          - column: lastChangeTimestamp
+            desc: true
+        limit: 20
+        getColumns:
+          - seasonId
+          - name
+          - coverImageFilename
+          - state
+          - totalEpisodes
+          - lastChangeTimestamp
+      # SeasonGrade
+      - name: GetLastTwoSeasonGrade
+        table: 
+          name: Season
+          as: s
+        join:
+          - type: INNER
+            table:
+              name: SeasonGrade
+              as: sg
+            on:
+              op: =
+              leftColumn:
+                name: seasonId
+                table: s
+              rightColumn: seasonId
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn:
+                name: seasonId
+                table: s
+            - op: ">="
+              leftColumn:
+                name: endTimestamp
+                table: sg
+        orderBy:
+          - column:
+              name: endTimestamp
+              table: sg
+            desc: true
+        limit: 2
+        getColumns:
+          - name: grade
+            table: sg
+          - name: startTimestamp
+            table: sg
+          - name: endTimestamp
+            table: sg
+      # EpisodeDraft
+      - name: GetEpisodeDrafts
+        table: EpisodeDraft
+        where:
+          op: =
+          leftColumn: seasonId
+        orderBy:
+          - column: videoUploadedTimestamp
+            desc: true
+        getColumns:
+          - episodeId
+          - name
+          - videoFilename
+          - resumableVideoUpload
+          - videoState
+          - videoUploadedTimestamp
+          - videoLength
+          - videoSize
+      - name: GetEpisodeDraft
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - name
+          - videoFilename
+          - resumableVideoUpload
+          - videoState
+          - videoUploadedTimestamp
+          - videoLength
+          - videoSize
+      - name: GetEpisodeDraftVideoFiles
+        table: EpisodeDraft
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - videoFilename
+      - name: GetEpisodeDraftVideoFile
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - videoFilename
+      # Episode
+      - name: GetEpisodeForConsumer
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - name
+          - index
+          - videoLength
+          - premierTimestamp
+      - name: GetEpisodeForConsumerByIndex
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: index
+        getColumns:
+          - episodeId
+          - name
+          - videoLength
+          - premierTimestamp
+      - name: GetNextEpisodesForConsumer
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: "<"
+              leftColumn: index
+        orderBy:
+          - index
+        limit: 20
+        getColumns:
+          - episodeId
+          - name
+          - index
+          - videoLength
+          - premierTimestamp
+      - name: GetPrevEpisodesForConsumer
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: ">"
+              leftColumn: index
+        orderBy:
+          - column: index
+            desc: true
+        limit: 20
+        getColumns:
+          - episodeId
+          - name
+          - index
+          - videoLength
+          - premierTimestamp
+      - name: GetLastEpisodes
+        table: Episode 
+        where:
+          op: =
+          leftColumn: seasonId
+        orderBy:
+          - column: index
+            desc: true
+        limit: 20
+        getColumns:
+          - episodeId
+          - name
+          - index
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
+      - name: GetPrevEpisodes
+        table: Episode 
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: <
+              leftColumn: index
+        orderBy:
+          - column: index
+            desc: true
+        limit: 20
+        getColumns:
+          - episodeId
+          - name
+          - index
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
+      - name: GetEpisodeVideoFiles
+        table: Episode
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - videoFilename
+      - name: GetEpisodeVideoFile
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - videoFilename
+      - name: GetEpisodeIndex
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - index
+      - name: GetEpisodeIndexAndVideo
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        getColumns:
+          - index
+          - videoFilename
+      - name: GetEpisodesWithinIndexRange
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: ">="
+              leftColumn: index
+            - op: <=
+              leftColumn: index
+        orderBy:
+          - column: index
+            desc: true
+        getColumns:
+          - episodeId
+          - index
+      - name: GetEpisodesFollowingIndex
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: ">"
+              leftColumn: index
+        orderBy:
+          - column: index
+            desc: true
+        getColumns:
+          - episodeId
+          - index
+    inserts:
+      - name: InsertSeason
+        table: Season
+        setColumns:
+          - seasonId
+          - name
+          - coverImageFilename
+          - createdTimestamp
+          - lastChangeTimestamp
+          - state
+          - totalEpisodes
+      - name: InsertSeasonGrade
+        table: SeasonGrade
+        setColumns:
+          - seasonId
+          - startTimestamp
+          - endTimestamp
+      - name: InsertEpisodeDraft
+        table: EpisodeDraft
+        setColumns:
+          - seasonId
+          - episodeId
+          - name
+          - videoFilename
+          - videoState
+          - resumableVideoUpload
+      - name: InsertEpisode
+        table: Episode
+        setColumns:
+          - seasonId
+          - episodeId
+          - name
+          - index
+          - videoFilename
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
+      - name: InsertDeletingCoverImageFile
+        table: DeletingCoverImageFile
+        setColumns:
+          - filename
+      - name: InsertDeletingVideoFile
+        table: DeletingVideoFile
+        setColumns:
+          - filename
+    updates:
+      - name: UpdateSeason
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        setColumns:
+          - name
+          - description
+          - lastChangeTimestamp
+      - name: UpdateSeasonState
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        setColumns:
+          - state
+          - totalEpisodes
+          - lastChangeTimestamp
+      - name: UpdateSeasonTotalEpisodes
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        setColumns:
+          - totalEpisodes
+          - lastChangeTimestamp
+      - name: UpdateSeasonLastChangeTimestamp
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+        setColumns:
+          - lastChangeTimestamp
+      - name: UpdateSeasonGrade
+        table: SeasonGrade
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: startTimestamp
+        setColumns:
+          - grade
+      - name: UpdateSeasonGradeEndTimestamp
+        table: SeasonGrade
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: startTimestamp
+        setColumns:
+          - endTimestamp
+      - name: UpdateSeasonGradeAndStartTimestamp
+        table: SeasonGrade
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: startTimestamp
+        setColumns:
+          - startTimestamp
+          - endTimestamp
+      - name: UpdateEpisodeDraft
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        setColumns:
+          - name
+      - name: UpdateEpisodeDraftResumableVideoUpload
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        setColumns:
+          - videoState
+          - resumableVideoUpload
+      - name: UpdateEpisodeDraftUploadedVideo
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        setColumns:
+          - videoState
+          - resumableVideoUpload
+          - videoUploadedTimestamp
+          - videoLength
+          - videoSize
+      - name: UpdateEpisodeIndex
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        setColumns:
+          - index
+    deletes:
+      - name: DeleteSeason
+        table: Season
+        where:
+          op: =
+          leftColumn: seasonId
+      - name: DeleteEpisodeDraft
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+      - name: DeleteEpisode
+        table: Episode
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+      - name: DeleteDeletingCoverImageFile
+        table: DeletingCoverImageFile
+        where:
+          op: =
+          leftColumn: filename
+      - name: DeleteDeletingVideoFile
+        table: DeletingVideoFile
+        where:
+          op: =
+          leftColumn: filename
+    outputDdl: ./db/ddl
+    outputSql: ./db/sql

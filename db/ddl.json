@@ -12,18 +12,27 @@
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN name STRING(MAX) NOT NULL"
     }, {
       "name": "description",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX) NOT NULL"
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX)"
     }, {
-      "name": "coverImagePath",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN coverImagePath STRING(MAX) NOT NULL"
+      "name": "coverImageFilename",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN coverImageFilename STRING(MAX) NOT NULL"
     }, {
       "name": "createdTimestamp",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+    }, {
+      "name": "lastChangeTimestamp",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+    }, {
+      "name": "state",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN state FLOAT64 NOT NULL"
+    }, {
+      "name": "totalEpisodes",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN totalEpisodes FLOAT64 NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX) NOT NULL, coverImagePath STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX), coverImageFilename STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), lastChangeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), state FLOAT64 NOT NULL, totalEpisodes FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
-      "name": "ByCreatedTimestamp",
-      "createIndexDdl": "CREATE INDEX ByCreatedTimestamp ON Season(createdTimestamp DESC)"
+      "name": "ByLastChangeTimestamp",
+      "createIndexDdl": "CREATE INDEX ByLastChangeTimestamp ON Season(lastChangeTimestamp DESC, state)"
     }]
   }, {
     "name": "SeasonGrade",
@@ -46,6 +55,41 @@
       "createIndexDdl": "CREATE INDEX ByEndTimestamp ON SeasonGrade(endTimestamp DESC)"
     }]
   }, {
+    "name": "EpisodeDraft",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "episodeId",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN episodeId STRING(MAX) NOT NULL"
+    }, {
+      "name": "name",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN name STRING(MAX)"
+    }, {
+      "name": "videoFilename",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoFilename STRING(MAX) NOT NULL"
+    }, {
+      "name": "videoState",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoState FLOAT64 NOT NULL"
+    }, {
+      "name": "resumableVideoUpload",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN resumableVideoUpload BYTES(MAX) NOT NULL"
+    }, {
+      "name": "videoUploadedTimestamp",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoUploadedTimestamp TIMESTAMP"
+    }, {
+      "name": "videoLength",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoLength FLOAT64"
+    }, {
+      "name": "videoSize",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoSize FLOAT64"
+    }],
+    "createTableDdl": "CREATE TABLE EpisodeDraft (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), videoFilename STRING(MAX) NOT NULL, videoState FLOAT64 NOT NULL, resumableVideoUpload BYTES(MAX) NOT NULL, videoUploadedTimestamp TIMESTAMP, videoLength FLOAT64, videoSize FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "indexes": [{
+      "name": "ByUploadedTimestamp",
+      "createIndexDdl": "CREATE INDEX ByUploadedTimestamp ON EpisodeDraft(videoUploadedTimestamp DESC)"
+    }]
+  }, {
     "name": "Episode",
     "columns": [{
       "name": "seasonId",
@@ -54,37 +98,47 @@
       "name": "episodeId",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN episodeId STRING(MAX) NOT NULL"
     }, {
-      "name": "publisherId",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publisherId STRING(MAX) NOT NULL"
-    }, {
       "name": "name",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN name STRING(MAX) NOT NULL"
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN name STRING(MAX)"
     }, {
-      "name": "description",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN description STRING(MAX) NOT NULL"
+      "name": "index",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN index FLOAT64 NOT NULL"
     }, {
-      "name": "videoPath",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoPath STRING(MAX)"
+      "name": "videoFilename",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoFilename STRING(MAX) NOT NULL"
     }, {
       "name": "videoLength",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoLength FLOAT64"
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoLength FLOAT64 NOT NULL"
     }, {
-      "name": "createdTimestamp",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+      "name": "videoSize",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoSize FLOAT64 NOT NULL"
     }, {
-      "name": "scheduledPublishTimestamp",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN scheduledPublishTimestamp TIMESTAMP NOT NULL"
+      "name": "publishedTimestamp",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishedTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+    }, {
+      "name": "premierTimestamp",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimestamp TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX) NOT NULL, videoPath STRING(MAX), videoLength FLOAT64, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), scheduledPublishTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (episodeId ASC)",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoLength FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
-      "name": "FromSeasonId",
-      "createIndexDdl": "CREATE INDEX FromSeasonId ON Episode(seasonId)"
-    }, {
-      "name": "ByCreatedTimestamp",
-      "createIndexDdl": "CREATE INDEX ByCreatedTimestamp ON Episode(createdTimestamp DESC)"
-    }, {
-      "name": "ByPublishedTimestamp",
-      "createIndexDdl": "CREATE INDEX ByPublishedTimestamp ON Episode(scheduledPublishTimestamp DESC)"
+      "name": "ByIndex",
+      "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"
     }]
+  }, {
+    "name": "DeletingCoverImageFile",
+    "columns": [{
+      "name": "filename",
+      "addColumnDdl": "ALTER TABLE DeletingCoverImageFile ADD COLUMN filename STRING(MAX) NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE DeletingCoverImageFile (filename STRING(MAX) NOT NULL) PRIMARY KEY (filename ASC)",
+    "indexes": []
+  }, {
+    "name": "DeletingVideoFile",
+    "columns": [{
+      "name": "filename",
+      "addColumnDdl": "ALTER TABLE DeletingVideoFile ADD COLUMN filename STRING(MAX) NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE DeletingVideoFile (filename STRING(MAX) NOT NULL) PRIMARY KEY (filename ASC)",
+    "indexes": []
   }]
 }
