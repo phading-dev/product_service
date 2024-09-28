@@ -42,7 +42,7 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to create season.`,
       );
@@ -52,6 +52,7 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
       await insertSeason(
         (query) => transaction.run(query),
         seasonId,
+        userSession.accountId,
         body.name,
         seasonId + ".jpg",
         SeasonState.DRAFT,
@@ -60,6 +61,8 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
       await insertSeasonGrade(
         (query) => transaction.run(query),
         seasonId,
+        this.generateUuid(),
+        1,
         new Date(0).valueOf(),
         FAR_FUTURE_TIME,
       );

@@ -40,7 +40,7 @@ export class DeleteEpisodeVideoHandler extends DeleteEpisodeVideoHandlerInterfac
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to archive season.`,
       );

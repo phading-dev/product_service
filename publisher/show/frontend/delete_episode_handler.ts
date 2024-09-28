@@ -51,7 +51,7 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to delete episode.`,
       );

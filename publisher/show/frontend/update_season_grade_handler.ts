@@ -1,12 +1,13 @@
 import {
   EFFECTIVE_TIMESTAMP_GAP_MS,
   FAR_FUTURE_TIME,
+  MAX_GRADE,
 } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastTwoSeasonGrade,
-  getSeasonState,
+  getSeasonMetadata,
   insertSeasonGrade,
   updateSeasonGrade,
   updateSeasonGradeAndStartTimestamp,
@@ -31,8 +32,11 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface {
   public static create(): UpdateSeasonGradeHandler {
-    return new UpdateSeasonGradeHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      Date.now(),
+    return new UpdateSeasonGradeHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => Date.now(),
+      () => crypto.randomUUID(),
     );
   }
 
@@ -40,6 +44,7 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     private database: Database,
     private serviceClient: NodeServiceClient,
     private getNow: () => number,
+    private generateUuid: () => string,
   ) {
     super();
   }
@@ -55,38 +60,45 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     if (!body.grade) {
       throw newBadRequestError(`"grade" field is required.`);
     }
+    if (body.grade <= 0 || body.grade > MAX_GRADE) {
+      throw newBadRequestError(`"grade" must be within 1 - 99.`);
+    }
     let { userSession, canPublishShows } =
       await exchangeSessionAndCheckCapability(this.serviceClient, {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to update season grade.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let now = this.getNow();
-      let [stateRows, seasonGradeRows] = await Promise.all([
-        getSeasonState((query) => transaction.run(query), body.seasonId),
+      let [metadataRows, seasonGradeRows] = await Promise.all([
+        getSeasonMetadata(
+          (query) => transaction.run(query),
+          body.seasonId,
+          userSession.accountId,
+        ),
         getLastTwoSeasonGrade(
           (query) => transaction.run(query),
           body.seasonId,
           now,
         ),
       ]);
-      if (stateRows.length === 0) {
+      if (metadataRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      if (stateRows[0].seasonState === SeasonState.ARCHIVED) {
+      if (metadataRows[0].seasonState === SeasonState.ARCHIVED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is archived and cannot be updated anymore.`,
         );
       }
-      if (stateRows[0].seasonState === SeasonState.DRAFT) {
+      if (metadataRows[0].seasonState === SeasonState.DRAFT) {
         if (seasonGradeRows.length !== 1) {
           throw newInternalServerErrorError(
-            `Season ${body.seasonId} has more than 1 grade while in draft state.`,
+            `Season ${body.seasonId} has ${seasonGradeRows.length} grade(s) while in draft state.`,
           );
         }
         await Promise.all([
@@ -94,7 +106,7 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             (query) => transaction.run(query),
             body.grade,
             body.seasonId,
-            seasonGradeRows[0].sgStartTimestamp,
+            seasonGradeRows[0].seasonGradeGradeId,
           ),
           updateSeasonLastChangeTimestamp(
             (query) => transaction.run(query),
@@ -112,11 +124,14 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             `"effectiveTimestamp" must be at least 1 day apart from now when updating grade for the published season ${body.seasonId}.`,
           );
         }
-
-        if (seasonGradeRows.length === 1) {
-          if (seasonGradeRows[0].sgStartTimestamp > now) {
+        if (seasonGradeRows.length === 0) {
+          throw newInternalServerErrorError(
+            `Season ${body.seasonId} doesn't have any valid grade.`,
+          );
+        } else if (seasonGradeRows.length === 1) {
+          if (seasonGradeRows[0].seasonGradeStartTimestamp > now) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[0].sgStartTimestamp} should be smaller than now ${now}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[0].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[0].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
             );
           }
           await Promise.all([
@@ -124,11 +139,13 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
               (query) => transaction.run(query),
               body.effectiveTimestamp,
               body.seasonId,
-              seasonGradeRows[0].sgStartTimestamp,
+              seasonGradeRows[0].seasonGradeGradeId,
             ),
             insertSeasonGrade(
               (query) => transaction.run(query),
               body.seasonId,
+              this.generateUuid(),
+              body.grade,
               body.effectiveTimestamp,
               FAR_FUTURE_TIME,
             ),
@@ -138,14 +155,14 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             ),
           ]);
         } else {
-          if (seasonGradeRows[0].sgStartTimestamp <= now) {
+          if (seasonGradeRows[0].seasonGradeStartTimestamp <= now) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[0].sgStartTimestamp} should be larger than now ${now}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[0].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[0].seasonGradeStartTimestamp} should be larger than now ${now}.`,
             );
           }
-          if (seasonGradeRows[1].sgStartTimestamp > now) {
+          if (seasonGradeRows[1].seasonGradeStartTimestamp > now) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[1].sgStartTimestamp} should be smaller than now ${now}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[1].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[1].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
             );
           }
           await Promise.all([
@@ -153,14 +170,14 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
               (query) => transaction.run(query),
               body.effectiveTimestamp,
               body.seasonId,
-              seasonGradeRows[1].sgStartTimestamp,
+              seasonGradeRows[1].seasonGradeGradeId,
             ),
             updateSeasonGradeAndStartTimestamp(
               (query) => transaction.run(query),
-              body.effectiveTimestamp,
               body.grade,
+              body.effectiveTimestamp,
               body.seasonId,
-              seasonGradeRows[0].sgStartTimestamp,
+              seasonGradeRows[0].seasonGradeGradeId,
             ),
             updateSeasonLastChangeTimestamp(
               (query) => transaction.run(query),

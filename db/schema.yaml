@@ -30,12 +30,18 @@
         indexes:
           - name: ByLastChangeTimestamp
             columns:
+              - publisherId
               - name: lastChangeTimestamp
                 desc: true
               - state
+          - name: ByPublisher
+            columns:
+              - publisherId
       - name: SeasonGrade
         columns:
           - name: seasonId
+            type: string
+          - name: gradeId
             type: string
           - name: startTimestamp
             type: timestamp
@@ -45,7 +51,7 @@
             type: float64
         primaryKeys:
           - seasonId
-          - startTimestamp
+          - gradeId
         interleave:
           parentTable: Season
           cascadeOnDelete: true
@@ -53,6 +59,8 @@
           - name: ByEndTimestamp
             columns:
               - name: endTimestamp
+                desc: true
+              - name: startTimestamp
                 desc: true
       - name: EpisodeDraft
         columns:
@@ -175,6 +183,8 @@
         getColumns:
           - name: seasonId
             table: s
+          - name: publisherId
+            table: s
           - name: name
             table: s
           - name: description
@@ -188,8 +198,12 @@
       - name: GetSeasonDetails
         table: Season
         where:
-          op: =
-          leftColumn: seasonId
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: publisherId
         getColumns:
           - name
           - description
@@ -198,34 +212,31 @@
           - lastChangeTimestamp
           - state
           - totalEpisodes
-      - name: GetSeasonTotalEpisodes
+      - name: GetSeasonMetadata
         table: Season
         where:
-          op: =
-          leftColumn: seasonId
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: publisherId
         getColumns:
-          - totalEpisodes
-          - state
-      - name: GetSeasonCoverImage
-        table: Season
-        where:
-          op: =
-          leftColumn: seasonId
-        getColumns:
+          - name
           - coverImageFilename
+          - createdTimestamp
+          - lastChangeTimestamp
           - state
-      - name: GetSeasonState
-        table: Season
-        where:
-          op: =
-          leftColumn: seasonId
-        getColumns:
-          - state
+          - totalEpisodes
       - name: GetLastSeasons
         table: Season
         where:
-          op: =
-          leftColumn: state
+          op: AND
+          exps:
+            - op: =
+              leftColumn: state
+            - op: =
+              leftColumn: publisherId
         orderBy:
           - column: lastChangeTimestamp
             desc: true
@@ -234,9 +245,10 @@
           - seasonId
           - name
           - coverImageFilename
+          - createdTimestamp
+          - lastChangeTimestamp
           - state
           - totalEpisodes
-          - lastChangeTimestamp
       - name: GetMoreSeasons
         table: Season
         where:
@@ -246,6 +258,8 @@
               leftColumn: lastChangeTimestamp
             - op: =
               leftColumn: state
+            - op: =
+              leftColumn: publisherId
         orderBy:
           - column: lastChangeTimestamp
             desc: true
@@ -254,49 +268,29 @@
           - seasonId
           - name
           - coverImageFilename
+          - createdTimestamp
+          - lastChangeTimestamp
           - state
           - totalEpisodes
-          - lastChangeTimestamp
       # SeasonGrade
       - name: GetLastTwoSeasonGrade
-        table: 
-          name: Season
-          as: s
-        join:
-          - type: INNER
-            table:
-              name: SeasonGrade
-              as: sg
-            on:
-              op: =
-              leftColumn:
-                name: seasonId
-                table: s
-              rightColumn: seasonId
+        table: SeasonGrade
         where:
           op: AND
           exps:
             - op: =
-              leftColumn:
-                name: seasonId
-                table: s
+              leftColumn: seasonId
             - op: ">="
-              leftColumn:
-                name: endTimestamp
-                table: sg
+              leftColumn: endTimestamp
         orderBy:
-          - column:
-              name: endTimestamp
-              table: sg
+          - column: endTimestamp
             desc: true
         limit: 2
         getColumns:
-          - name: grade
-            table: sg
-          - name: startTimestamp
-            table: sg
-          - name: endTimestamp
-            table: sg
+          - gradeId
+          - grade
+          - startTimestamp
+          - endTimestamp
       # EpisodeDraft
       - name: GetEpisodeDrafts
         table: EpisodeDraft
@@ -332,24 +326,6 @@
           - videoUploadedTimestamp
           - videoLength
           - videoSize
-      - name: GetEpisodeDraftVideoFiles
-        table: EpisodeDraft
-        where:
-          op: =
-          leftColumn: seasonId
-        getColumns:
-          - videoFilename
-      - name: GetEpisodeDraftVideoFile
-        table: EpisodeDraft
-        where:
-          op: AND
-          exps:
-            - op: =
-              leftColumn: seasonId
-            - op: =
-              leftColumn: episodeId
-        getColumns:
-          - videoFilename
       # Episode
       - name: GetEpisodeForConsumer
         table: Episode
@@ -532,6 +508,7 @@
         table: Season
         setColumns:
           - seasonId
+          - publisherId
           - name
           - coverImageFilename
           - createdTimestamp
@@ -542,6 +519,8 @@
         table: SeasonGrade
         setColumns:
           - seasonId
+          - gradeId
+          - grade
           - startTimestamp
           - endTimestamp
       - name: InsertEpisodeDraft
@@ -615,7 +594,7 @@
             - op: =
               leftColumn: seasonId
             - op: =
-              leftColumn: startTimestamp
+              leftColumn: gradeId
         setColumns:
           - grade
       - name: UpdateSeasonGradeEndTimestamp
@@ -626,7 +605,7 @@
             - op: =
               leftColumn: seasonId
             - op: =
-              leftColumn: startTimestamp
+              leftColumn: gradeId
         setColumns:
           - endTimestamp
       - name: UpdateSeasonGradeAndStartTimestamp
@@ -637,10 +616,10 @@
             - op: =
               leftColumn: seasonId
             - op: =
-              leftColumn: startTimestamp
+              leftColumn: gradeId
         setColumns:
+          - grade
           - startTimestamp
-          - endTimestamp
       - name: UpdateEpisodeDraft
         table: EpisodeDraft
         where:

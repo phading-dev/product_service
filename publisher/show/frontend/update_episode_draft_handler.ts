@@ -1,6 +1,7 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  getSeasonMetadata,
   updateEpisodeDraft,
   updateSeasonLastChangeTimestamp,
 } from "../../../db/sql";
@@ -10,8 +11,13 @@ import {
   UpdateEpisodeDraftRequestBody,
   UpdateEpisodeDraftResponse,
 } from "@phading/product_service_interface/publisher/show/frontend/interface";
+import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
-import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import {
+  newBadRequestError,
+  newNotFoundError,
+  newUnauthorizedError,
+} from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterface {
@@ -42,12 +48,25 @@ export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterfac
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to update episode draft.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
+      let metadataRows = await getSeasonMetadata(
+        (query) => transaction.run(query),
+        body.seasonId,
+        userSession.accountId,
+      );
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (metadataRows[0].seasonState === SeasonState.ARCHIVED) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} is archived and cannot update episode draft.`,
+        );
+      }
       await Promise.all([
         updateEpisodeDraft(
           (query) => transaction.run(query),
@@ -60,6 +79,7 @@ export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterfac
           body.seasonId,
         ),
       ]);
+      await transaction.commit();
     });
     return {};
   }

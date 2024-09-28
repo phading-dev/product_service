@@ -47,7 +47,7 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to delete season.`,
       );

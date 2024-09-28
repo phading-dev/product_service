@@ -39,7 +39,7 @@ export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to get more episodes.`,
       );

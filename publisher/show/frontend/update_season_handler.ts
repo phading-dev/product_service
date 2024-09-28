@@ -1,6 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getSeasonState, updateSeason } from "../../../db/sql";
+import { getSeasonMetadata, updateSeason } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { UpdateSeasonHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -44,29 +44,33 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to update season.`,
       );
     }
-    let stateRows = await getSeasonState(
-      (query) => this.database.run(query),
-      body.seasonId,
-    );
-    if (stateRows.length === 0) {
-      throw newNotFoundError(`Season ${body.seasonId} is not found.`);
-    }
-    if (stateRows[0].seasonState === SeasonState.ARCHIVED) {
-      throw newBadRequestError(
-        `Season ${body.seasonId} is archived and cannot be updated anymore.`,
+    await this.database.runTransactionAsync(async (transaction) => {
+      let metadataRows = await getSeasonMetadata(
+        (query) => transaction.run(query),
+        body.seasonId,
+        userSession.accountId,
       );
-    }
-    await updateSeason(
-      (query) => this.database.run(query),
-      body.name,
-      body.description,
-      body.seasonId,
-    );
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (metadataRows[0].seasonState === SeasonState.ARCHIVED) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} is archived and cannot be updated anymore.`,
+        );
+      }
+      await updateSeason(
+        (query) => transaction.run(query),
+        body.name,
+        body.description,
+        body.seasonId,
+      );
+      await transaction.commit();
+    });
     return {};
   }
 }

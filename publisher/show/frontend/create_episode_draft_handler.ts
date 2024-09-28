@@ -2,6 +2,7 @@ import crypto = require("crypto");
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  getSeasonMetadata,
   insertEpisodeDraft,
   updateSeasonLastChangeTimestamp,
 } from "../../../db/sql";
@@ -11,9 +12,14 @@ import {
   CreateEpisodeDraftRequestBody,
   CreateEpisodeDraftResponse,
 } from "@phading/product_service_interface/publisher/show/frontend/interface";
+import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { VideoState } from "@phading/product_service_interface/publisher/show/video_state";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
-import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import {
+  newBadRequestError,
+  newNotFoundError,
+  newUnauthorizedError,
+} from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterface {
@@ -44,7 +50,7 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to create episode draft.`,
       );
@@ -52,6 +58,19 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
     let episodeId = this.generateUuid();
     let videoFilename = episodeId;
     await this.database.runTransactionAsync(async (transaction) => {
+      let metadataRows = await getSeasonMetadata(
+        (query) => transaction.run(query),
+        body.seasonId,
+        userSession.accountId,
+      );
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (metadataRows[0].seasonState === SeasonState.ARCHIVED) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} is archived and cannot create new episode.`,
+        );
+      }
       await Promise.all([
         insertEpisodeDraft(
           (query) => transaction.run(query),
@@ -67,6 +86,7 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
           body.seasonId,
         ),
       ]);
+      await transaction.commit();
     });
     return {
       draft: {

@@ -16,6 +16,7 @@ import {
 import { SeasonDetails } from "@phading/product_service_interface/consumer/show/frontend/season_details";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { getContinueEpisode } from "@phading/user_activity_service_interface/consumer/show/backend/client";
+import { getAccountSnapshot } from "@phading/user_service_interface/third_person/backend/client";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
 import {
   newBadRequestError,
@@ -86,6 +87,11 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
     }
+    let publisher = (
+      await getAccountSnapshot(this.serviceClient, {
+        accountId: seasonRows[0].sPublisherId,
+      })
+    ).account;
     seasonDetails.seasonId = body.seasonId;
     seasonDetails.name = seasonRows[0].sName;
     seasonDetails.description = seasonRows[0].sDescription;
@@ -94,6 +100,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       .publicUrl();
     seasonDetails.grade = seasonRows[0].sgGrade;
     seasonDetails.totalEpisodes = seasonRows[0].sTotalEpisodes;
+    seasonDetails.publisher = publisher;
   }
 
   private async getContinueEpisodeDetails(

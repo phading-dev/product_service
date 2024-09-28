@@ -81,7 +81,7 @@ export class UploadEpisodeVideoHandler extends UploadEpisodeVideoHandlerInterfac
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to upload video for episode.`,
       );

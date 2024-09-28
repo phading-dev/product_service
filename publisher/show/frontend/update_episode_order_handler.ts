@@ -54,7 +54,7 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to update episode order.`,
       );

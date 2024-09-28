@@ -32,13 +32,19 @@
     "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX), coverImageFilename STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), lastChangeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), state FLOAT64 NOT NULL, totalEpisodes FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimestamp",
-      "createIndexDdl": "CREATE INDEX ByLastChangeTimestamp ON Season(lastChangeTimestamp DESC, state)"
+      "createIndexDdl": "CREATE INDEX ByLastChangeTimestamp ON Season(publisherId, lastChangeTimestamp DESC, state)"
+    }, {
+      "name": "ByPublisher",
+      "createIndexDdl": "CREATE INDEX ByPublisher ON Season(publisherId)"
     }]
   }, {
     "name": "SeasonGrade",
     "columns": [{
       "name": "seasonId",
       "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "gradeId",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN gradeId STRING(MAX) NOT NULL"
     }, {
       "name": "startTimestamp",
       "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN startTimestamp TIMESTAMP NOT NULL"
@@ -49,10 +55,10 @@
       "name": "grade",
       "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN grade FLOAT64 NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE SeasonGrade (seasonId STRING(MAX) NOT NULL, startTimestamp TIMESTAMP NOT NULL, endTimestamp TIMESTAMP NOT NULL, grade FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC, startTimestamp ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE SeasonGrade (seasonId STRING(MAX) NOT NULL, gradeId STRING(MAX) NOT NULL, startTimestamp TIMESTAMP NOT NULL, endTimestamp TIMESTAMP NOT NULL, grade FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC, gradeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByEndTimestamp",
-      "createIndexDdl": "CREATE INDEX ByEndTimestamp ON SeasonGrade(endTimestamp DESC)"
+      "createIndexDdl": "CREATE INDEX ByEndTimestamp ON SeasonGrade(endTimestamp DESC, startTimestamp DESC)"
     }]
   }, {
     "name": "EpisodeDraft",

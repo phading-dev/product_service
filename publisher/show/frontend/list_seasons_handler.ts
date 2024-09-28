@@ -48,7 +48,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to list seasons.`,
       );
@@ -58,12 +58,14 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
       seasonRows = await getLastSeasons(
         (query) => this.database.run(query),
         body.state,
+        userSession.accountId
       );
     } else {
       seasonRows = await getMoreSeasons(
         (query) => this.database.run(query),
         body.lastChangeTimeCursor,
         body.state,
+        userSession.accountId
       );
     }
     return {

@@ -11,7 +11,7 @@ import {
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getSeasonCoverImage,
+  getSeasonMetadata,
   updateSeasonLastChangeTimestamp,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
@@ -63,19 +63,20 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
         signedSession: sessionStr,
         checkCanPublishShows: true,
       });
-    if (canPublishShows) {
+    if (!canPublishShows) {
       throw newUnauthorizedError(
         `Account ${userSession.accountId} not allowed to upload cover image.`,
       );
     }
-    let coverImageRows = await getSeasonCoverImage(
+    let metadataRows = await getSeasonMetadata(
       (query) => this.database.run(query),
       metadata.seasonId,
+      userSession.accountId,
     );
-    if (coverImageRows.length === 0) {
+    if (metadataRows.length === 0) {
       throw newNotFoundError(`Season ${metadata.seasonId} is not found.`);
     }
-    if (coverImageRows[0].seasonState === SeasonState.ARCHIVED) {
+    if (metadataRows[0].seasonState === SeasonState.ARCHIVED) {
       throw newBadRequestError(
         `Season ${metadata.seasonId} is archived and cannot be updated anymore.`,
       );
@@ -91,13 +92,16 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
           progressive: true,
         }),
       this.bucket
-        .file(coverImageRows[0].seasonCoverImageFilename)
+        .file(metadataRows[0].seasonCoverImageFilename)
         .createWriteStream({ resumable: false }),
     );
-    await updateSeasonLastChangeTimestamp(
-      (query) => this.database.run(query),
-      metadata.seasonId,
-    );
+    await this.database.runTransactionAsync(async (transaction) => {
+      await updateSeasonLastChangeTimestamp(
+        (query) => transaction.run(query),
+        metadata.seasonId,
+      );
+      await transaction.commit();
+    });
     return {};
   }
 }
