@@ -18,10 +18,10 @@
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN coverImageFilename STRING(MAX) NOT NULL"
     }, {
       "name": "createdTimestamp",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimestamp TIMESTAMP NOT NULL"
     }, {
       "name": "lastChangeTimestamp",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimestamp TIMESTAMP NOT NULL"
     }, {
       "name": "state",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN state FLOAT64 NOT NULL"
@@ -29,7 +29,7 @@
       "name": "totalEpisodes",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN totalEpisodes FLOAT64 NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX), coverImageFilename STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), lastChangeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), state FLOAT64 NOT NULL, totalEpisodes FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX), coverImageFilename STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL, lastChangeTimestamp TIMESTAMP NOT NULL, state FLOAT64 NOT NULL, totalEpisodes FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimestamp",
       "createIndexDdl": "CREATE INDEX ByLastChangeTimestamp ON Season(publisherId, lastChangeTimestamp DESC, state)"
@@ -120,12 +120,12 @@
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoSize FLOAT64 NOT NULL"
     }, {
       "name": "publishedTimestamp",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishedTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true)"
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishedTimestamp TIMESTAMP NOT NULL"
     }, {
       "name": "premierTimestamp",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimestamp TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoLength FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true), premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoLength FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL, premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"
@@ -139,12 +139,18 @@
     "createTableDdl": "CREATE TABLE DeletingCoverImageFile (filename STRING(MAX) NOT NULL) PRIMARY KEY (filename ASC)",
     "indexes": []
   }, {
-    "name": "DeletingVideoFile",
+    "name": "VideoFile",
     "columns": [{
       "name": "filename",
-      "addColumnDdl": "ALTER TABLE DeletingVideoFile ADD COLUMN filename STRING(MAX) NOT NULL"
+      "addColumnDdl": "ALTER TABLE VideoFile ADD COLUMN filename STRING(MAX) NOT NULL"
+    }, {
+      "name": "used",
+      "addColumnDdl": "ALTER TABLE VideoFile ADD COLUMN used BOOL NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE DeletingVideoFile (filename STRING(MAX) NOT NULL) PRIMARY KEY (filename ASC)",
-    "indexes": []
+    "createTableDdl": "CREATE TABLE VideoFile (filename STRING(MAX) NOT NULL, used BOOL NOT NULL) PRIMARY KEY (filename ASC)",
+    "indexes": [{
+      "name": "IsUsed",
+      "createIndexDdl": "CREATE INDEX IsUsed ON VideoFile(used)"
+    }]
   }]
 }

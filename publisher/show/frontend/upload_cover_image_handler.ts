@@ -12,7 +12,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonMetadata,
-  updateSeasonLastChangeTimestamp,
+  updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Bucket } from "@google-cloud/storage";
@@ -38,6 +38,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
       SPANNER_DATABASE,
       SEASON_COVER_IMAGE_BUCKET,
       SERVICE_CLIENT,
+      () => Date.now(),
     );
   }
 
@@ -45,6 +46,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     private database: Database,
     private bucket: Bucket,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -69,7 +71,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
       );
     }
     let metadataRows = await getSeasonMetadata(
-      (query) => this.database.run(query),
+      this.database,
       metadata.seasonId,
       userSession.accountId,
     );
@@ -96,10 +98,12 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
         .createWriteStream({ resumable: false }),
     );
     await this.database.runTransactionAsync(async (transaction) => {
-      await updateSeasonLastChangeTimestamp(
-        (query) => transaction.run(query),
-        metadata.seasonId,
-      );
+      await transaction.batchUpdate([
+        updateSeasonLastChangeTimestampStatement(
+          this.getNow(),
+          metadata.seasonId,
+        ),
+      ]);
       await transaction.commit();
     });
     return {};

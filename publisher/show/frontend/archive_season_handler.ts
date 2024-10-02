@@ -1,13 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import {
-  getEpisodeDraftVideoFiles,
-  getEpisodeVideoFiles,
-  getSeasonCoverImage,
-  insertDeletingCoverImageFile,
-  insertDeletingVideoFile,
-  updateSeasonState,
-} from "../../../db/sql";
+import { deleteAllEpisodeDraftsStatement, deleteAllEpisodesStatement, getAllEpisodeDraftVideoFiles, getAllEpisodeVideoFiles, getSeasonMetadata, insertDeletingCoverImageFileStatement, updateSeasonStateStatement, updateVideoFileStatement } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ArchiveSeasonHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -25,12 +18,13 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
   public static create(): ArchiveSeasonHandler {
-    return new ArchiveSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new ArchiveSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT, () => Date.now());
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number
   ) {
     super();
   }
@@ -54,43 +48,44 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let [coverImageRows, draftVideoFiles, videoFiles] = await Promise.all([
-        getSeasonCoverImage((query) => transaction.run(query), body.seasonId),
-        getEpisodeDraftVideoFiles(
-          (query) => transaction.run(query),
+      let [metadataRows, draftVideoFiles, videoFiles] = await Promise.all([
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getAllEpisodeDraftVideoFiles(
+          transaction,
           body.seasonId,
         ),
-        getEpisodeVideoFiles((query) => transaction.run(query), body.seasonId),
+        getAllEpisodeVideoFiles(transaction, body.seasonId),
       ]);
-      if (coverImageRows.length === 0) {
+      if (metadataRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      if (coverImageRows[0].seasonState !== SeasonState.PUBLISHED) {
+      if (metadataRows[0].seasonState !== SeasonState.PUBLISHED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is not in PUBLISHED state and cannot be archived.`,
         );
       }
-      await Promise.all([
-        insertDeletingCoverImageFile(
-          (query) => transaction.run(query),
-          coverImageRows[0].seasonCoverImageFilename,
+      await transaction.batchUpdate([
+        insertDeletingCoverImageFileStatement(
+          metadataRows[0].seasonCoverImageFilename,
         ),
         ...draftVideoFiles.map((row) =>
-          insertDeletingVideoFile(
-            (query) => transaction.run(query),
+          updateVideoFileStatement(
+            false,
             row.episodeDraftVideoFilename,
           ),
         ),
         ...videoFiles.map((row) =>
-          insertDeletingVideoFile(
-            (query) => transaction.run(query),
+          updateVideoFileStatement(
+            false,
             row.episodeVideoFilename,
           ),
         ),
-        updateSeasonState(
-          (query) => transaction.run(query),
+        deleteAllEpisodeDraftsStatement(body.seasonId),
+        deleteAllEpisodesStatement(body.seasonId),
+        updateSeasonStateStatement(
           SeasonState.ARCHIVED,
           0,
+          this.getNow(),
           body.seasonId,
         ),
       ]);

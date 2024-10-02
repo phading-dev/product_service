@@ -1,7 +1,11 @@
 import { FakeBucket } from "../../../common/cloud_storage_fake";
-import { deleteSeason, getSeasonMetadata, insertSeason } from "../../../db/sql";
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import {
+  deleteSeasonStatement,
+  getSeasonMetadata,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { UploadCoverImageHandler } from "./upload_cover_image_handler";
-import { Spanner } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/backend/interface";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -10,16 +14,18 @@ import {
   assertThat,
   containStr,
   eq,
-  ne,
 } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 import { createReadStream, existsSync, unlinkSync } from "fs";
 
-let TEST_DATABASE = new Spanner({
-  projectId: "local-project",
-})
-  .instance("test-instance")
-  .database("test-database");
+async function cleanupSeason(): Promise<void> {
+  try {
+    await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+      await transaction.runUpdate(deleteSeasonStatement("season1"));
+      await transaction.commit();
+    });
+  } catch (e) {}
+}
 
 TEST_RUNNER.run({
   name: "UploadCoverImageHandlerTest",
@@ -28,25 +34,21 @@ TEST_RUNNER.run({
       name: "Success",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "test_data/copied.jpg",
-            SeasonState.DRAFT,
-            0,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "test_data/copied.jpg",
+              1000,
+              1000,
+              SeasonState.DRAFT,
+              0,
+            ),
+          ]);
           await transaction.commit();
         });
-        let prevTimestamps = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
-        )[0].seasonLastChangeTimestamp;
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -54,10 +56,12 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
+        let nowTimestamp = 2000;
         let handler = new UploadCoverImageHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           new FakeBucket() as any,
           clientMock,
+          () => nowTimestamp,
         );
 
         // Execute
@@ -73,24 +77,17 @@ TEST_RUNNER.run({
         // Verify
         assertThat(existsSync("test_data/copied.jpg"), eq(true), "exists");
         let lastChangeTimestamp = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
         )[0].seasonLastChangeTimestamp;
         assertThat(
           lastChangeTimestamp,
-          ne(prevTimestamps),
+          eq(nowTimestamp),
           "last change timestamp",
         );
       },
       tearDown: async () => {
+        await cleanupSeason();
         try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
           unlinkSync("test_data/copied.jpg");
         } catch (e) {}
       },
@@ -99,29 +96,33 @@ TEST_RUNNER.run({
       name: "SeasonNotOwned",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account2",
-            "a name",
-            "test_data/copied.jpg",
-            SeasonState.DRAFT,
-            0,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "test_data/copied.jpg",
+              1000,
+              1000,
+              SeasonState.DRAFT,
+              0,
+            ),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
-            accountId: "account1",
+            accountId: "account2",
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           new FakeBucket() as any,
           clientMock,
+          () => 2000,
         );
 
         // Execute
@@ -144,28 +145,26 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonArchived",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "test_data/copied.jpg",
-            SeasonState.ARCHIVED,
-            0,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "test_data/copied.jpg",
+              1000,
+              1000,
+              SeasonState.ARCHIVED,
+              0,
+            ),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -176,9 +175,10 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           new FakeBucket() as any,
           clientMock,
+          () => 2000,
         );
 
         // Execute
@@ -201,12 +201,7 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
   ],

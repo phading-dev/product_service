@@ -2,8 +2,8 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonMetadata,
-  updateEpisodeDraft,
-  updateSeasonLastChangeTimestamp,
+  updateEpisodeDraftStatement,
+  updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { UpdateEpisodeDraftHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
@@ -22,12 +22,15 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterface {
   public static create(): UpdateEpisodeDraftHandler {
-    return new UpdateEpisodeDraftHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new UpdateEpisodeDraftHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -55,7 +58,7 @@ export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterfac
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let metadataRows = await getSeasonMetadata(
-        (query) => transaction.run(query),
+        transaction,
         body.seasonId,
         userSession.accountId,
       );
@@ -67,17 +70,9 @@ export class UpdateEpisodeDraftHandler extends UpdateEpisodeDraftHandlerInterfac
           `Season ${body.seasonId} is archived and cannot update episode draft.`,
         );
       }
-      await Promise.all([
-        updateEpisodeDraft(
-          (query) => transaction.run(query),
-          body.name,
-          body.seasonId,
-          body.episodeId,
-        ),
-        updateSeasonLastChangeTimestamp(
-          (query) => transaction.run(query),
-          body.seasonId,
-        ),
+      await transaction.batchUpdate([
+        updateEpisodeDraftStatement(body.name, body.seasonId, body.episodeId),
+        updateSeasonLastChangeTimestampStatement(this.getNow(), body.seasonId),
       ]);
       await transaction.commit();
     });

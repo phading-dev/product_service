@@ -1,12 +1,14 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getEpisodeIndex,
+  getEpisode,
   getEpisodesWithinIndexRange,
-  updateEpisodeIndex,
-  updateSeasonLastChangeTimestamp,
+  getSeasonMetadata,
+  updateEpisodeIndexStatement,
+  updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
+import { Statement } from "@google-cloud/spanner/build/src/transaction";
 import { UpdateEpisodeOrderHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
   UpdateEpisodeOrderRequestBody,
@@ -22,12 +24,15 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterface {
   public static create(): UpdateEpisodeOrderHandler {
-    return new UpdateEpisodeOrderHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new UpdateEpisodeOrderHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -43,7 +48,7 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    if (!body.toIndex) {
+    if (body.toIndex == null) {
       throw newBadRequestError(`"toIndex" is required.`);
     }
     if (body.toIndex <= 0) {
@@ -60,79 +65,73 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let currentIndexRows = await getEpisodeIndex(
-        (query) => transaction.run(query),
-        body.seasonId,
-        body.episodeId,
-      );
-      if (currentIndexRows.length) {
+      let [metadataRows, episodeRows] = await Promise.all([
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getEpisode(transaction, body.seasonId, body.episodeId),
+      ]);
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (body.toIndex > metadataRows[0].seasonTotalEpisodes) {
+        throw newBadRequestError(
+          `The target index ${body.toIndex} is larger than the total number of episodes.`,
+        );
+      }
+      if (episodeRows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
         );
       }
-      let currentIndex = currentIndexRows[0].episodeIndex;
+      let currentIndex = episodeRows[0].episodeIndex;
       if (body.toIndex === currentIndex) {
         throw newBadRequestError(
           `The target index ${body.toIndex} is already set on the season ${body.seasonId} episode ${body.episodeId}.`,
         );
       }
-      let updatePromises = new Array<Promise<void>>();
+      let statements = new Array<Statement>();
       if (body.toIndex < currentIndex) {
         let episodeRows = await getEpisodesWithinIndexRange(
-          (query) => transaction.run(query),
+          transaction,
           body.seasonId,
           body.toIndex,
-          currentIndex,
+          currentIndex - 1,
         );
-        // index ordered desc
-        for (let i = 1; i < episodeRows.length; i++) {
-          updatePromises.push(
-            updateEpisodeIndex(
-              (query) => transaction.run(query),
-              episodeRows[i].episodeIndex + 1,
+        for (let episode of episodeRows) {
+          statements.push(
+            updateEpisodeIndexStatement(
+              episode.episodeIndex + 1,
               body.seasonId,
-              episodeRows[i].episodeEpisodeId,
+              episode.episodeEpisodeId,
             ),
           );
         }
       } else {
         // toIndex > currentIndex
         let episodeRows = await getEpisodesWithinIndexRange(
-          (query) => transaction.run(query),
+          transaction,
           body.seasonId,
-          currentIndex,
+          currentIndex + 1,
           body.toIndex,
         );
-        // index ordered desc
-        if (episodeRows[0].episodeIndex !== body.toIndex) {
-          throw newBadRequestError(
-            `The target index ${body.toIndex} is larger than the last episode's index ${episodeRows[0].episodeIndex}.`,
-          );
-        }
-        for (let i = 0; i < episodeRows.length - 1; i++) {
-          updatePromises.push(
-            updateEpisodeIndex(
-              (query) => transaction.run(query),
-              episodeRows[i].episodeIndex - 1,
+        for (let episode of episodeRows) {
+          statements.push(
+            updateEpisodeIndexStatement(
+              episode.episodeIndex - 1,
               body.seasonId,
-              episodeRows[i].episodeEpisodeId,
+              episode.episodeEpisodeId,
             ),
           );
         }
       }
-      await Promise.all([
-        ...updatePromises,
-        updateEpisodeIndex(
-          (query) => transaction.run(query),
+      statements.push(
+        updateEpisodeIndexStatement(
           body.toIndex,
           body.seasonId,
           body.episodeId,
         ),
-        updateSeasonLastChangeTimestamp(
-          (query) => transaction.run(query),
-          body.seasonId,
-        ),
-      ]);
+        updateSeasonLastChangeTimestampStatement(this.getNow(), body.seasonId),
+      );
+      await transaction.batchUpdate(statements);
       await transaction.commit();
     });
     return {};

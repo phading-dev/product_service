@@ -1,6 +1,13 @@
+import crypto = require("crypto");
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { updateEpisodeDraftResumableVideoUpload } from "../../../db/sql";
+import {
+  getEpisodeDraft,
+  getSeasonMetadata,
+  insertVideoFileStatement,
+  updateEpisodeDraftNewVideoStatement,
+  updateVideoFileStatement,
+} from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { DeleteEpisodeVideoHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -9,17 +16,24 @@ import {
 } from "@phading/product_service_interface/publisher/show/frontend/interface";
 import { VideoState } from "@phading/product_service_interface/publisher/show/video_state";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
-import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import {
+  newBadRequestError,
+  newNotFoundError,
+  newUnauthorizedError,
+} from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class DeleteEpisodeVideoHandler extends DeleteEpisodeVideoHandlerInterface {
   public static create(): DeleteEpisodeVideoHandler {
-    return new DeleteEpisodeVideoHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new DeleteEpisodeVideoHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      crypto.randomUUID(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private generateUuid: () => string,
   ) {
     super();
   }
@@ -45,13 +59,38 @@ export class DeleteEpisodeVideoHandler extends DeleteEpisodeVideoHandlerInterfac
         `Account ${userSession.accountId} not allowed to archive season.`,
       );
     }
-    await updateEpisodeDraftResumableVideoUpload(
-      (query) => this.database.run(query),
-      VideoState.EMPTY,
-      {},
-      body.seasonId,
-      body.episodeId,
-    );
-    return {};
+    await this.database.runTransactionAsync(async (transaction) => {
+      let [metadataRows, draftRows] = await Promise.all([
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getEpisodeDraft(transaction, body.seasonId, body.episodeId),
+      ]);
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (draftRows.length === 0) {
+        throw newNotFoundError(
+          `Season ${body.seasonId} episode draft ${body.episodeId} is not found.`,
+        );
+      }
+      let filename = this.generateUuid();
+      await transaction.batchUpdate([
+        updateEpisodeDraftNewVideoStatement(
+          filename,
+          VideoState.EMPTY,
+          {},
+          undefined,
+          undefined,
+          body.seasonId,
+          body.episodeId,
+        ),
+        insertVideoFileStatement(filename, true),
+        updateVideoFileStatement(false, draftRows[0].episodeDraftVideoFilename),
+      ]);
+      await transaction.commit();
+    });
+    return {
+      videoState: VideoState.EMPTY,
+      resumableVideoUpload: {},
+    };
   }
 }

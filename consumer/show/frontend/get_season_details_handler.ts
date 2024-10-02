@@ -78,7 +78,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
   ): Promise<void> {
     let now = this.getNow();
     let seasonRows = await getSeasonForConsumer(
-      (query) => this.database.run(query),
+      this.database,
       body.seasonId,
       SeasonState.PUBLISHED,
       now,
@@ -100,7 +100,11 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       .publicUrl();
     seasonDetails.grade = seasonRows[0].sgGrade;
     seasonDetails.totalEpisodes = seasonRows[0].sTotalEpisodes;
-    seasonDetails.publisher = publisher;
+    seasonDetails.publisher = {
+      accountId: publisher.accountId,
+      name: publisher.naturalName,
+      avatarSmallUrl: publisher.avatarSmallUrl,
+    };
   }
 
   private async getContinueEpisodeDetails(
@@ -112,7 +116,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     });
     if (!continueEpisodeResponse.episodeId) {
       let episodeRows = await getEpisodeForConsumerByIndex(
-        (query) => this.database.run(query),
+        this.database,
         body.seasonId,
         1,
       );
@@ -126,12 +130,12 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         name: episodeRows[0].episodeName,
         index: 1,
         videoLength: episodeRows[0].episodeVideoLength,
-        upcomingPremierTimestamp: episodeRows[0].episodePremierTimestamp,
+        premierTimestamp: episodeRows[0].episodePremierTimestamp,
       };
       seasonDetails.continueTimestampstamp = 0;
     } else {
       let episodeRows = await getEpisodeForConsumer(
-        (query) => this.database.run(query),
+        this.database,
         body.seasonId,
         continueEpisodeResponse.episodeId,
       );
@@ -145,7 +149,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         name: episodeRows[0].episodeName,
         index: episodeRows[0].episodeIndex,
         videoLength: episodeRows[0].episodeVideoLength,
-        upcomingPremierTimestamp: episodeRows[0].episodePremierTimestamp,
+        premierTimestamp: episodeRows[0].episodePremierTimestamp,
       };
       seasonDetails.continueTimestampstamp =
         continueEpisodeResponse.continueTimestamp;

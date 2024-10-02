@@ -2,7 +2,10 @@ import crypto = require("crypto");
 import { FAR_FUTURE_TIME } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { insertSeason, insertSeasonGrade } from "../../../db/sql";
+import {
+  insertSeasonGradeStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { CreateSeasonHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -16,14 +19,18 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
   public static create(): CreateSeasonHandler {
-    return new CreateSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      crypto.randomUUID(),
+    return new CreateSeasonHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => Date.now(),
+      () => crypto.randomUUID(),
     );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
     private generateUuid: () => string,
   ) {
     super();
@@ -49,23 +56,26 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
     }
     let seasonId = this.generateUuid();
     await this.database.runTransactionAsync(async (transaction) => {
-      await insertSeason(
-        (query) => transaction.run(query),
-        seasonId,
-        userSession.accountId,
-        body.name,
-        seasonId + ".jpg",
-        SeasonState.DRAFT,
-        0,
-      );
-      await insertSeasonGrade(
-        (query) => transaction.run(query),
-        seasonId,
-        this.generateUuid(),
-        1,
-        new Date(0).valueOf(),
-        FAR_FUTURE_TIME,
-      );
+      let now = this.getNow();
+      await transaction.batchUpdate([
+        insertSeasonStatement(
+          seasonId,
+          userSession.accountId,
+          body.name,
+          seasonId + ".jpg",
+          now,
+          now,
+          SeasonState.DRAFT,
+          0,
+        ),
+        insertSeasonGradeStatement(
+          seasonId,
+          this.generateUuid(),
+          1,
+          new Date(0).valueOf(),
+          FAR_FUTURE_TIME,
+        ),
+      ]);
       await transaction.commit();
     });
     return {

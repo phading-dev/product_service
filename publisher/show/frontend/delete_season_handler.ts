@@ -1,11 +1,11 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeason,
-  getEpisodeDraftVideoFiles,
-  getSeasonCoverImage,
-  insertDeletingCoverImageFile,
-  insertDeletingVideoFile,
+  deleteSeasonStatement,
+  getAllEpisodeDraftVideoFiles,
+  getSeasonMetadata,
+  insertDeletingCoverImageFileStatement,
+  updateVideoFileStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { DeleteSeasonHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
@@ -53,33 +53,26 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let [coverImageRows, draftVideoFiles] = await Promise.all([
-        getSeasonCoverImage((query) => transaction.run(query), body.seasonId),
-        getEpisodeDraftVideoFiles(
-          (query) => transaction.run(query),
-          body.seasonId,
-        ),
+      let [metadataRows, draftVideoFiles] = await Promise.all([
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getAllEpisodeDraftVideoFiles(transaction, body.seasonId),
       ]);
-      if (coverImageRows.length === 0) {
+      if (metadataRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      if (coverImageRows[0].seasonState !== SeasonState.DRAFT) {
+      if (metadataRows[0].seasonState !== SeasonState.DRAFT) {
         throw newBadRequestError(
           `Season ${body.seasonId} is not in DRAFT state and cannot be deleted anymore.`,
         );
       }
-      await Promise.all([
-        insertDeletingCoverImageFile(
-          (query) => transaction.run(query),
-          coverImageRows[0].seasonCoverImageFilename,
+      await transaction.batchUpdate([
+        insertDeletingCoverImageFileStatement(
+          metadataRows[0].seasonCoverImageFilename,
         ),
         ...draftVideoFiles.map((row) =>
-          insertDeletingVideoFile(
-            (query) => transaction.run(query),
-            row.episodeDraftVideoFilename,
-          ),
+          updateVideoFileStatement(false, row.episodeDraftVideoFilename),
         ),
-        deleteSeason((query) => transaction.run(query), body.seasonId),
+        deleteSeasonStatement(body.seasonId),
       ]);
       await transaction.commit();
     });

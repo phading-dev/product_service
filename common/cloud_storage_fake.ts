@@ -4,9 +4,16 @@ import { Writable } from "stream";
 export class FakeFile {
   public constructor(private filename: string) {
   }
-
   public createWriteStream(): Writable {
     return createWriteStream(this.filename);
+  }
+  public publicUrl(): string {
+    return this.filename;
+  }
+  public delete(): void {
+  }
+  public getSignedUrl(): [string] {
+    return [this.filename];
   }
 }
 

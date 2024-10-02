@@ -56,13 +56,13 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     let seasonRows: Array<GetLastSeasonsRow | GetMoreSeasonsRow>;
     if (!body.lastChangeTimeCursor) {
       seasonRows = await getLastSeasons(
-        (query) => this.database.run(query),
+        this.database,
         body.state,
         userSession.accountId
       );
     } else {
       seasonRows = await getMoreSeasons(
-        (query) => this.database.run(query),
+        this.database,
         body.lastChangeTimeCursor,
         body.state,
         userSession.accountId

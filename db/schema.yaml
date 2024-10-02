@@ -16,10 +16,8 @@
             type: string
           - name: createdTimestamp
             type: timestamp
-            allowCommitTimestamp: true
           - name: lastChangeTimestamp
             type: timestamp
-            allowCommitTimestamp: true
           - name: state
             type: SeasonState
             import: "@phading/product_service_interface/publisher/show/season_state"
@@ -118,7 +116,6 @@
             type: float64
           - name: publishedTimestamp
             type: timestamp
-            allowCommitTimestamp: true
           - name: premierTimestamp
             type: timestamp
         primaryKeys:
@@ -138,12 +135,18 @@
             type: string
         primaryKeys:
           - filename
-      - name: DeletingVideoFile
+      - name: VideoFile
         columns:
           - name: filename
             type: string
+          - name: used
+            type: bool
         primaryKeys:
           - filename
+        indexes:
+          - name: IsUsed
+            columns:
+              - used
     selects:
       # Season
       - name: GetSeasonForConsumer
@@ -326,6 +329,13 @@
           - videoUploadedTimestamp
           - videoLength
           - videoSize
+      - name: GetAllEpisodeDraftVideoFiles
+        table: EpisodeDraft
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - videoFilename
       # Episode
       - name: GetEpisodeForConsumer
         table: Episode
@@ -356,42 +366,131 @@
           - videoLength
           - premierTimestamp
       - name: GetNextEpisodesForConsumer
-        table: Episode
+        table:
+          name: Season
+          as: s
+        join:
+          - type: INNER
+            table:
+              name: Episode
+              as: e
+            on:
+              op: =
+              leftColumn:
+                name: seasonId
+                table: s
+              rightColumn: seasonId
         where:
           op: AND
           exps:
             - op: =
-              leftColumn: seasonId
-            - op: "<"
-              leftColumn: index
+              leftColumn:
+                name: seasonId
+                table: e
+            - op: ">"
+              leftColumn:
+                name: index
+                table: e
+            - op: =
+              leftColumn:
+                name: state
+                table: s
         orderBy:
-          - index
+          - column:
+              name: index
+              table: e
         limit: 20
         getColumns:
-          - episodeId
-          - name
-          - index
-          - videoLength
-          - premierTimestamp
+          - name: episodeId
+            table: e
+          - name: name
+            table: e
+          - name: index
+            table: e
+          - name: videoLength
+            table: e
+          - name: premierTimestamp
+            table: e
       - name: GetPrevEpisodesForConsumer
-        table: Episode
+        table:
+          name: Season
+          as: s
+        join:
+          - type: INNER
+            table:
+              name: Episode
+              as: e
+            on:
+              op: =
+              leftColumn:
+                name: seasonId
+                table: s
+              rightColumn: seasonId
         where:
           op: AND
           exps:
             - op: =
-              leftColumn: seasonId
-            - op: ">"
-              leftColumn: index
+              leftColumn:
+                name: seasonId
+                table: e
+            - op: "<"
+              leftColumn:
+                name: index
+                table: e
+            - op: =
+              leftColumn:
+                name: state
+                table: s
         orderBy:
-          - column: index
+          - column:
+              name: index
+              table: e
             desc: true
         limit: 20
         getColumns:
-          - episodeId
-          - name
-          - index
-          - videoLength
-          - premierTimestamp
+          - name: episodeId
+            table: e
+          - name: name
+            table: e
+          - name: index
+            table: e
+          - name: videoLength
+            table: e
+          - name: premierTimestamp
+            table: e
+      - name: GetEpisodeVideoFileForConsumer
+        table:
+          name: Season
+          as: s
+        join:
+          - type: INNER
+            table:
+              name: Episode
+              as: e
+            on:
+              op: =
+              leftColumn:
+                name: seasonId
+                table: s
+              rightColumn: seasonId
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn:
+                name: seasonId
+                table: e
+            - op: =
+              leftColumn:
+                name: episodeId
+                table: e
+            - op: =
+              leftColumn:
+                name: state
+                table: s
+        getColumns:
+          - name: videoFilename
+            table: e
       - name: GetLastEpisodes
         table: Episode 
         where:
@@ -430,49 +529,29 @@
           - videoSize
           - publishedTimestamp
           - premierTimestamp
-      - name: GetEpisodeVideoFiles
-        table: Episode
-        where:
-          op: =
-          leftColumn: seasonId
-        getColumns:
-          - videoFilename
-      - name: GetEpisodeVideoFile
-        table: Episode
+      - name: GetNextEpisodes
+        table: Episode 
         where:
           op: AND
           exps:
             - op: =
               leftColumn: seasonId
-            - op: =
-              leftColumn: episodeId
+            - op: ">"
+              leftColumn: index
+        orderBy:
+          - column: index
+            desc: true
+        limit: 20
         getColumns:
-          - videoFilename
-      - name: GetEpisodeIndex
-        table: Episode
-        where:
-          op: AND
-          exps:
-            - op: =
-              leftColumn: seasonId
-            - op: =
-              leftColumn: episodeId
-        getColumns:
+          - episodeId
+          - name
           - index
-      - name: GetEpisodeIndexAndVideo
-        table: Episode
-        where:
-          op: AND
-          exps:
-            - op: =
-              leftColumn: seasonId
-            - op: =
-              leftColumn: episodeId
-        getColumns:
-          - index
-          - videoFilename
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
       - name: GetEpisodesWithinIndexRange
-        table: Episode
+        table: Episode 
         where:
           op: AND
           exps:
@@ -487,22 +566,50 @@
             desc: true
         getColumns:
           - episodeId
+          - name
           - index
-      - name: GetEpisodesFollowingIndex
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
+      - name: GetEpisode
         table: Episode
         where:
           op: AND
           exps:
             - op: =
               leftColumn: seasonId
-            - op: ">"
-              leftColumn: index
-        orderBy:
-          - column: index
-            desc: true
+            - op: =
+              leftColumn: episodeId
         getColumns:
           - episodeId
+          - name
           - index
+          - videoFilename
+          - videoLength
+          - videoSize
+          - publishedTimestamp
+          - premierTimestamp
+      - name: GetAllEpisodeVideoFiles
+        table: Episode
+        where:
+          op: =
+          leftColumn: seasonId
+        getColumns:
+          - videoFilename
+      # VideoFile
+      - name: GetVideoFiles
+        table: VideoFile
+        where:
+          op: =
+          leftColumn: used
+        getColumns:
+          - filename
+      # DeletingCoverImageFile
+      - name: GetDeletingCoverImageFiles
+        table: DeletingCoverImageFile
+        getColumns:
+          - filename
     inserts:
       - name: InsertSeason
         table: Season
@@ -548,10 +655,11 @@
         table: DeletingCoverImageFile
         setColumns:
           - filename
-      - name: InsertDeletingVideoFile
-        table: DeletingVideoFile
+      - name: InsertVideoFile
+        table: VideoFile
         setColumns:
           - filename
+          - used
     updates:
       - name: UpdateSeason
         table: Season
@@ -631,7 +739,7 @@
               leftColumn: episodeId
         setColumns:
           - name
-      - name: UpdateEpisodeDraftResumableVideoUpload
+      - name: UpdateEpisodeDraftNewVideo
         table: EpisodeDraft
         where:
           op: AND
@@ -641,8 +749,11 @@
             - op: =
               leftColumn: episodeId
         setColumns:
+          - videoFilename
           - videoState
           - resumableVideoUpload
+          - videoLength
+          - videoSize
       - name: UpdateEpisodeDraftUploadedVideo
         table: EpisodeDraft
         where:
@@ -669,6 +780,13 @@
               leftColumn: episodeId
         setColumns:
           - index
+      - name: UpdateVideoFile
+        table: VideoFile
+        where:
+          op: =
+          leftColumn: filename
+        setColumns:
+          - used
     deletes:
       - name: DeleteSeason
         table: Season
@@ -684,6 +802,11 @@
               leftColumn: seasonId
             - op: =
               leftColumn: episodeId
+      - name: DeleteAllEpisodeDrafts
+        table: EpisodeDraft
+        where:
+          op: =
+          leftColumn: seasonId
       - name: DeleteEpisode
         table: Episode
         where:
@@ -693,13 +816,18 @@
               leftColumn: seasonId
             - op: =
               leftColumn: episodeId
+      - name: DeleteAllEpisodes
+        table: Episode
+        where:
+          op: =
+          leftColumn: seasonId
       - name: DeleteDeletingCoverImageFile
         table: DeletingCoverImageFile
         where:
           op: =
           leftColumn: filename
-      - name: DeleteDeletingVideoFile
-        table: DeletingVideoFile
+      - name: DeleteVideoFile
+        table: VideoFile
         where:
           op: =
           leftColumn: filename

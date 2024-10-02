@@ -1,6 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getPrevEpisodes } from "../../../db/sql";
+import { getPrevEpisodes, getSeasonMetadata } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { GetMoreEpisodesHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -8,7 +8,11 @@ import {
   GetMoreEpisodesResponse,
 } from "@phading/product_service_interface/publisher/show/frontend/interface";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
-import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import {
+  newBadRequestError,
+  newNotFoundError,
+  newUnauthorizedError,
+} from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
@@ -44,27 +48,29 @@ export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
         `Account ${userSession.accountId} not allowed to get more episodes.`,
       );
     }
-    let rows = await getPrevEpisodes(
-      (query) => this.database.run(query),
-      body.seasonId,
-      body.indexCursor,
-    );
+    let [metadataRows, episodes] = await Promise.all([
+      getSeasonMetadata(this.database, body.seasonId, userSession.accountId),
+      getPrevEpisodes(this.database, body.seasonId, body.indexCursor),
+    ]);
+    if (metadataRows.length === 0) {
+      throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+    }
     return {
-      episodes: rows.map((row) => {
+      episodes: episodes.map((e) => {
         return {
-          episodeId: row.episodeEpisodeId,
-          name: row.episodeName,
-          index: row.episodeIndex,
-          videoLength: row.episodeVideoLength,
-          videoSize: row.episodeVideoSize,
-          publishedTimestamps: row.episodePublishedTimestamp,
-          premierTimestamp: row.episodePremierTimestamp,
+          episodeId: e.episodeEpisodeId,
+          name: e.episodeName,
+          index: e.episodeIndex,
+          videoLength: e.episodeVideoLength,
+          videoSize: e.episodeVideoSize,
+          publishedTimestamp: e.episodePublishedTimestamp,
+          premierTimestamp: e.episodePremierTimestamp,
         };
       }),
       indexCursor:
-        rows.length === 0
+        episodes.length === 0
           ? body.indexCursor
-          : rows[rows.length - 1].episodeIndex,
+          : episodes[episodes.length - 1].episodeIndex,
     };
   }
 }

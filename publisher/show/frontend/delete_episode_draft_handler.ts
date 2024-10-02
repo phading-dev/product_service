@@ -1,10 +1,11 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteEpisodeDraft,
-  getEpisodeDraftVideoFile,
-  insertDeletingVideoFile,
-  updateSeasonLastChangeTimestamp,
+  deleteEpisodeDraftStatement,
+  getEpisodeDraft,
+  getSeasonMetadata,
+  updateSeasonLastChangeTimestampStatement,
+  updateVideoFileStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { DeleteEpisodeDraftHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
@@ -22,12 +23,15 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class DeleteEpisodeDraftHandler extends DeleteEpisodeDraftHandlerInterface {
   public static create(): DeleteEpisodeDraftHandler {
-    return new DeleteEpisodeDraftHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new DeleteEpisodeDraftHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -54,30 +58,22 @@ export class DeleteEpisodeDraftHandler extends DeleteEpisodeDraftHandlerInterfac
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let videoFileRows = await getEpisodeDraftVideoFile(
-        (query) => transaction.run(query),
-        body.seasonId,
-        body.episodeId,
-      );
-      if (videoFileRows.length === 0) {
+      let [metadataRows, draftRows] = await Promise.all([
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getEpisodeDraft(transaction, body.seasonId, body.episodeId),
+      ]);
+      if (metadataRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      if (draftRows.length === 0) {
         throw newNotFoundError(
-          `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
+          `Season ${body.seasonId} episode draft ${body.episodeId} is not found.`,
         );
       }
-      await Promise.all([
-        insertDeletingVideoFile(
-          (query) => transaction.run(query),
-          videoFileRows[0].episodeDraftVideoFilename,
-        ),
-        deleteEpisodeDraft(
-          (query) => transaction.run(query),
-          body.seasonId,
-          body.episodeId,
-        ),
-        updateSeasonLastChangeTimestamp(
-          (query) => transaction.run(query),
-          body.seasonId,
-        ),
+      await transaction.batchUpdate([
+        deleteEpisodeDraftStatement(body.seasonId, body.episodeId),
+        updateVideoFileStatement(false, draftRows[0].episodeDraftVideoFilename),
+        updateSeasonLastChangeTimestampStatement(this.getNow(), body.seasonId),
       ]);
       await transaction.commit();
     });

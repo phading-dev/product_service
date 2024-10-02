@@ -3,8 +3,9 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonMetadata,
-  insertEpisodeDraft,
-  updateSeasonLastChangeTimestamp,
+  insertEpisodeDraftStatement,
+  insertVideoFileStatement,
+  updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { CreateEpisodeDraftHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
@@ -24,14 +25,18 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterface {
   public static create(): CreateEpisodeDraftHandler {
-    return new CreateEpisodeDraftHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      crypto.randomUUID(),
+    return new CreateEpisodeDraftHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => Date.now(),
+      () => crypto.randomUUID(),
     );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
     private generateUuid: () => string,
   ) {
     super();
@@ -59,7 +64,7 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
     let videoFilename = episodeId;
     await this.database.runTransactionAsync(async (transaction) => {
       let metadataRows = await getSeasonMetadata(
-        (query) => transaction.run(query),
+        transaction,
         body.seasonId,
         userSession.accountId,
       );
@@ -71,9 +76,8 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
           `Season ${body.seasonId} is archived and cannot create new episode.`,
         );
       }
-      await Promise.all([
-        insertEpisodeDraft(
-          (query) => transaction.run(query),
+      await transaction.batchUpdate([
+        insertEpisodeDraftStatement(
           body.seasonId,
           episodeId,
           body.episodeName,
@@ -81,10 +85,8 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
           VideoState.EMPTY,
           {},
         ),
-        updateSeasonLastChangeTimestamp(
-          (query) => transaction.run(query),
-          body.seasonId,
-        ),
+        insertVideoFileStatement(videoFilename, true),
+        updateSeasonLastChangeTimestampStatement(this.getNow(), body.seasonId),
       ]);
       await transaction.commit();
     });

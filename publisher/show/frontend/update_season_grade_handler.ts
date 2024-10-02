@@ -8,11 +8,11 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastTwoSeasonGrade,
   getSeasonMetadata,
-  insertSeasonGrade,
-  updateSeasonGrade,
-  updateSeasonGradeAndStartTimestamp,
-  updateSeasonGradeEndTimestamp,
-  updateSeasonLastChangeTimestamp,
+  insertSeasonGradeStatement,
+  updateSeasonGradeAndStartTimestampStatement,
+  updateSeasonGradeEndTimestampStatement,
+  updateSeasonGradeStatement,
+  updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { UpdateSeasonGradeHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
@@ -76,16 +76,8 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     await this.database.runTransactionAsync(async (transaction) => {
       let now = this.getNow();
       let [metadataRows, seasonGradeRows] = await Promise.all([
-        getSeasonMetadata(
-          (query) => transaction.run(query),
-          body.seasonId,
-          userSession.accountId,
-        ),
-        getLastTwoSeasonGrade(
-          (query) => transaction.run(query),
-          body.seasonId,
-          now,
-        ),
+        getSeasonMetadata(transaction, body.seasonId, userSession.accountId),
+        getLastTwoSeasonGrade(transaction, body.seasonId, now),
       ]);
       if (metadataRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -101,17 +93,13 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             `Season ${body.seasonId} has ${seasonGradeRows.length} grade(s) while in draft state.`,
           );
         }
-        await Promise.all([
-          updateSeasonGrade(
-            (query) => transaction.run(query),
+        await transaction.batchUpdate([
+          updateSeasonGradeStatement(
             body.grade,
             body.seasonId,
             seasonGradeRows[0].seasonGradeGradeId,
           ),
-          updateSeasonLastChangeTimestamp(
-            (query) => transaction.run(query),
-            body.seasonId,
-          ),
+          updateSeasonLastChangeTimestampStatement(now, body.seasonId),
         ]);
       } else {
         if (!body.effectiveTimestamp) {
@@ -134,25 +122,20 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
               `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[0].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[0].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
             );
           }
-          await Promise.all([
-            updateSeasonGradeEndTimestamp(
-              (query) => transaction.run(query),
+          await transaction.batchUpdate([
+            updateSeasonGradeEndTimestampStatement(
               body.effectiveTimestamp,
               body.seasonId,
               seasonGradeRows[0].seasonGradeGradeId,
             ),
-            insertSeasonGrade(
-              (query) => transaction.run(query),
+            insertSeasonGradeStatement(
               body.seasonId,
               this.generateUuid(),
               body.grade,
               body.effectiveTimestamp,
               FAR_FUTURE_TIME,
             ),
-            updateSeasonLastChangeTimestamp(
-              (query) => transaction.run(query),
-              body.seasonId,
-            ),
+            updateSeasonLastChangeTimestampStatement(now, body.seasonId),
           ]);
         } else {
           if (seasonGradeRows[0].seasonGradeStartTimestamp <= now) {
@@ -165,24 +148,19 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
               `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[1].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[1].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
             );
           }
-          await Promise.all([
-            updateSeasonGradeEndTimestamp(
-              (query) => transaction.run(query),
+          await transaction.batchUpdate([
+            updateSeasonGradeEndTimestampStatement(
               body.effectiveTimestamp,
               body.seasonId,
               seasonGradeRows[1].seasonGradeGradeId,
             ),
-            updateSeasonGradeAndStartTimestamp(
-              (query) => transaction.run(query),
+            updateSeasonGradeAndStartTimestampStatement(
               body.grade,
               body.effectiveTimestamp,
               body.seasonId,
               seasonGradeRows[0].seasonGradeGradeId,
             ),
-            updateSeasonLastChangeTimestamp(
-              (query) => transaction.run(query),
-              body.seasonId,
-            ),
+            updateSeasonLastChangeTimestampStatement(now, body.seasonId),
           ]);
         }
       }

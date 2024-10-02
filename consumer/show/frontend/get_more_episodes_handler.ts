@@ -10,6 +10,7 @@ import {
   GetMoreEpisodesRequestBody,
   GetMoreEpisodesResponse,
 } from "@phading/product_service_interface/consumer/show/frontend/interface";
+import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -48,31 +49,31 @@ export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
     >;
     if (body.next) {
       rows = await getNextEpisodesForConsumer(
-        (query) => this.database.run(query),
+        this.database,
         body.seasonId,
         body.indexCursor,
+        SeasonState.PUBLISHED,
       );
     } else {
       rows = await getPrevEpisodesForConsumer(
-        (query) => this.database.run(query),
+        this.database,
         body.seasonId,
         body.indexCursor,
+        SeasonState.PUBLISHED,
       );
     }
     return {
       episodes: rows.map((row) => {
         return {
-          episodeId: row.episodeEpisodeId,
-          name: row.episodeName,
-          index: row.episodeIndex,
-          videoLength: row.episodeVideoLength,
-          upcomingPremierTime: row.episodePremierTimestamp,
+          episodeId: row.eEpisodeId,
+          name: row.eName,
+          index: row.eIndex,
+          videoLength: row.eVideoLength,
+          premierTimestamp: row.ePremierTimestamp,
         };
       }),
       indexCursor:
-        rows.length === 0
-          ? body.indexCursor
-          : rows[rows.length - 1].episodeIndex,
+        rows.length === 0 ? body.indexCursor : rows[rows.length - 1].eIndex,
     };
   }
 }

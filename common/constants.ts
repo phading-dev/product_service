@@ -1,9 +1,3 @@
-// export let INSTANCE_ID = "core-services-instance";
-export let INSTANCE_ID = "test-instance";
-export let DATABASE_ID = "product-service-db";
-// TODO: Pass in fron arg/env.
-export let EPISODE_VIDEO_BUCKET_NAME = "video-bucket";
-export let SEASON_COVER_IMAGE_BUCKET_NAME = "season-cover-image";
 export let COVER_IMAGE_HEIGHT = 300;
 export let COVER_IMAGE_WIDTH = 200;
 export let MAX_GRADE = 99;

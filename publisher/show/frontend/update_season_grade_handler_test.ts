@@ -1,12 +1,12 @@
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeason,
+  deleteSeasonStatement,
   getLastTwoSeasonGrade,
   getSeasonMetadata,
-  insertSeason,
-  insertSeasonGrade,
+  insertSeasonGradeStatement,
+  insertSeasonStatement,
 } from "../../../db/sql";
 import { UpdateSeasonGradeHandler } from "./update_season_grade_handler";
-import { Spanner } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/backend/interface";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -15,17 +15,17 @@ import {
   assertThat,
   containStr,
   eq,
-  ne,
 } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
-process.env.SPANNER_EMULATOR_HOST = "localhost:9010";
-
-let TEST_DATABASE = new Spanner({
-  projectId: "local-project",
-})
-  .instance("test-instance")
-  .database("test-database");
+async function cleanupSeason(): Promise<void> {
+  try {
+    await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+      await transaction.runUpdate(deleteSeasonStatement("season1"));
+      await transaction.commit();
+    });
+  } catch (e) {}
+}
 
 TEST_RUNNER.run({
   name: "UpdateSeasonGradeHandlerTest",
@@ -34,33 +34,22 @@ TEST_RUNNER.run({
       name: "UpdateGradeInDraftState",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.DRAFT,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.DRAFT,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+          ]);
           await transaction.commit();
         });
-        let prevTimestamps = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
-        )[0].seasonLastChangeTimestamp;
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -68,10 +57,11 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
+        let nowTimestamp = 1100;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
-          () => 1100,
+          () => nowTimestamp,
           () => "new grade",
         );
 
@@ -87,66 +77,42 @@ TEST_RUNNER.run({
 
         // Verify
         let lastChangeTimestamp = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
         )[0].seasonLastChangeTimestamp;
         assertThat(
           lastChangeTimestamp,
-          ne(prevTimestamps),
+          eq(nowTimestamp),
           "last change timestamp",
         );
         let grade = (
-          await getLastTwoSeasonGrade(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            1100,
-          )
+          await getLastTwoSeasonGrade(SPANNER_DATABASE, "season1", nowTimestamp)
         )[0];
         assertThat(grade.seasonGradeGrade, eq(10), "grade");
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "UpdateGradeInPublishedState",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+          ]);
           await transaction.commit();
         });
-        let prevTimestamps = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
-        )[0].seasonLastChangeTimestamp;
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -154,10 +120,11 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
+        let nowTimestamp = 1100;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
-          () => 1100,
+          () => nowTimestamp,
           () => "new grade",
         );
         let effectiveTimestamp = 2000 + 24 * 60 * 60 * 1000;
@@ -175,21 +142,17 @@ TEST_RUNNER.run({
 
         // Verify
         let lastChangeTimestamp = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
         )[0].seasonLastChangeTimestamp;
         assertThat(
           lastChangeTimestamp,
-          ne(prevTimestamps),
+          eq(nowTimestamp),
           "last change timestamp",
         );
         let grades = await getLastTwoSeasonGrade(
-          (query) => TEST_DATABASE.run(query),
+          SPANNER_DATABASE,
           "season1",
-          1100,
+          nowTimestamp,
         );
         assertThat(grades.length, eq(2), "two grades");
         assertThat(grades[0].seasonGradeGrade, eq(10), "updated grade");
@@ -206,12 +169,7 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
@@ -219,41 +177,29 @@ TEST_RUNNER.run({
       execute: async () => {
         // Prepare
         let effectiveTimestamp = 2000 + 24 * 60 * 60 * 1000;
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade2",
-            10,
-            10000,
-            effectiveTimestamp + 1000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+            insertSeasonGradeStatement(
+              "season1",
+              "grade2",
+              10,
+              10000,
+              effectiveTimestamp + 1000,
+            ),
+          ]);
           await transaction.commit();
         });
-        let prevTimestamps = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
-        )[0].seasonLastChangeTimestamp;
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -261,10 +207,11 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
+        let nowTimestamp = 1100;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
-          () => 1100,
+          () => nowTimestamp,
           () => "new grade",
         );
 
@@ -281,21 +228,17 @@ TEST_RUNNER.run({
 
         // Verify
         let lastChangeTimestamp = (
-          await getSeasonMetadata(
-            (query) => TEST_DATABASE.run(query),
-            "season1",
-            "account1",
-          )
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
         )[0].seasonLastChangeTimestamp;
         assertThat(
           lastChangeTimestamp,
-          ne(prevTimestamps),
+          eq(nowTimestamp),
           "last change timestamp",
         );
         let grades = await getLastTwoSeasonGrade(
-          (query) => TEST_DATABASE.run(query),
+          SPANNER_DATABASE,
           "season1",
-          1100,
+          nowTimestamp,
         );
         assertThat(grades.length, eq(2), "two grades");
         assertThat(grades[0].seasonGradeGrade, eq(20), "updated grade");
@@ -312,12 +255,7 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
@@ -325,7 +263,7 @@ TEST_RUNNER.run({
       execute: async () => {
         // Prepare
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           new NodeServiceClientMock(),
           () => 1100,
           () => "new grade",
@@ -352,7 +290,7 @@ TEST_RUNNER.run({
       execute: async () => {
         // Prepare
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           new NodeServiceClientMock(),
           () => 1100,
           () => "new grade",
@@ -378,27 +316,30 @@ TEST_RUNNER.run({
       name: "SeasonNotOwned",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account2",
-            "a name",
-            "image.jpg",
-            SeasonState.DRAFT,
-            0,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.DRAFT,
+              0,
+            ),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
-            accountId: "account1",
+            accountId: "account2",
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -424,28 +365,26 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonArchived",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.ARCHIVED,
-            0,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.ARCHIVED,
+              0,
+            ),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -456,7 +395,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -482,44 +421,28 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonDraftWithTwoGrades",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.DRAFT,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade2",
-            10,
-            10000,
-            20000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.DRAFT,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+            insertSeasonGradeStatement("season1", "grade2", 10, 10000, 20000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -530,7 +453,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -556,36 +479,27 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedWithoutEffectiveTimestamp",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -596,7 +510,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -622,36 +536,27 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedEffectiveTimestampTooSoon",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -662,7 +567,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -691,36 +596,27 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedNoGrade",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            100,
-            1000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 100, 1000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -731,7 +627,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -758,36 +654,27 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedGradeStartTimeTooLarge",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            2000,
-            10000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 2000, 10000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -798,7 +685,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -827,44 +714,28 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedNewGradeStartTimeTooSmall",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            1000,
-            10000,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade2",
-            1,
-            1000,
-            100000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 1000, 10000),
+            insertSeasonGradeStatement("season1", "grade2", 1, 1000, 100000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -875,7 +746,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -904,44 +775,28 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
     {
       name: "SeasonPublishedCurrentGradeStartTimeTooLarge",
       execute: async () => {
         // Prepare
-        await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-          await insertSeason(
-            (query) => transaction.run(query),
-            "season1",
-            "account1",
-            "a name",
-            "image.jpg",
-            SeasonState.PUBLISHED,
-            0,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade1",
-            1,
-            2000,
-            10000,
-          );
-          await insertSeasonGrade(
-            (query) => transaction.run(query),
-            "season1",
-            "grade2",
-            1,
-            10000,
-            100000,
-          );
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement(
+              "season1",
+              "account1",
+              "a name",
+              "image.jpg",
+              1000,
+              1000,
+              SeasonState.PUBLISHED,
+              0,
+            ),
+            insertSeasonGradeStatement("season1", "grade1", 1, 2000, 10000),
+            insertSeasonGradeStatement("season1", "grade2", 1, 10000, 100000),
+          ]);
           await transaction.commit();
         });
         let clientMock = new NodeServiceClientMock();
@@ -952,7 +807,7 @@ TEST_RUNNER.run({
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UpdateSeasonGradeHandler(
-          TEST_DATABASE,
+          SPANNER_DATABASE,
           clientMock,
           () => 1100,
           () => "new grade",
@@ -981,12 +836,7 @@ TEST_RUNNER.run({
         );
       },
       tearDown: async () => {
-        try {
-          await TEST_DATABASE.runTransactionAsync(async (transaction) => {
-            await deleteSeason((query) => transaction.run(query), "season1");
-            await transaction.commit();
-          });
-        } catch (e) {}
+        await cleanupSeason();
       },
     },
   ],

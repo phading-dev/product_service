@@ -64,44 +64,38 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     let now = this.getNow();
     let [seasonDetailsRows, seasonGradeRows, episodeDraftRows, episodeRows] =
       await Promise.all([
-        getSeasonDetails((query) => this.database.run(query), body.seasonId),
-        getLastTwoSeasonGrade(
-          (query) => this.database.run(query),
-          body.seasonId,
-          now,
-        ),
-        getEpisodeDrafts((query) => this.database.run(query), body.seasonId),
-        getLastEpisodes((query) => this.database.run(query), body.seasonId),
+        getSeasonDetails(this.database, body.seasonId, userSession.accountId),
+        getLastTwoSeasonGrade(this.database, body.seasonId, now),
+        getEpisodeDrafts(this.database, body.seasonId),
+        getLastEpisodes(this.database, body.seasonId),
       ]);
     if (seasonDetailsRows.length === 0) {
-      throw newNotFoundError(
-        `Season ${body.seasonId} is not found when get details.`,
-      );
+      throw newNotFoundError(`Season ${body.seasonId} is not found.`);
     }
     let grade: number;
     let nextGrade: NextGrade;
     if (seasonGradeRows.length === 1) {
-      if (seasonGradeRows[0].sgStartTimestamp > now) {
+      if (seasonGradeRows[0].seasonGradeStartTimestamp > now) {
         throw newInternalServerErrorError(
-          `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[0].sgStartTimestamp} should be smaller than now ${now}.`,
+          `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[0].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[0].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
         );
       }
-      grade = seasonGradeRows[0].sgGrade;
+      grade = seasonGradeRows[0].seasonGradeGrade;
     } else {
-      if (seasonGradeRows[0].sgStartTimestamp <= now) {
+      if (seasonGradeRows[0].seasonGradeStartTimestamp <= now) {
         throw newInternalServerErrorError(
-          `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[0].sgStartTimestamp} should be larger than now ${now}.`,
+          `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[0].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[0].seasonGradeStartTimestamp} should be larger than now ${now}.`,
         );
       }
-      if (seasonGradeRows[1].sgStartTimestamp > now) {
+      if (seasonGradeRows[1].seasonGradeStartTimestamp > now) {
         throw newInternalServerErrorError(
-          `Season ${body.seasonId} has invalid grades. Grade started at ${seasonGradeRows[1].sgStartTimestamp} should be smaller than now ${now}.`,
+          `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeRows[1].seasonGradeGradeId}'s start timestamp ${seasonGradeRows[1].seasonGradeStartTimestamp} should be smaller than now ${now}.`,
         );
       }
-      grade = seasonGradeRows[1].sgGrade;
+      grade = seasonGradeRows[1].seasonGradeGrade;
       nextGrade = {
-        grade: seasonGradeRows[0].sgGrade,
-        effectiveTimestamp: seasonGradeRows[0].sgStartTimestamp,
+        grade: seasonGradeRows[0].seasonGradeGrade,
+        effectiveTimestamp: seasonGradeRows[0].seasonGradeStartTimestamp,
       };
     }
     return {
@@ -125,7 +119,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
           name: row.episodeDraftName,
           videoState: row.episodeDraftVideoState,
           resumableVideoUpload: row.episodeDraftResumableVideoUpload,
-          videoUploadedTime: row.episodeDraftVideoUploadedTimestamp,
+          videoUploadedTimestamp: row.episodeDraftVideoUploadedTimestamp,
           videoLength: row.episodeDraftVideoLength,
           videoSize: row.episodeDraftVideoSize,
         };
@@ -137,8 +131,8 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
           index: row.episodeIndex,
           videoLength: row.episodeVideoLength,
           videoSize: row.episodeVideoSize,
-          publishedTime: row.episodePublishedTimestamp,
-          premierTime: row.episodePremierTimestamp,
+          publishedTimestamp: row.episodePublishedTimestamp,
+          premierTimestamp: row.episodePremierTimestamp,
         };
       }),
       indexCursor:

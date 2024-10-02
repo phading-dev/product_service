@@ -1,11 +1,22 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  deleteDeletingCoverImageFileStatement,
   deleteSeasonStatement,
-  getSeasonDetails,
+  deleteVideoFileStatement,
+  getDeletingCoverImageFiles,
+  getEpisodeDrafts,
+  getLastEpisodes,
+  getSeasonMetadata,
+  getVideoFiles,
+  insertEpisodeDraftStatement,
+  insertEpisodeStatement,
   insertSeasonStatement,
+  insertVideoFileStatement,
 } from "../../../db/sql";
-import { UpdateSeasonHandler } from "./update_season_handler";
+import { ArchiveSeasonHandler } from "./archive_season_handler";
+import { Statement } from "@google-cloud/spanner/build/src/transaction";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
+import { VideoState } from "@phading/product_service_interface/publisher/show/video_state";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/backend/interface";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import {
@@ -16,20 +27,149 @@ import {
 } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
+async function insertSeasonAndEpisodes(): Promise<void> {
+  await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+    let statements = new Array<Statement>();
+    for (let i = 1; i <= 10; i++) {
+      statements.push(
+        insertEpisodeDraftStatement(
+          "season1",
+          `ep${i}`,
+          undefined,
+          `draftvideo${i}`,
+          VideoState.EMPTY,
+          {},
+        ),
+        insertVideoFileStatement(`draftvideo${i}`, true),
+      );
+    }
+    for (let i = 1; i <= 10; i++) {
+      statements.push(
+        insertEpisodeStatement(
+          "season1",
+          `ep${i}`,
+          undefined,
+          i,
+          `video${i}`,
+          1200,
+          1300,
+          1000,
+          1000,
+        ),
+        insertVideoFileStatement(`video${i}`, true),
+      );
+    }
+    await transaction.batchUpdate([
+      insertSeasonStatement(
+        "season1",
+        "account1",
+        "a name",
+        "file.jpg",
+        1000,
+        1000,
+        SeasonState.PUBLISHED,
+        10,
+      ),
+      ...statements,
+    ]);
+    await transaction.commit();
+  });
+}
+
 async function cleanupSeason(): Promise<void> {
   try {
     await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-      await transaction.runUpdate(deleteSeasonStatement("season1"));
+      let [usedFiles, notUsedFiles, coverImages] = await Promise.all([
+        getVideoFiles(transaction, true),
+        getVideoFiles(transaction, false),
+        getDeletingCoverImageFiles(transaction),
+      ]);
+      await transaction.batchUpdate([
+        ...usedFiles.map((file) =>
+          deleteVideoFileStatement(file.videoFileFilename),
+        ),
+        ...notUsedFiles.map((file) =>
+          deleteVideoFileStatement(file.videoFileFilename),
+        ),
+        ...coverImages.map((file) =>
+          deleteDeletingCoverImageFileStatement(
+            file.deletingCoverImageFileFilename,
+          ),
+        ),
+        deleteSeasonStatement("season1"),
+      ]);
       await transaction.commit();
     });
   } catch (e) {}
 }
 
 TEST_RUNNER.run({
-  name: "UpdateSeasonHandlerTest",
+  name: "ArchiveSeasonHandlerTest",
   cases: [
     {
-      name: "NoDescription",
+      name: "Success",
+      execute: async () => {
+        // Prepare
+        await insertSeasonAndEpisodes();
+        let clientMock = new NodeServiceClientMock();
+        clientMock.response = {
+          userSession: {
+            accountId: "account1",
+          },
+          canPublishShows: true,
+        } as ExchangeSessionAndCheckCapabilityResponse;
+        let nowTimestamp = 2000;
+        let handler = new ArchiveSeasonHandler(
+          SPANNER_DATABASE,
+          clientMock,
+          () => nowTimestamp,
+        );
+
+        // Execute
+        await handler.handle(
+          "",
+          {
+            seasonId: "season1",
+          },
+          "session1",
+        );
+
+        // Verify
+        let drafts = await getEpisodeDrafts(SPANNER_DATABASE, "season1");
+        assertThat(drafts.length, eq(0), "# of drafts");
+        let episodes = await getLastEpisodes(SPANNER_DATABASE, "season1");
+        assertThat(episodes.length, eq(0), "# of episodes");
+        let notUsedFiles = await getVideoFiles(SPANNER_DATABASE, false);
+        assertThat(notUsedFiles.length, eq(20), "# of not used files");
+        let deletingCoverImages =
+          await getDeletingCoverImageFiles(SPANNER_DATABASE);
+        assertThat(
+          deletingCoverImages.length,
+          eq(1),
+          "# of deleting cover images",
+        );
+        assertThat(
+          deletingCoverImages[0].deletingCoverImageFileFilename,
+          eq("file.jpg"),
+          "deleting cover image",
+        );
+        let metadata = (
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
+        )[0];
+        assertThat(metadata.seasonState, eq(SeasonState.ARCHIVED), "state");
+        assertThat(metadata.seasonTotalEpisodes, eq(0), "total episodes");
+        assertThat(
+          metadata.seasonLastChangeTimestamp,
+          eq(nowTimestamp),
+          "last change timestamp",
+        );
+      },
+      tearDown: async () => {
+        await cleanupSeason();
+      },
+    },
+    {
+      name: "EmptySeason",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -41,7 +181,7 @@ TEST_RUNNER.run({
               "file.jpg",
               1000,
               1000,
-              SeasonState.DRAFT,
+              SeasonState.PUBLISHED,
               0,
             ),
           ]);
@@ -54,11 +194,10 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let nowTimestamp = 2000;
-        let handler = new UpdateSeasonHandler(
+        let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           clientMock,
-          () => nowTimestamp,
+          () => 2000,
         );
 
         // Execute
@@ -66,110 +205,39 @@ TEST_RUNNER.run({
           "",
           {
             seasonId: "season1",
-            name: "another name",
           },
           "session1",
         );
 
         // Verify
-        let details = (
-          await getSeasonDetails(SPANNER_DATABASE, "season1", "account1")
-        )[0];
-        assertThat(details.seasonName, eq("another name"), "name");
-        assertThat(details.seasonDescription, eq(undefined), "description");
+        let notUsedFiles = await getVideoFiles(SPANNER_DATABASE, false);
+        assertThat(notUsedFiles.length, eq(0), "# of not used files");
+        let deletingCoverImages =
+          await getDeletingCoverImageFiles(SPANNER_DATABASE);
         assertThat(
-          details.seasonLastChangeTimestamp,
-          eq(nowTimestamp),
-          "last change timestamp",
+          deletingCoverImages.length,
+          eq(1),
+          "# of deleting cover images",
         );
+        assertThat(
+          deletingCoverImages[0].deletingCoverImageFileFilename,
+          eq("file.jpg"),
+          "deleting cover image",
+        );
+        let metadata = (
+          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
+        )[0];
+        assertThat(metadata.seasonState, eq(SeasonState.ARCHIVED), "state");
       },
       tearDown: async () => {
         await cleanupSeason();
       },
     },
     {
-      name: "WithDescription",
+      name: "SeasonNotOwned",
       execute: async () => {
         // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement(
-              "season1",
-              "account1",
-              "a name",
-              "file.jpg",
-              1000,
-              1000,
-              SeasonState.DRAFT,
-              0,
-            ),
-          ]);
-          await transaction.commit();
-        });
-        let clientMock = new NodeServiceClientMock();
-        clientMock.response = {
-          userSession: {
-            accountId: "account1",
-          },
-          canPublishShows: true,
-        } as ExchangeSessionAndCheckCapabilityResponse;
-        let nowTimestamp = 2000;
-        let handler = new UpdateSeasonHandler(
-          SPANNER_DATABASE,
-          clientMock,
-          () => nowTimestamp,
-        );
-
-        // Execute
-        await handler.handle(
-          "",
-          {
-            seasonId: "season1",
-            name: "another name",
-            description: "a new description",
-          },
-          "session1",
-        );
-
-        // Verify
-        let details = (
-          await getSeasonDetails(SPANNER_DATABASE, "season1", "account1")
-        )[0];
-        assertThat(details.seasonName, eq("another name"), "name");
-        assertThat(
-          details.seasonDescription,
-          eq("a new description"),
-          "description",
-        );
-        assertThat(
-          details.seasonLastChangeTimestamp,
-          eq(nowTimestamp),
-          "last change timestamp",
-        );
-      },
-      tearDown: async () => {
-        await cleanupSeason();
-      },
-    },
-    {
-      name: "SeasonNotOwnedByAccount",
-      execute: async () => {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement(
-              "season1",
-              "account1",
-              "a name",
-              "file.jpg",
-              1000,
-              1000,
-              SeasonState.DRAFT,
-              0,
-            ),
-          ]);
-          await transaction.commit();
-        });
+        await insertSeasonAndEpisodes();
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -177,7 +245,7 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new UpdateSeasonHandler(
+        let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           clientMock,
           () => 2000,
@@ -189,8 +257,6 @@ TEST_RUNNER.run({
             "",
             {
               seasonId: "season1",
-              name: "another name",
-              description: "a new description",
             },
             "session1",
           ),
@@ -199,7 +265,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error.message,
-          containStr("Season season1 is not found"),
+          containStr("Season season1 is not found."),
           "error",
         );
       },
@@ -208,7 +274,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "ArchivedSeason",
+      name: "AlreadyArchived",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -233,7 +299,7 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new UpdateSeasonHandler(
+        let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           clientMock,
           () => 2000,
@@ -245,8 +311,6 @@ TEST_RUNNER.run({
             "",
             {
               seasonId: "season1",
-              name: "another name",
-              description: "a new description",
             },
             "session1",
           ),
@@ -255,7 +319,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error.message,
-          containStr("Season season1 is archived"),
+          containStr("Season season1 is not in PUBLISHED state"),
           "error",
         );
       },

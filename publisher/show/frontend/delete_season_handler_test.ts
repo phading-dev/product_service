@@ -1,12 +1,18 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  deleteDeletingCoverImageFileStatement,
   deleteSeasonStatement,
-  getEpisodeDraft,
+  deleteVideoFileStatement,
+  getDeletingCoverImageFiles,
+  getEpisodeDrafts,
   getSeasonMetadata,
+  getVideoFiles,
   insertEpisodeDraftStatement,
   insertSeasonStatement,
+  insertVideoFileStatement,
 } from "../../../db/sql";
-import { UpdateEpisodeDraftHandler } from "./update_episode_draft_handler";
+import { DeleteSeasonHandler } from "./delete_season_handler";
+import { Statement } from "@google-cloud/spanner/build/src/transaction";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { VideoState } from "@phading/product_service_interface/publisher/show/video_state";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/backend/interface";
@@ -19,45 +25,74 @@ import {
 } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
+async function insertEpisodeDrafts(): Promise<void> {
+  await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+    let statements = new Array<Statement>();
+    for (let i = 1; i <= 30; i++) {
+      statements.push(
+        insertEpisodeDraftStatement(
+          "season1",
+          `ep${i}`,
+          undefined,
+          `video${i}`,
+          VideoState.EMPTY,
+          {},
+        ),
+        insertVideoFileStatement(`video${i}`, true),
+      );
+    }
+    await transaction.batchUpdate([
+      insertSeasonStatement(
+        "season1",
+        "account1",
+        "a name",
+        "file.jpg",
+        1000,
+        1000,
+        SeasonState.DRAFT,
+        30,
+      ),
+      ...statements,
+    ]);
+    await transaction.commit();
+  });
+}
+
 async function cleanupSeason(): Promise<void> {
   try {
     await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-      await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+      let [usedFiles, notUsedFiles, coverImages] = await Promise.all([
+        getVideoFiles(transaction, true),
+        getVideoFiles(transaction, false),
+        getDeletingCoverImageFiles(transaction),
+      ]);
+      await transaction.batchUpdate([
+        ...usedFiles.map((file) =>
+          deleteVideoFileStatement(file.videoFileFilename),
+        ),
+        ...notUsedFiles.map((file) =>
+          deleteVideoFileStatement(file.videoFileFilename),
+        ),
+        ...coverImages.map((file) =>
+          deleteDeletingCoverImageFileStatement(
+            file.deletingCoverImageFileFilename,
+          ),
+        ),
+        deleteSeasonStatement("season1"),
+      ]);
       await transaction.commit();
     });
   } catch (e) {}
 }
 
 TEST_RUNNER.run({
-  name: "UpdateEpisodeDraftHandlerTest",
+  name: "DeleteSeasonHandlerTest",
   cases: [
     {
-      name: "EraseName",
+      name: "Success",
       execute: async () => {
         // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement(
-              "season1",
-              "account1",
-              "a name",
-              "image.jpg",
-              1000,
-              1000,
-              SeasonState.DRAFT,
-              0,
-            ),
-            insertEpisodeDraftStatement(
-              "season1",
-              "ep1",
-              "a name",
-              "videofile",
-              VideoState.EMPTY,
-              {},
-            ),
-          ]);
-          await transaction.commit();
-        });
+        await insertEpisodeDrafts();
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -65,36 +100,28 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let nowTimestamp = 2000;
-        let handler = new UpdateEpisodeDraftHandler(
-          SPANNER_DATABASE,
-          clientMock,
-          () => nowTimestamp,
-        );
+        let handler = new DeleteSeasonHandler(SPANNER_DATABASE, clientMock);
 
         // Execute
         await handler.handle(
           "",
           {
             seasonId: "season1",
-            episodeId: "ep1",
           },
           "session1",
         );
 
         // Verify
-        let draft = (
-          await getEpisodeDraft(SPANNER_DATABASE, "season1", "ep1")
-        )[0];
-        assertThat(draft.episodeDraftName, eq(undefined), "name");
-        let lastChangeTimestamp = (
-          await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
-        )[0].seasonLastChangeTimestamp;
-        assertThat(
-          lastChangeTimestamp,
-          eq(nowTimestamp),
-          "last change timestamp",
+        let drafts = await getEpisodeDrafts(SPANNER_DATABASE, "season1");
+        assertThat(drafts.length, eq(0), "# of drafts");
+        let metadataRows = await getSeasonMetadata(
+          SPANNER_DATABASE,
+          "season1",
+          "account1",
         );
+        assertThat(metadataRows.length, eq(0), "deleted season");
+        let videoFiles = await getVideoFiles(SPANNER_DATABASE, false);
+        assertThat(videoFiles.length, eq(30), "# of video files");
       },
       tearDown: async () => {
         await cleanupSeason();
@@ -104,21 +131,7 @@ TEST_RUNNER.run({
       name: "SeasonNotOwned",
       execute: async () => {
         // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement(
-              "season1",
-              "account1",
-              "a name",
-              "image.jpg",
-              1000,
-              1000,
-              SeasonState.DRAFT,
-              0,
-            ),
-          ]);
-          await transaction.commit();
-        });
+        await insertEpisodeDrafts();
         let clientMock = new NodeServiceClientMock();
         clientMock.response = {
           userSession: {
@@ -126,11 +139,7 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new UpdateEpisodeDraftHandler(
-          SPANNER_DATABASE,
-          clientMock,
-          () => 2000,
-        );
+        let handler = new DeleteSeasonHandler(SPANNER_DATABASE, clientMock);
 
         // Execute
         let error = await assertReject(
@@ -138,7 +147,6 @@ TEST_RUNNER.run({
             "",
             {
               seasonId: "season1",
-              episodeId: "ep1",
             },
             "session1",
           ),
@@ -147,7 +155,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error.message,
-          containStr("Season season1 is not found."),
+          containStr("Season season1 is not found"),
           "error",
         );
       },
@@ -156,7 +164,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "SeasonArchived",
+      name: "PublishedSeasonCannotBeDeleted",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -165,11 +173,11 @@ TEST_RUNNER.run({
               "season1",
               "account1",
               "a name",
-              "image.jpg",
+              "file.jpg",
               1000,
               1000,
-              SeasonState.ARCHIVED,
-              0,
+              SeasonState.PUBLISHED,
+              30,
             ),
           ]);
           await transaction.commit();
@@ -181,11 +189,7 @@ TEST_RUNNER.run({
           },
           canPublishShows: true,
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new UpdateEpisodeDraftHandler(
-          SPANNER_DATABASE,
-          clientMock,
-          () => 2000,
-        );
+        let handler = new DeleteSeasonHandler(SPANNER_DATABASE, clientMock);
 
         // Execute
         let error = await assertReject(
@@ -193,7 +197,6 @@ TEST_RUNNER.run({
             "",
             {
               seasonId: "season1",
-              episodeId: "ep1",
             },
             "session1",
           ),
@@ -202,7 +205,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error.message,
-          containStr("Season season1 is archived"),
+          containStr("Season season1 is not in DRAFT state"),
           "error",
         );
       },

@@ -2,7 +2,7 @@ import { EPISODE_VIDEO_BUCKET } from "../../../common/cloud_storage";
 import { VIODE_EXPIRATION_MS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getEpisodeVideoFile } from "../../../db/sql";
+import { getEpisodeVideoFileForConsumer } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Bucket } from "@google-cloud/storage";
 import { GetVideoToPlayHandlerInterface } from "@phading/product_service_interface/consumer/show/frontend/handler";
@@ -10,6 +10,7 @@ import {
   GetVideoToPlayRequestBody,
   GetVideoToPlayResponse,
 } from "@phading/product_service_interface/consumer/show/frontend/interface";
+import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { getContinueTimestampForEpisode } from "@phading/user_activity_service_interface/consumer/show/backend/client";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
 import {
@@ -23,15 +24,15 @@ export class GetVideoToPlayHandler extends GetVideoToPlayHandlerInterface {
   public static create(): GetVideoToPlayHandler {
     return new GetVideoToPlayHandler(
       SPANNER_DATABASE,
-      SERVICE_CLIENT,
       EPISODE_VIDEO_BUCKET,
+      SERVICE_CLIENT,
     );
   }
 
   public constructor(
     private database: Database,
-    private serviceClient: NodeServiceClient,
     private bucket: Bucket,
+    private serviceClient: NodeServiceClient,
   ) {
     super();
   }
@@ -58,10 +59,11 @@ export class GetVideoToPlayHandler extends GetVideoToPlayHandlerInterface {
       );
     }
     let [videoFileRows, continueTimestampResponse] = await Promise.all([
-      getEpisodeVideoFile(
-        (query) => this.database.run(query),
+      getEpisodeVideoFileForConsumer(
+        this.database,
         body.seasonId,
         body.episodeId,
+        SeasonState.PUBLISHED,
       ),
       getContinueTimestampForEpisode(this.serviceClient, {
         seasonId: body.seasonId,
@@ -70,18 +72,18 @@ export class GetVideoToPlayHandler extends GetVideoToPlayHandlerInterface {
     ]);
     if (videoFileRows.length === 0) {
       throw newNotFoundError(
-        `Season ${body.seasonId} episode ${body.episodeId} not found.`,
+        `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
       );
     }
     let signedUrlResponse = await this.bucket
-      .file(videoFileRows[0].episodeVideoFilename)
+      .file(videoFileRows[0].eVideoFilename)
       .getSignedUrl({
         action: "read",
         expires: VIODE_EXPIRATION_MS,
       });
     return {
       videoUrl: signedUrlResponse[0],
-      continueTimestamp: continueTimestampResponse.continueTimestamp,
+      continueTimestamp: continueTimestampResponse.continueTimestamp ?? 0,
     };
   }
 }

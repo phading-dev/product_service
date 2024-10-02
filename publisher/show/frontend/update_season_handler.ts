@@ -1,6 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getSeasonMetadata, updateSeason } from "../../../db/sql";
+import { getSeasonMetadata, updateSeasonStatement } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { UpdateSeasonHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
@@ -18,12 +18,15 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
   public static create(): UpdateSeasonHandler {
-    return new UpdateSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new UpdateSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -51,7 +54,7 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let metadataRows = await getSeasonMetadata(
-        (query) => transaction.run(query),
+        transaction,
         body.seasonId,
         userSession.accountId,
       );
@@ -63,12 +66,14 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
           `Season ${body.seasonId} is archived and cannot be updated anymore.`,
         );
       }
-      await updateSeason(
-        (query) => transaction.run(query),
-        body.name,
-        body.description,
-        body.seasonId,
-      );
+      await transaction.batchUpdate([
+        updateSeasonStatement(
+          body.name,
+          body.description,
+          this.getNow(),
+          body.seasonId,
+        ),
+      ]);
       await transaction.commit();
     });
     return {};
