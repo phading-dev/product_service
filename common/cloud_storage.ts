@@ -1,13 +1,8 @@
-import {
-  EPISODE_VIDEO_BUCKET_NAME,
-  PROJECT_ID,
-  SEASON_COVER_IMAGE_BUCKET_NAME,
-} from "./env_variables";
+import { PROJECT_ID } from "./env_variables";
 import { Storage } from "@google-cloud/storage";
+import { CloudStorageClient } from "@selfage/gcs_client";
 
-export let EPISODE_VIDEO_BUCKET = new Storage({
+export let STORAGE_CLIENT = new Storage({
   projectId: PROJECT_ID,
-}).bucket(EPISODE_VIDEO_BUCKET_NAME);
-export let SEASON_COVER_IMAGE_BUCKET = new Storage({
-  projectId: PROJECT_ID,
-}).bucket(SEASON_COVER_IMAGE_BUCKET_NAME);
+});
+export let UPLOAD_CLIENT = CloudStorageClient.create(PROJECT_ID);

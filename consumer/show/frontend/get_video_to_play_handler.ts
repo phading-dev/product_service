@@ -1,10 +1,11 @@
-import { EPISODE_VIDEO_BUCKET } from "../../../common/cloud_storage";
+import { STORAGE_CLIENT } from "../../../common/cloud_storage";
 import { VIODE_EXPIRATION_MS } from "../../../common/constants";
+import { EPISODE_VIDEO_BUCKET_NAME } from "../../../common/env_variables";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getEpisodeVideoFileForConsumer } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { Bucket } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 import { GetVideoToPlayHandlerInterface } from "@phading/product_service_interface/consumer/show/frontend/handler";
 import {
   GetVideoToPlayRequestBody,
@@ -24,14 +25,14 @@ export class GetVideoToPlayHandler extends GetVideoToPlayHandlerInterface {
   public static create(): GetVideoToPlayHandler {
     return new GetVideoToPlayHandler(
       SPANNER_DATABASE,
-      EPISODE_VIDEO_BUCKET,
+      STORAGE_CLIENT,
       SERVICE_CLIENT,
     );
   }
 
   public constructor(
     private database: Database,
-    private bucket: Bucket,
+    private storage: Storage,
     private serviceClient: NodeServiceClient,
   ) {
     super();
@@ -75,7 +76,8 @@ export class GetVideoToPlayHandler extends GetVideoToPlayHandlerInterface {
         `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
       );
     }
-    let signedUrlResponse = await this.bucket
+    let signedUrlResponse = await this.storage
+      .bucket(EPISODE_VIDEO_BUCKET_NAME)
       .file(videoFileRows[0].eVideoFilename)
       .getSignedUrl({
         action: "read",

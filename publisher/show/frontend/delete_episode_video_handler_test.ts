@@ -69,9 +69,9 @@ TEST_RUNNER.run({
               "ep1",
               undefined,
               "video",
-              VideoState.UPLOAD_IN_PROGRESS,
+              VideoState.INCOMPLETE,
               {
-                uri: "some_url",
+                url: "some_url",
               },
             ),
             insertVideoFileStatement("video", true),
@@ -106,7 +106,7 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              videoState: VideoState.EMPTY,
+              videoState: VideoState.INCOMPLETE,
               resumableVideoUpload: {},
             },
             DELETE_EPISODE_VIDEO_RESPONSE,
@@ -124,7 +124,7 @@ TEST_RUNNER.run({
         );
         assertThat(
           draft.episodeDraftVideoState,
-          eq(VideoState.EMPTY),
+          eq(VideoState.INCOMPLETE),
           "video state",
         );
         let notUsedFile = (await getVideoFiles(SPANNER_DATABASE, false))[0];

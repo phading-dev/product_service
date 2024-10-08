@@ -80,7 +80,7 @@
           - name: videoUploadedTimestamp
             type: timestamp
             nullable: true
-          - name: videoLength
+          - name: videoDuration
             type: float64
             nullable: true
           - name: videoSize
@@ -110,7 +110,7 @@
             type: float64
           - name: videoFilename
             type: string
-          - name: videoLength
+          - name: videoDuration
             type: float64
           - name: videoSize
             type: float64
@@ -310,7 +310,7 @@
           - resumableVideoUpload
           - videoState
           - videoUploadedTimestamp
-          - videoLength
+          - videoDuration
           - videoSize
       - name: GetEpisodeDraft
         table: EpisodeDraft
@@ -327,7 +327,7 @@
           - resumableVideoUpload
           - videoState
           - videoUploadedTimestamp
-          - videoLength
+          - videoDuration
           - videoSize
       - name: GetAllEpisodeDraftVideoFiles
         table: EpisodeDraft
@@ -349,7 +349,7 @@
         getColumns:
           - name
           - index
-          - videoLength
+          - videoDuration
           - premierTimestamp
       - name: GetEpisodeForConsumerByIndex
         table: Episode
@@ -363,7 +363,7 @@
         getColumns:
           - episodeId
           - name
-          - videoLength
+          - videoDuration
           - premierTimestamp
       - name: GetNextEpisodesForConsumer
         table:
@@ -407,7 +407,7 @@
             table: e
           - name: index
             table: e
-          - name: videoLength
+          - name: videoDuration
             table: e
           - name: premierTimestamp
             table: e
@@ -454,7 +454,7 @@
             table: e
           - name: index
             table: e
-          - name: videoLength
+          - name: videoDuration
             table: e
           - name: premierTimestamp
             table: e
@@ -504,7 +504,7 @@
           - episodeId
           - name
           - index
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -525,7 +525,7 @@
           - episodeId
           - name
           - index
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -546,7 +546,7 @@
           - episodeId
           - name
           - index
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -568,7 +568,7 @@
           - episodeId
           - name
           - index
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -586,7 +586,7 @@
           - name
           - index
           - videoFilename
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -647,7 +647,7 @@
           - name
           - index
           - videoFilename
-          - videoLength
+          - videoDuration
           - videoSize
           - publishedTimestamp
           - premierTimestamp
@@ -752,8 +752,18 @@
           - videoFilename
           - videoState
           - resumableVideoUpload
-          - videoLength
-          - videoSize
+      - name: UpdateEpisodeDraftResumableVideoUpload
+        table: EpisodeDraft
+        where:
+          op: AND
+          exps:
+            - op: =
+              leftColumn: seasonId
+            - op: =
+              leftColumn: episodeId
+        setColumns:
+          - videoState
+          - resumableVideoUpload
       - name: UpdateEpisodeDraftUploadedVideo
         table: EpisodeDraft
         where:
@@ -767,7 +777,7 @@
           - videoState
           - resumableVideoUpload
           - videoUploadedTimestamp
-          - videoLength
+          - videoDuration
           - videoSize
       - name: UpdateEpisodeIndex
         table: Episode

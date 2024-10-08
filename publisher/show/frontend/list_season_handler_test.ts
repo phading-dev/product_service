@@ -1,4 +1,4 @@
-import { FakeBucket } from "../../../common/cloud_storage_fake";
+import { StorageFake } from "../../../common/cloud_storage_fake";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
 import { ListSeasonsHandler } from "./list_seasons_handler";
@@ -74,7 +74,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 
@@ -167,7 +167,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 
@@ -261,7 +261,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 

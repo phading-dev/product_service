@@ -259,7 +259,7 @@ export interface GetEpisodeDraftsRow {
   episodeDraftResumableVideoUpload: ResumableVideoUpload,
   episodeDraftVideoState: VideoState,
   episodeDraftVideoUploadedTimestamp: number | undefined,
-  episodeDraftVideoLength: number | undefined,
+  episodeDraftVideoDuration: number | undefined,
   episodeDraftVideoSize: number | undefined,
 }
 
@@ -268,7 +268,7 @@ export async function getEpisodeDrafts(
   episodeDraftSeasonIdEq: string,
 ): Promise<Array<GetEpisodeDraftsRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT EpisodeDraft.episodeId, EpisodeDraft.name, EpisodeDraft.videoFilename, EpisodeDraft.resumableVideoUpload, EpisodeDraft.videoState, EpisodeDraft.videoUploadedTimestamp, EpisodeDraft.videoLength, EpisodeDraft.videoSize FROM EpisodeDraft WHERE EpisodeDraft.seasonId = @episodeDraftSeasonIdEq ORDER BY EpisodeDraft.videoUploadedTimestamp DESC",
+    sql: "SELECT EpisodeDraft.episodeId, EpisodeDraft.name, EpisodeDraft.videoFilename, EpisodeDraft.resumableVideoUpload, EpisodeDraft.videoState, EpisodeDraft.videoUploadedTimestamp, EpisodeDraft.videoDuration, EpisodeDraft.videoSize FROM EpisodeDraft WHERE EpisodeDraft.seasonId = @episodeDraftSeasonIdEq ORDER BY EpisodeDraft.videoUploadedTimestamp DESC",
     params: {
       episodeDraftSeasonIdEq: episodeDraftSeasonIdEq,
     },
@@ -285,7 +285,7 @@ export async function getEpisodeDrafts(
       episodeDraftResumableVideoUpload: deserializeMessage(row.at(3).value, RESUMABLE_VIDEO_UPLOAD),
       episodeDraftVideoState: toEnumFromNumber(row.at(4).value.value, VIDEO_STATE),
       episodeDraftVideoUploadedTimestamp: row.at(5).value == null ? undefined : row.at(5).value.valueOf(),
-      episodeDraftVideoLength: row.at(6).value == null ? undefined : row.at(6).value.value,
+      episodeDraftVideoDuration: row.at(6).value == null ? undefined : row.at(6).value.value,
       episodeDraftVideoSize: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
@@ -298,7 +298,7 @@ export interface GetEpisodeDraftRow {
   episodeDraftResumableVideoUpload: ResumableVideoUpload,
   episodeDraftVideoState: VideoState,
   episodeDraftVideoUploadedTimestamp: number | undefined,
-  episodeDraftVideoLength: number | undefined,
+  episodeDraftVideoDuration: number | undefined,
   episodeDraftVideoSize: number | undefined,
 }
 
@@ -308,7 +308,7 @@ export async function getEpisodeDraft(
   episodeDraftEpisodeIdEq: string,
 ): Promise<Array<GetEpisodeDraftRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT EpisodeDraft.name, EpisodeDraft.videoFilename, EpisodeDraft.resumableVideoUpload, EpisodeDraft.videoState, EpisodeDraft.videoUploadedTimestamp, EpisodeDraft.videoLength, EpisodeDraft.videoSize FROM EpisodeDraft WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
+    sql: "SELECT EpisodeDraft.name, EpisodeDraft.videoFilename, EpisodeDraft.resumableVideoUpload, EpisodeDraft.videoState, EpisodeDraft.videoUploadedTimestamp, EpisodeDraft.videoDuration, EpisodeDraft.videoSize FROM EpisodeDraft WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
     params: {
       episodeDraftSeasonIdEq: episodeDraftSeasonIdEq,
       episodeDraftEpisodeIdEq: episodeDraftEpisodeIdEq,
@@ -326,7 +326,7 @@ export async function getEpisodeDraft(
       episodeDraftResumableVideoUpload: deserializeMessage(row.at(2).value, RESUMABLE_VIDEO_UPLOAD),
       episodeDraftVideoState: toEnumFromNumber(row.at(3).value.value, VIDEO_STATE),
       episodeDraftVideoUploadedTimestamp: row.at(4).value == null ? undefined : row.at(4).value.valueOf(),
-      episodeDraftVideoLength: row.at(5).value == null ? undefined : row.at(5).value.value,
+      episodeDraftVideoDuration: row.at(5).value == null ? undefined : row.at(5).value.value,
       episodeDraftVideoSize: row.at(6).value == null ? undefined : row.at(6).value.value,
     });
   }
@@ -362,7 +362,7 @@ export async function getAllEpisodeDraftVideoFiles(
 export interface GetEpisodeForConsumerRow {
   episodeName: string | undefined,
   episodeIndex: number,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodePremierTimestamp: number,
 }
 
@@ -372,7 +372,7 @@ export async function getEpisodeForConsumer(
   episodeEpisodeIdEq: string,
 ): Promise<Array<GetEpisodeForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.name, Episode.index, Episode.videoLength, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT Episode.name, Episode.index, Episode.videoDuration, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeEpisodeIdEq: episodeEpisodeIdEq,
@@ -387,7 +387,7 @@ export async function getEpisodeForConsumer(
     resRows.push({
       episodeName: row.at(0).value == null ? undefined : row.at(0).value,
       episodeIndex: row.at(1).value.value,
-      episodeVideoLength: row.at(2).value.value,
+      episodeVideoDuration: row.at(2).value.value,
       episodePremierTimestamp: row.at(3).value.valueOf(),
     });
   }
@@ -397,7 +397,7 @@ export async function getEpisodeForConsumer(
 export interface GetEpisodeForConsumerByIndexRow {
   episodeEpisodeId: string,
   episodeName: string | undefined,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodePremierTimestamp: number,
 }
 
@@ -407,7 +407,7 @@ export async function getEpisodeForConsumerByIndex(
   episodeIndexEq: number,
 ): Promise<Array<GetEpisodeForConsumerByIndexRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.videoLength, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index = @episodeIndexEq)",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.videoDuration, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index = @episodeIndexEq)",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeIndexEq: Spanner.float(episodeIndexEq),
@@ -422,7 +422,7 @@ export async function getEpisodeForConsumerByIndex(
     resRows.push({
       episodeEpisodeId: row.at(0).value,
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
-      episodeVideoLength: row.at(2).value.value,
+      episodeVideoDuration: row.at(2).value.value,
       episodePremierTimestamp: row.at(3).value.valueOf(),
     });
   }
@@ -433,7 +433,7 @@ export interface GetNextEpisodesForConsumerRow {
   eEpisodeId: string,
   eName: string | undefined,
   eIndex: number,
-  eVideoLength: number,
+  eVideoDuration: number,
   ePremierTimestamp: number,
 }
 
@@ -444,7 +444,7 @@ export async function getNextEpisodesForConsumer(
   sStateEq: SeasonState,
 ): Promise<Array<GetNextEpisodesForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.episodeId, e.name, e.index, e.videoLength, e.premierTimestamp FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.index > @eIndexGt AND s.state = @sStateEq) ORDER BY e.index LIMIT 20",
+    sql: "SELECT e.episodeId, e.name, e.index, e.videoDuration, e.premierTimestamp FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.index > @eIndexGt AND s.state = @sStateEq) ORDER BY e.index LIMIT 20",
     params: {
       eSeasonIdEq: eSeasonIdEq,
       eIndexGt: Spanner.float(eIndexGt),
@@ -462,7 +462,7 @@ export async function getNextEpisodesForConsumer(
       eEpisodeId: row.at(0).value,
       eName: row.at(1).value == null ? undefined : row.at(1).value,
       eIndex: row.at(2).value.value,
-      eVideoLength: row.at(3).value.value,
+      eVideoDuration: row.at(3).value.value,
       ePremierTimestamp: row.at(4).value.valueOf(),
     });
   }
@@ -473,7 +473,7 @@ export interface GetPrevEpisodesForConsumerRow {
   eEpisodeId: string,
   eName: string | undefined,
   eIndex: number,
-  eVideoLength: number,
+  eVideoDuration: number,
   ePremierTimestamp: number,
 }
 
@@ -484,7 +484,7 @@ export async function getPrevEpisodesForConsumer(
   sStateEq: SeasonState,
 ): Promise<Array<GetPrevEpisodesForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.episodeId, e.name, e.index, e.videoLength, e.premierTimestamp FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.index < @eIndexLt AND s.state = @sStateEq) ORDER BY e.index DESC LIMIT 20",
+    sql: "SELECT e.episodeId, e.name, e.index, e.videoDuration, e.premierTimestamp FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.index < @eIndexLt AND s.state = @sStateEq) ORDER BY e.index DESC LIMIT 20",
     params: {
       eSeasonIdEq: eSeasonIdEq,
       eIndexLt: Spanner.float(eIndexLt),
@@ -502,7 +502,7 @@ export async function getPrevEpisodesForConsumer(
       eEpisodeId: row.at(0).value,
       eName: row.at(1).value == null ? undefined : row.at(1).value,
       eIndex: row.at(2).value.value,
-      eVideoLength: row.at(3).value.value,
+      eVideoDuration: row.at(3).value.value,
       ePremierTimestamp: row.at(4).value.valueOf(),
     });
   }
@@ -545,7 +545,7 @@ export interface GetLastEpisodesRow {
   episodeEpisodeId: string,
   episodeName: string | undefined,
   episodeIndex: number,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodeVideoSize: number,
   episodePublishedTimestamp: number,
   episodePremierTimestamp: number,
@@ -556,7 +556,7 @@ export async function getLastEpisodes(
   episodeSeasonIdEq: string,
 ): Promise<Array<GetLastEpisodesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoLength, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE Episode.seasonId = @episodeSeasonIdEq ORDER BY Episode.index DESC LIMIT 20",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoDuration, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE Episode.seasonId = @episodeSeasonIdEq ORDER BY Episode.index DESC LIMIT 20",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
     },
@@ -570,7 +570,7 @@ export async function getLastEpisodes(
       episodeEpisodeId: row.at(0).value,
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
       episodeIndex: row.at(2).value.value,
-      episodeVideoLength: row.at(3).value.value,
+      episodeVideoDuration: row.at(3).value.value,
       episodeVideoSize: row.at(4).value.value,
       episodePublishedTimestamp: row.at(5).value.valueOf(),
       episodePremierTimestamp: row.at(6).value.valueOf(),
@@ -583,7 +583,7 @@ export interface GetPrevEpisodesRow {
   episodeEpisodeId: string,
   episodeName: string | undefined,
   episodeIndex: number,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodeVideoSize: number,
   episodePublishedTimestamp: number,
   episodePremierTimestamp: number,
@@ -595,7 +595,7 @@ export async function getPrevEpisodes(
   episodeIndexLt: number,
 ): Promise<Array<GetPrevEpisodesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoLength, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index < @episodeIndexLt) ORDER BY Episode.index DESC LIMIT 20",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoDuration, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index < @episodeIndexLt) ORDER BY Episode.index DESC LIMIT 20",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeIndexLt: Spanner.float(episodeIndexLt),
@@ -611,7 +611,7 @@ export async function getPrevEpisodes(
       episodeEpisodeId: row.at(0).value,
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
       episodeIndex: row.at(2).value.value,
-      episodeVideoLength: row.at(3).value.value,
+      episodeVideoDuration: row.at(3).value.value,
       episodeVideoSize: row.at(4).value.value,
       episodePublishedTimestamp: row.at(5).value.valueOf(),
       episodePremierTimestamp: row.at(6).value.valueOf(),
@@ -624,7 +624,7 @@ export interface GetNextEpisodesRow {
   episodeEpisodeId: string,
   episodeName: string | undefined,
   episodeIndex: number,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodeVideoSize: number,
   episodePublishedTimestamp: number,
   episodePremierTimestamp: number,
@@ -636,7 +636,7 @@ export async function getNextEpisodes(
   episodeIndexGt: number,
 ): Promise<Array<GetNextEpisodesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoLength, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index > @episodeIndexGt) ORDER BY Episode.index DESC LIMIT 20",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoDuration, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index > @episodeIndexGt) ORDER BY Episode.index DESC LIMIT 20",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeIndexGt: Spanner.float(episodeIndexGt),
@@ -652,7 +652,7 @@ export async function getNextEpisodes(
       episodeEpisodeId: row.at(0).value,
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
       episodeIndex: row.at(2).value.value,
-      episodeVideoLength: row.at(3).value.value,
+      episodeVideoDuration: row.at(3).value.value,
       episodeVideoSize: row.at(4).value.value,
       episodePublishedTimestamp: row.at(5).value.valueOf(),
       episodePremierTimestamp: row.at(6).value.valueOf(),
@@ -665,7 +665,7 @@ export interface GetEpisodesWithinIndexRangeRow {
   episodeEpisodeId: string,
   episodeName: string | undefined,
   episodeIndex: number,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodeVideoSize: number,
   episodePublishedTimestamp: number,
   episodePremierTimestamp: number,
@@ -678,7 +678,7 @@ export async function getEpisodesWithinIndexRange(
   episodeIndexLe: number,
 ): Promise<Array<GetEpisodesWithinIndexRangeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoLength, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index >= @episodeIndexGe AND Episode.index <= @episodeIndexLe) ORDER BY Episode.index DESC",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoDuration, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.index >= @episodeIndexGe AND Episode.index <= @episodeIndexLe) ORDER BY Episode.index DESC",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeIndexGe: Spanner.float(episodeIndexGe),
@@ -696,7 +696,7 @@ export async function getEpisodesWithinIndexRange(
       episodeEpisodeId: row.at(0).value,
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
       episodeIndex: row.at(2).value.value,
-      episodeVideoLength: row.at(3).value.value,
+      episodeVideoDuration: row.at(3).value.value,
       episodeVideoSize: row.at(4).value.value,
       episodePublishedTimestamp: row.at(5).value.valueOf(),
       episodePremierTimestamp: row.at(6).value.valueOf(),
@@ -710,7 +710,7 @@ export interface GetEpisodeRow {
   episodeName: string | undefined,
   episodeIndex: number,
   episodeVideoFilename: string,
-  episodeVideoLength: number,
+  episodeVideoDuration: number,
   episodeVideoSize: number,
   episodePublishedTimestamp: number,
   episodePremierTimestamp: number,
@@ -722,7 +722,7 @@ export async function getEpisode(
   episodeEpisodeIdEq: string,
 ): Promise<Array<GetEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoFilename, Episode.videoLength, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT Episode.episodeId, Episode.name, Episode.index, Episode.videoFilename, Episode.videoDuration, Episode.videoSize, Episode.publishedTimestamp, Episode.premierTimestamp FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: episodeSeasonIdEq,
       episodeEpisodeIdEq: episodeEpisodeIdEq,
@@ -739,7 +739,7 @@ export async function getEpisode(
       episodeName: row.at(1).value == null ? undefined : row.at(1).value,
       episodeIndex: row.at(2).value.value,
       episodeVideoFilename: row.at(3).value,
-      episodeVideoLength: row.at(4).value.value,
+      episodeVideoDuration: row.at(4).value.value,
       episodeVideoSize: row.at(5).value.value,
       episodePublishedTimestamp: row.at(6).value.valueOf(),
       episodePremierTimestamp: row.at(7).value.valueOf(),
@@ -919,20 +919,20 @@ export function insertEpisodeStatement(
   name: string | null | undefined,
   index: number,
   videoFilename: string,
-  videoLength: number,
+  videoDuration: number,
   videoSize: number,
   publishedTimestamp: number,
   premierTimestamp: number,
 ): Statement {
   return {
-    sql: "INSERT Episode (seasonId, episodeId, name, index, videoFilename, videoLength, videoSize, publishedTimestamp, premierTimestamp) VALUES (@seasonId, @episodeId, @name, @index, @videoFilename, @videoLength, @videoSize, @publishedTimestamp, @premierTimestamp)",
+    sql: "INSERT Episode (seasonId, episodeId, name, index, videoFilename, videoDuration, videoSize, publishedTimestamp, premierTimestamp) VALUES (@seasonId, @episodeId, @name, @index, @videoFilename, @videoDuration, @videoSize, @publishedTimestamp, @premierTimestamp)",
     params: {
       seasonId: seasonId,
       episodeId: episodeId,
       name: name == null ? null : name,
       index: Spanner.float(index),
       videoFilename: videoFilename,
-      videoLength: Spanner.float(videoLength),
+      videoDuration: Spanner.float(videoDuration),
       videoSize: Spanner.float(videoSize),
       publishedTimestamp: new Date(publishedTimestamp).toISOString(),
       premierTimestamp: new Date(premierTimestamp).toISOString(),
@@ -943,7 +943,7 @@ export function insertEpisodeStatement(
       name: { type: "string" },
       index: { type: "float64" },
       videoFilename: { type: "string" },
-      videoLength: { type: "float64" },
+      videoDuration: { type: "float64" },
       videoSize: { type: "float64" },
       publishedTimestamp: { type: "timestamp" },
       premierTimestamp: { type: "timestamp" },
@@ -1152,19 +1152,15 @@ export function updateEpisodeDraftNewVideoStatement(
   setVideoFilename: string,
   setVideoState: VideoState,
   setResumableVideoUpload: ResumableVideoUpload,
-  setVideoLength: number | null | undefined,
-  setVideoSize: number | null | undefined,
   episodeDraftSeasonIdEq: string,
   episodeDraftEpisodeIdEq: string,
 ): Statement {
   return {
-    sql: "UPDATE EpisodeDraft SET videoFilename = @setVideoFilename, videoState = @setVideoState, resumableVideoUpload = @setResumableVideoUpload, videoLength = @setVideoLength, videoSize = @setVideoSize WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
+    sql: "UPDATE EpisodeDraft SET videoFilename = @setVideoFilename, videoState = @setVideoState, resumableVideoUpload = @setResumableVideoUpload WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
     params: {
       setVideoFilename: setVideoFilename,
       setVideoState: Spanner.float(setVideoState),
       setResumableVideoUpload: Buffer.from(serializeMessage(setResumableVideoUpload, RESUMABLE_VIDEO_UPLOAD).buffer),
-      setVideoLength: setVideoLength == null ? null : Spanner.float(setVideoLength),
-      setVideoSize: setVideoSize == null ? null : Spanner.float(setVideoSize),
       episodeDraftSeasonIdEq: episodeDraftSeasonIdEq,
       episodeDraftEpisodeIdEq: episodeDraftEpisodeIdEq,
     },
@@ -1172,8 +1168,29 @@ export function updateEpisodeDraftNewVideoStatement(
       setVideoFilename: { type: "string" },
       setVideoState: { type: "float64" },
       setResumableVideoUpload: { type: "bytes" },
-      setVideoLength: { type: "float64" },
-      setVideoSize: { type: "float64" },
+      episodeDraftSeasonIdEq: { type: "string" },
+      episodeDraftEpisodeIdEq: { type: "string" },
+    }
+  };
+}
+
+export function updateEpisodeDraftResumableVideoUploadStatement(
+  setVideoState: VideoState,
+  setResumableVideoUpload: ResumableVideoUpload,
+  episodeDraftSeasonIdEq: string,
+  episodeDraftEpisodeIdEq: string,
+): Statement {
+  return {
+    sql: "UPDATE EpisodeDraft SET videoState = @setVideoState, resumableVideoUpload = @setResumableVideoUpload WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
+    params: {
+      setVideoState: Spanner.float(setVideoState),
+      setResumableVideoUpload: Buffer.from(serializeMessage(setResumableVideoUpload, RESUMABLE_VIDEO_UPLOAD).buffer),
+      episodeDraftSeasonIdEq: episodeDraftSeasonIdEq,
+      episodeDraftEpisodeIdEq: episodeDraftEpisodeIdEq,
+    },
+    types: {
+      setVideoState: { type: "float64" },
+      setResumableVideoUpload: { type: "bytes" },
       episodeDraftSeasonIdEq: { type: "string" },
       episodeDraftEpisodeIdEq: { type: "string" },
     }
@@ -1184,18 +1201,18 @@ export function updateEpisodeDraftUploadedVideoStatement(
   setVideoState: VideoState,
   setResumableVideoUpload: ResumableVideoUpload,
   setVideoUploadedTimestamp: number | null | undefined,
-  setVideoLength: number | null | undefined,
+  setVideoDuration: number | null | undefined,
   setVideoSize: number | null | undefined,
   episodeDraftSeasonIdEq: string,
   episodeDraftEpisodeIdEq: string,
 ): Statement {
   return {
-    sql: "UPDATE EpisodeDraft SET videoState = @setVideoState, resumableVideoUpload = @setResumableVideoUpload, videoUploadedTimestamp = @setVideoUploadedTimestamp, videoLength = @setVideoLength, videoSize = @setVideoSize WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
+    sql: "UPDATE EpisodeDraft SET videoState = @setVideoState, resumableVideoUpload = @setResumableVideoUpload, videoUploadedTimestamp = @setVideoUploadedTimestamp, videoDuration = @setVideoDuration, videoSize = @setVideoSize WHERE (EpisodeDraft.seasonId = @episodeDraftSeasonIdEq AND EpisodeDraft.episodeId = @episodeDraftEpisodeIdEq)",
     params: {
       setVideoState: Spanner.float(setVideoState),
       setResumableVideoUpload: Buffer.from(serializeMessage(setResumableVideoUpload, RESUMABLE_VIDEO_UPLOAD).buffer),
       setVideoUploadedTimestamp: setVideoUploadedTimestamp == null ? null : new Date(setVideoUploadedTimestamp).toISOString(),
-      setVideoLength: setVideoLength == null ? null : Spanner.float(setVideoLength),
+      setVideoDuration: setVideoDuration == null ? null : Spanner.float(setVideoDuration),
       setVideoSize: setVideoSize == null ? null : Spanner.float(setVideoSize),
       episodeDraftSeasonIdEq: episodeDraftSeasonIdEq,
       episodeDraftEpisodeIdEq: episodeDraftEpisodeIdEq,
@@ -1204,7 +1221,7 @@ export function updateEpisodeDraftUploadedVideoStatement(
       setVideoState: { type: "float64" },
       setResumableVideoUpload: { type: "bytes" },
       setVideoUploadedTimestamp: { type: "timestamp" },
-      setVideoLength: { type: "float64" },
+      setVideoDuration: { type: "float64" },
       setVideoSize: { type: "float64" },
       episodeDraftSeasonIdEq: { type: "string" },
       episodeDraftEpisodeIdEq: { type: "string" },

@@ -1,4 +1,4 @@
-import { FakeBucket } from "../../../common/cloud_storage_fake";
+import { StorageFake } from "../../../common/cloud_storage_fake";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonStatement,
@@ -60,7 +60,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -133,7 +133,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -201,7 +201,7 @@ TEST_RUNNER.run({
               "ep1",
               "ep 1",
               "draftvideo1",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
             insertEpisodeStatement(
@@ -227,7 +227,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -261,7 +261,7 @@ TEST_RUNNER.run({
                   episodeId: "ep1",
                   name: "ep 1",
                   resumableVideoUpload: {},
-                  videoState: VideoState.EMPTY,
+                  videoState: VideoState.INCOMPLETE,
                 },
               ],
               episodes: [
@@ -269,7 +269,7 @@ TEST_RUNNER.run({
                   episodeId: "ep2",
                   name: "ep 2",
                   index: 1,
-                  videoLength: 1300,
+                  videoDuration: 1300,
                   videoSize: 1500,
                   publishedTimestamp: 2000,
                   premierTimestamp: 3000,
@@ -332,7 +332,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -352,7 +352,7 @@ TEST_RUNNER.run({
           episodes.push({
             episodeId: `ep${i}`,
             index: i,
-            videoLength: 1300,
+            videoDuration: 1300,
             videoSize: 1500,
             publishedTimestamp: 2000,
             premierTimestamp: 3000,
@@ -414,7 +414,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -470,7 +470,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -529,7 +529,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -588,7 +588,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );

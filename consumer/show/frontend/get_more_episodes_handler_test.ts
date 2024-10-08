@@ -100,7 +100,7 @@ TEST_RUNNER.run({
               episodeId: `ep${i}`,
               name: `EP${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               premierTimestamp: 1000,
             });
           }
@@ -136,7 +136,7 @@ TEST_RUNNER.run({
               episodeId: `ep${i}`,
               name: `EP${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               premierTimestamp: 1000,
             });
           }
@@ -216,7 +216,7 @@ TEST_RUNNER.run({
               episodeId: `ep${i}`,
               name: `EP${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               premierTimestamp: 1000,
             });
           }
@@ -252,7 +252,7 @@ TEST_RUNNER.run({
               episodeId: `ep${i}`,
               name: `EP${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               premierTimestamp: 1000,
             });
           }

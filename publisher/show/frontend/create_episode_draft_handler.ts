@@ -82,7 +82,7 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
           episodeId,
           body.episodeName,
           videoFilename,
-          VideoState.EMPTY,
+          VideoState.INCOMPLETE,
           {},
         ),
         insertVideoFileStatement(videoFilename, true),
@@ -94,7 +94,7 @@ export class CreateEpisodeDraftHandler extends CreateEpisodeDraftHandlerInterfac
       draft: {
         episodeId,
         name: body.episodeName,
-        videoState: VideoState.EMPTY,
+        videoState: VideoState.INCOMPLETE,
         resumableVideoUpload: {},
       },
     };

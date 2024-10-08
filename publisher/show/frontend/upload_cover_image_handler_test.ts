@@ -1,4 +1,3 @@
-import { FakeBucket } from "../../../common/cloud_storage_fake";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonStatement,
@@ -8,6 +7,7 @@ import {
 import { UploadCoverImageHandler } from "./upload_cover_image_handler";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/backend/interface";
+import { CloudStorageClientFake } from "@selfage/gcs_client/client_fake";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import {
   assertReject,
@@ -27,6 +27,8 @@ async function cleanupSeason(): Promise<void> {
   } catch (e) {}
 }
 
+// Requires env variable `SEASON_COVER_IMAGE_BUCKET_NAME="season_cover_image"`.
+
 TEST_RUNNER.run({
   name: "UploadCoverImageHandlerTest",
   cases: [
@@ -40,7 +42,7 @@ TEST_RUNNER.run({
               "season1",
               "account1",
               "a name",
-              "test_data/copied.jpg",
+              "copied.jpg",
               1000,
               1000,
               SeasonState.DRAFT,
@@ -59,7 +61,7 @@ TEST_RUNNER.run({
         let nowTimestamp = 2000;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new CloudStorageClientFake("test_data"),
           clientMock,
           () => nowTimestamp,
         );
@@ -75,7 +77,7 @@ TEST_RUNNER.run({
         );
 
         // Verify
-        assertThat(existsSync("test_data/copied.jpg"), eq(true), "exists");
+        assertThat(existsSync("test_data/season_cover_image/copied.jpg"), eq(true), "exists");
         let lastChangeTimestamp = (
           await getSeasonMetadata(SPANNER_DATABASE, "season1", "account1")
         )[0].seasonLastChangeTimestamp;
@@ -88,7 +90,7 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await cleanupSeason();
         try {
-          unlinkSync("test_data/copied.jpg");
+          unlinkSync("test_data/season_cover_image/copied.jpg");
         } catch (e) {}
       },
     },
@@ -102,7 +104,7 @@ TEST_RUNNER.run({
               "season1",
               "account1",
               "a name",
-              "test_data/copied.jpg",
+              "copied.jpg",
               1000,
               1000,
               SeasonState.DRAFT,
@@ -120,7 +122,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new CloudStorageClientFake("test_data"),
           clientMock,
           () => 2000,
         );
@@ -158,7 +160,7 @@ TEST_RUNNER.run({
               "season1",
               "account1",
               "a name",
-              "test_data/copied.jpg",
+              "copied.jpg",
               1000,
               1000,
               SeasonState.ARCHIVED,
@@ -176,7 +178,7 @@ TEST_RUNNER.run({
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new CloudStorageClientFake("test_data"),
           clientMock,
           () => 2000,
         );

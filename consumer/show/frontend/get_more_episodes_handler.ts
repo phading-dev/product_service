@@ -68,7 +68,7 @@ export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
           episodeId: row.eEpisodeId,
           name: row.eName,
           index: row.eIndex,
-          videoLength: row.eVideoLength,
+          videoDuration: row.eVideoDuration,
           premierTimestamp: row.ePremierTimestamp,
         };
       }),

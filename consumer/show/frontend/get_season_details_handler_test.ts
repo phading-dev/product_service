@@ -1,4 +1,4 @@
-import { FakeBucket } from "../../../common/cloud_storage_fake";
+import { StorageFake } from "../../../common/cloud_storage_fake";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonStatement,
@@ -129,7 +129,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -164,7 +164,7 @@ TEST_RUNNER.run({
                   index: 1,
                   name: "EP1",
                   premierTimestamp: 1000,
-                  videoLength: 1200,
+                  videoDuration: 1200,
                 },
                 continueTimestampstamp: 0,
               },
@@ -213,7 +213,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -248,7 +248,7 @@ TEST_RUNNER.run({
                   index: 5,
                   name: "EP5",
                   premierTimestamp: 1000,
-                  videoLength: 1200,
+                  videoDuration: 1200,
                 },
                 continueTimestampstamp: 500,
               },
@@ -320,7 +320,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -405,7 +405,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -464,7 +464,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );
@@ -526,7 +526,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
           () => 2000,
         );

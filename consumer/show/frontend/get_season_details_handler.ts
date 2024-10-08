@@ -1,4 +1,5 @@
-import { SEASON_COVER_IMAGE_BUCKET } from "../../../common/cloud_storage";
+import { STORAGE_CLIENT } from "../../../common/cloud_storage";
+import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_variables";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -7,7 +8,7 @@ import {
   getSeasonForConsumer,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { Bucket } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 import { GetSeasonDetailsHandlerInterface } from "@phading/product_service_interface/consumer/show/frontend/handler";
 import {
   GetSeasonDetailsRequestBody,
@@ -29,7 +30,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
   public static create(): GetSeasonDetailsHandler {
     return new GetSeasonDetailsHandler(
       SPANNER_DATABASE,
-      SEASON_COVER_IMAGE_BUCKET,
+      STORAGE_CLIENT,
       SERVICE_CLIENT,
       () => Date.now(),
     );
@@ -37,7 +38,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
 
   public constructor(
     private database: Database,
-    private bucket: Bucket,
+    private storage: Storage,
     private serviceClient: NodeServiceClient,
     private getNow: () => number,
   ) {
@@ -95,7 +96,8 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     seasonDetails.seasonId = body.seasonId;
     seasonDetails.name = seasonRows[0].sName;
     seasonDetails.description = seasonRows[0].sDescription;
-    seasonDetails.coverImageUrl = this.bucket
+    seasonDetails.coverImageUrl = this.storage
+      .bucket(SEASON_COVER_IMAGE_BUCKET_NAME)
       .file(seasonRows[0].sCoverImageFilename)
       .publicUrl();
     seasonDetails.grade = seasonRows[0].sgGrade;
@@ -129,7 +131,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         episodeId: episodeRows[0].episodeEpisodeId,
         name: episodeRows[0].episodeName,
         index: 1,
-        videoLength: episodeRows[0].episodeVideoLength,
+        videoDuration: episodeRows[0].episodeVideoDuration,
         premierTimestamp: episodeRows[0].episodePremierTimestamp,
       };
       seasonDetails.continueTimestampstamp = 0;
@@ -148,7 +150,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         episodeId: continueEpisodeResponse.episodeId,
         name: episodeRows[0].episodeName,
         index: episodeRows[0].episodeIndex,
-        videoLength: episodeRows[0].episodeVideoLength,
+        videoDuration: episodeRows[0].episodeVideoDuration,
         premierTimestamp: episodeRows[0].episodePremierTimestamp,
       };
       seasonDetails.continueTimestampstamp =

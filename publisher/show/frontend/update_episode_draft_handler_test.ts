@@ -52,7 +52,7 @@ TEST_RUNNER.run({
               "ep1",
               "a name",
               "videofile",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
           ]);

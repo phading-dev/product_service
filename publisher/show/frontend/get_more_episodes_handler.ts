@@ -61,7 +61,7 @@ export class GetMoreEpisodesHandler extends GetMoreEpisodesHandlerInterface {
           episodeId: e.episodeEpisodeId,
           name: e.episodeName,
           index: e.episodeIndex,
-          videoLength: e.episodeVideoLength,
+          videoDuration: e.episodeVideoDuration,
           videoSize: e.episodeVideoSize,
           publishedTimestamp: e.episodePublishedTimestamp,
           premierTimestamp: e.episodePremierTimestamp,

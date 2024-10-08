@@ -35,7 +35,7 @@ async function insertEpisodeDrafts(): Promise<void> {
           `ep${i}`,
           undefined,
           `video${i}`,
-          VideoState.EMPTY,
+          VideoState.INCOMPLETE,
           {},
         ),
         insertVideoFileStatement(`video${i}`, true),

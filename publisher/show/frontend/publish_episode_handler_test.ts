@@ -57,7 +57,7 @@ TEST_RUNNER.run({
               "ep1",
               undefined,
               "video",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
             updateEpisodeDraftUploadedVideoStatement(
@@ -104,7 +104,7 @@ TEST_RUNNER.run({
               episode: {
                 episodeId: "ep1",
                 index: 1,
-                videoLength: 1300,
+                videoDuration: 1300,
                 videoSize: 1400,
                 publishedTimestamp: nowTimestamp,
                 premierTimestamp: nowTimestamp,
@@ -172,7 +172,7 @@ TEST_RUNNER.run({
               "ep2",
               undefined,
               "video",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
             updateEpisodeDraftUploadedVideoStatement(
@@ -220,7 +220,7 @@ TEST_RUNNER.run({
               episode: {
                 episodeId: "ep2",
                 index: 2,
-                videoLength: 1300,
+                videoDuration: 1300,
                 videoSize: 1400,
                 publishedTimestamp: nowTimestamp,
                 premierTimestamp: 10000,
@@ -382,7 +382,7 @@ TEST_RUNNER.run({
               "ep1",
               undefined,
               "video",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
           ]);
@@ -447,7 +447,7 @@ TEST_RUNNER.run({
               "ep1",
               undefined,
               "video",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
             updateEpisodeDraftUploadedVideoStatement(

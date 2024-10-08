@@ -84,13 +84,13 @@
       "name": "videoUploadedTimestamp",
       "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoUploadedTimestamp TIMESTAMP"
     }, {
-      "name": "videoLength",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoLength FLOAT64"
+      "name": "videoDuration",
+      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoDuration FLOAT64"
     }, {
       "name": "videoSize",
       "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoSize FLOAT64"
     }],
-    "createTableDdl": "CREATE TABLE EpisodeDraft (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), videoFilename STRING(MAX) NOT NULL, videoState FLOAT64 NOT NULL, resumableVideoUpload BYTES(MAX) NOT NULL, videoUploadedTimestamp TIMESTAMP, videoLength FLOAT64, videoSize FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE EpisodeDraft (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), videoFilename STRING(MAX) NOT NULL, videoState FLOAT64 NOT NULL, resumableVideoUpload BYTES(MAX) NOT NULL, videoUploadedTimestamp TIMESTAMP, videoDuration FLOAT64, videoSize FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByUploadedTimestamp",
       "createIndexDdl": "CREATE INDEX ByUploadedTimestamp ON EpisodeDraft(videoUploadedTimestamp DESC)"
@@ -113,8 +113,8 @@
       "name": "videoFilename",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoFilename STRING(MAX) NOT NULL"
     }, {
-      "name": "videoLength",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoLength FLOAT64 NOT NULL"
+      "name": "videoDuration",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoDuration FLOAT64 NOT NULL"
     }, {
       "name": "videoSize",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoSize FLOAT64 NOT NULL"
@@ -125,7 +125,7 @@
       "name": "premierTimestamp",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimestamp TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoLength FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL, premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoDuration FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL, premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"

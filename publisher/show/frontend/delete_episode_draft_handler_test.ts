@@ -67,7 +67,7 @@ TEST_RUNNER.run({
               "ep1",
               undefined,
               "video",
-              VideoState.EMPTY,
+              VideoState.INCOMPLETE,
               {},
             ),
             insertVideoFileStatement("video", true),

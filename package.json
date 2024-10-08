@@ -33,16 +33,19 @@
   "dependencies": {
     "@google-cloud/spanner": "^7.14.0",
     "@google-cloud/storage": "^7.12.1",
-    "@phading/product_service_interface": "^0.6.23",
+    "@phading/product_service_interface": "^0.6.26",
     "@phading/user_activity_service_interface": "^0.3.0",
     "@phading/user_service_interface": "^0.17.4",
     "@phading/user_session_service_interface": "^0.8.9",
     "@selfage/env_var_getter": "^1.0.2",
+    "@selfage/gcs_client": "^1.0.7",
     "@selfage/http_error": "^1.1.1",
     "@selfage/node_service_client": "^1.2.2",
     "@selfage/service_handler": "^6.0.1",
+    "axios": "^1.7.7",
     "express": "^4.21.0",
     "get-stream": "^6.0.1",
+    "google-auth-library": "^9.14.1",
     "sharp": "^0.33.5"
   }
 }

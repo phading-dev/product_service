@@ -1,4 +1,5 @@
-import { SEASON_COVER_IMAGE_BUCKET } from "../../../common/cloud_storage";
+import { STORAGE_CLIENT } from "../../../common/cloud_storage";
+import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_variables";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -8,7 +9,7 @@ import {
   getSeasonDetails,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { Bucket } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 import { GetSeasonDetailsHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
   GetSeasonDetailsRequestBody,
@@ -28,7 +29,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
   public static create(): GetSeasonDetailsHandler {
     return new GetSeasonDetailsHandler(
       SPANNER_DATABASE,
-      SEASON_COVER_IMAGE_BUCKET,
+      STORAGE_CLIENT,
       SERVICE_CLIENT,
       () => Date.now(),
     );
@@ -36,7 +37,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
 
   public constructor(
     private database: Database,
-    private bucket: Bucket,
+    private storage: Storage,
     private serviceClient: NodeServiceClient,
     private getNow: () => number,
   ) {
@@ -103,7 +104,8 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         seasonId: body.seasonId,
         name: seasonDetailsRows[0].seasonName,
         description: seasonDetailsRows[0].seasonDescription,
-        coverImageUrl: this.bucket
+        coverImageUrl: this.storage
+          .bucket(SEASON_COVER_IMAGE_BUCKET_NAME)
           .file(seasonDetailsRows[0].seasonCoverImageFilename)
           .publicUrl(),
         grade,
@@ -120,7 +122,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
           videoState: row.episodeDraftVideoState,
           resumableVideoUpload: row.episodeDraftResumableVideoUpload,
           videoUploadedTimestamp: row.episodeDraftVideoUploadedTimestamp,
-          videoLength: row.episodeDraftVideoLength,
+          videoDuration: row.episodeDraftVideoDuration,
           videoSize: row.episodeDraftVideoSize,
         };
       }),
@@ -129,7 +131,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
           episodeId: row.episodeEpisodeId,
           name: row.episodeName,
           index: row.episodeIndex,
-          videoLength: row.episodeVideoLength,
+          videoDuration: row.episodeVideoDuration,
           videoSize: row.episodeVideoSize,
           publishedTimestamp: row.episodePublishedTimestamp,
           premierTimestamp: row.episodePremierTimestamp,

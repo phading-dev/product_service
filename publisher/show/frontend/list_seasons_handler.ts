@@ -1,4 +1,5 @@
-import { SEASON_COVER_IMAGE_BUCKET } from "../../../common/cloud_storage";
+import { STORAGE_CLIENT } from "../../../common/cloud_storage";
+import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_variables";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -8,7 +9,7 @@ import {
   getMoreSeasons,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { Bucket } from "@google-cloud/storage";
+import { Storage } from "@google-cloud/storage";
 import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
   ListSeasonsRequestBody,
@@ -22,14 +23,14 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
   public static create(): ListSeasonsHandler {
     return new ListSeasonsHandler(
       SPANNER_DATABASE,
-      SEASON_COVER_IMAGE_BUCKET,
+      STORAGE_CLIENT,
       SERVICE_CLIENT,
     );
   }
 
   public constructor(
     private database: Database,
-    private bucket: Bucket,
+    private storage: Storage,
     private serviceClient: NodeServiceClient,
   ) {
     super();
@@ -58,14 +59,14 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
       seasonRows = await getLastSeasons(
         this.database,
         body.state,
-        userSession.accountId
+        userSession.accountId,
       );
     } else {
       seasonRows = await getMoreSeasons(
         this.database,
         body.lastChangeTimeCursor,
         body.state,
-        userSession.accountId
+        userSession.accountId,
       );
     }
     return {
@@ -73,7 +74,8 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
         return {
           seasonId: row.seasonSeasonId,
           name: row.seasonName,
-          coverImageUrl: this.bucket
+          coverImageUrl: this.storage
+            .bucket(SEASON_COVER_IMAGE_BUCKET_NAME)
             .file(row.seasonCoverImageFilename)
             .publicUrl(),
           totalEpisodes: row.seasonTotalEpisodes,

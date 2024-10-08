@@ -1,13 +1,12 @@
 import getStream = require("get-stream");
 import sharp = require("sharp");
-import stream = require("stream");
-import util = require("util");
-import { SEASON_COVER_IMAGE_BUCKET } from "../../../common/cloud_storage";
+import { UPLOAD_CLIENT } from "../../../common/cloud_storage";
 import {
   COVER_IMAGE_HEIGHT,
   COVER_IMAGE_WIDTH,
   MAX_COVER_IMAGE_BUFFER_SIZE,
 } from "../../../common/constants";
+import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_variables";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -15,7 +14,6 @@ import {
   updateSeasonLastChangeTimestampStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { Bucket } from "@google-cloud/storage";
 import { UploadCoverImageHandlerInterface } from "@phading/product_service_interface/publisher/show/frontend/handler";
 import {
   UploadCoverImageRequestMetadata,
@@ -23,6 +21,7 @@ import {
 } from "@phading/product_service_interface/publisher/show/frontend/interface";
 import { SeasonState } from "@phading/product_service_interface/publisher/show/season_state";
 import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/backend/client";
+import { CloudStorageClient } from "@selfage/gcs_client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -30,13 +29,12 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 import { Readable } from "stream";
-let pipeline = util.promisify(stream.pipeline);
 
 export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
   public static create(): UploadCoverImageHandler {
     return new UploadCoverImageHandler(
       SPANNER_DATABASE,
-      SEASON_COVER_IMAGE_BUCKET,
+      UPLOAD_CLIENT,
       SERVICE_CLIENT,
       () => Date.now(),
     );
@@ -44,7 +42,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
 
   public constructor(
     private database: Database,
-    private bucket: Bucket,
+    private uploadClient: CloudStorageClient,
     private serviceClient: NodeServiceClient,
     private getNow: () => number,
   ) {
@@ -86,16 +84,16 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     let data = await getStream.buffer(body, {
       maxBuffer: MAX_COVER_IMAGE_BUFFER_SIZE,
     });
-    await pipeline(
+    await this.uploadClient.upload(
+      SEASON_COVER_IMAGE_BUCKET_NAME,
+      metadataRows[0].seasonCoverImageFilename,
       sharp(data)
         .resize(COVER_IMAGE_WIDTH, COVER_IMAGE_HEIGHT, { fit: "contain" })
         .jpeg({
           quality: 80,
           progressive: true,
         }),
-      this.bucket
-        .file(metadataRows[0].seasonCoverImageFilename)
-        .createWriteStream({ resumable: false }),
+      "image/jpeg",
     );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([

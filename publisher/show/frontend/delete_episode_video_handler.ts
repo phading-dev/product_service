@@ -76,10 +76,8 @@ export class DeleteEpisodeVideoHandler extends DeleteEpisodeVideoHandlerInterfac
       await transaction.batchUpdate([
         updateEpisodeDraftNewVideoStatement(
           filename,
-          VideoState.EMPTY,
+          VideoState.INCOMPLETE,
           {},
-          undefined,
-          undefined,
           body.seasonId,
           body.episodeId,
         ),
@@ -89,7 +87,7 @@ export class DeleteEpisodeVideoHandler extends DeleteEpisodeVideoHandlerInterfac
       await transaction.commit();
     });
     return {
-      videoState: VideoState.EMPTY,
+      videoState: VideoState.INCOMPLETE,
       resumableVideoUpload: {},
     };
   }

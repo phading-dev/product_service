@@ -1,4 +1,4 @@
-import { FakeBucket } from "../../../common/cloud_storage_fake";
+import { StorageFake } from "../../../common/cloud_storage_fake";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonStatement,
@@ -108,7 +108,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetVideoToPlayHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 
@@ -165,7 +165,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetVideoToPlayHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 
@@ -220,7 +220,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetVideoToPlayHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 
@@ -271,7 +271,7 @@ TEST_RUNNER.run({
         })();
         let handler = new GetVideoToPlayHandler(
           SPANNER_DATABASE,
-          new FakeBucket() as any,
+          new StorageFake() as any,
           clientMock,
         );
 

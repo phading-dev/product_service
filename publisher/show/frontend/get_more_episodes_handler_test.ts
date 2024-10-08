@@ -93,7 +93,7 @@ TEST_RUNNER.run({
             episodes.push({
               episodeId: `ep${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               videoSize: 1300,
               premierTimestamp: 1000,
               publishedTimestamp: 1000,
@@ -129,7 +129,7 @@ TEST_RUNNER.run({
             episodes.push({
               episodeId: `ep${i}`,
               index: i,
-              videoLength: 1200,
+              videoDuration: 1200,
               videoSize: 1300,
               premierTimestamp: 1000,
               publishedTimestamp: 1000,

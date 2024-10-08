@@ -103,7 +103,7 @@ TEST_RUNNER.run({
               draft: {
                 episodeId: "epid1",
                 resumableVideoUpload: {},
-                videoState: VideoState.EMPTY,
+                videoState: VideoState.INCOMPLETE,
               },
             },
             CREATE_EPISODE_DRAFT_RESPONSE,
@@ -172,7 +172,7 @@ TEST_RUNNER.run({
                 episodeId: "epid1",
                 name: "ep name",
                 resumableVideoUpload: {},
-                videoState: VideoState.EMPTY,
+                videoState: VideoState.INCOMPLETE,
               },
             },
             CREATE_EPISODE_DRAFT_RESPONSE,
