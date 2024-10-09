@@ -42,10 +42,8 @@
     "@selfage/http_error": "^1.1.1",
     "@selfage/node_service_client": "^1.2.2",
     "@selfage/service_handler": "^6.0.1",
-    "axios": "^1.7.7",
     "express": "^4.21.0",
     "get-stream": "^6.0.1",
-    "google-auth-library": "^9.14.1",
     "sharp": "^0.33.5"
   }
 }
