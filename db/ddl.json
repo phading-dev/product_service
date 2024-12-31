@@ -8,35 +8,34 @@
       "name": "publisherId",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN publisherId STRING(MAX) NOT NULL"
     }, {
-      "name": "name",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN name STRING(MAX) NOT NULL"
-    }, {
-      "name": "description",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX)"
-    }, {
-      "name": "coverImageFilename",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN coverImageFilename STRING(MAX) NOT NULL"
-    }, {
-      "name": "createdTimestamp",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimestamp TIMESTAMP NOT NULL"
-    }, {
-      "name": "lastChangeTimestamp",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimestamp TIMESTAMP NOT NULL"
-    }, {
       "name": "state",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN state FLOAT64 NOT NULL"
     }, {
-      "name": "totalEpisodes",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN totalEpisodes FLOAT64 NOT NULL"
+      "name": "lastChangeTimeMs",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimeMs FLOAT64 NOT NULL"
+    }, {
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN data BYTES(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, name STRING(MAX) NOT NULL, description STRING(MAX), coverImageFilename STRING(MAX) NOT NULL, createdTimestamp TIMESTAMP NOT NULL, lastChangeTimestamp TIMESTAMP NOT NULL, state FLOAT64 NOT NULL, totalEpisodes FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, state FLOAT64 NOT NULL, lastChangeTimeMs FLOAT64 NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
-      "name": "ByLastChangeTimestamp",
-      "createIndexDdl": "CREATE INDEX ByLastChangeTimestamp ON Season(publisherId, lastChangeTimestamp DESC, state)"
+      "name": "ByLastChangeTimeMs",
+      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
     }, {
       "name": "ByPublisher",
       "createIndexDdl": "CREATE INDEX ByPublisher ON Season(publisherId)"
     }]
+  }, {
+    "name": "SeasonMore",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE SeasonMore ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE SeasonMore ADD COLUMN data BYTES(MAX) NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE SeasonMore (seasonId STRING(MAX) NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "indexes": []
   }, {
     "name": "SeasonGrade",
     "columns": [{
@@ -46,54 +45,19 @@
       "name": "gradeId",
       "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN gradeId STRING(MAX) NOT NULL"
     }, {
-      "name": "startTimestamp",
-      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN startTimestamp TIMESTAMP NOT NULL"
+      "name": "startDate",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN startDate STRING(MAX) NOT NULL"
     }, {
-      "name": "endTimestamp",
-      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN endTimestamp TIMESTAMP NOT NULL"
+      "name": "endDate",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN endDate STRING(MAX) NOT NULL"
     }, {
-      "name": "grade",
-      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN grade FLOAT64 NOT NULL"
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE SeasonGrade ADD COLUMN data BYTES(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE SeasonGrade (seasonId STRING(MAX) NOT NULL, gradeId STRING(MAX) NOT NULL, startTimestamp TIMESTAMP NOT NULL, endTimestamp TIMESTAMP NOT NULL, grade FLOAT64 NOT NULL) PRIMARY KEY (seasonId ASC, gradeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE SeasonGrade (seasonId STRING(MAX) NOT NULL, gradeId STRING(MAX) NOT NULL, startDate STRING(MAX) NOT NULL, endDate STRING(MAX) NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC, gradeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
-      "name": "ByEndTimestamp",
-      "createIndexDdl": "CREATE INDEX ByEndTimestamp ON SeasonGrade(endTimestamp DESC, startTimestamp DESC)"
-    }]
-  }, {
-    "name": "EpisodeDraft",
-    "columns": [{
-      "name": "seasonId",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN seasonId STRING(MAX) NOT NULL"
-    }, {
-      "name": "episodeId",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN episodeId STRING(MAX) NOT NULL"
-    }, {
-      "name": "name",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN name STRING(MAX)"
-    }, {
-      "name": "videoFilename",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoFilename STRING(MAX) NOT NULL"
-    }, {
-      "name": "videoState",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoState FLOAT64 NOT NULL"
-    }, {
-      "name": "resumableVideoUpload",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN resumableVideoUpload BYTES(MAX) NOT NULL"
-    }, {
-      "name": "videoUploadedTimestamp",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoUploadedTimestamp TIMESTAMP"
-    }, {
-      "name": "videoDuration",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoDuration FLOAT64"
-    }, {
-      "name": "videoSize",
-      "addColumnDdl": "ALTER TABLE EpisodeDraft ADD COLUMN videoSize FLOAT64"
-    }],
-    "createTableDdl": "CREATE TABLE EpisodeDraft (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), videoFilename STRING(MAX) NOT NULL, videoState FLOAT64 NOT NULL, resumableVideoUpload BYTES(MAX) NOT NULL, videoUploadedTimestamp TIMESTAMP, videoDuration FLOAT64, videoSize FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
-    "indexes": [{
-      "name": "ByUploadedTimestamp",
-      "createIndexDdl": "CREATE INDEX ByUploadedTimestamp ON EpisodeDraft(videoUploadedTimestamp DESC)"
+      "name": "ByEndDate",
+      "createIndexDdl": "CREATE INDEX ByEndDate ON SeasonGrade(endDate DESC, startDate)"
     }]
   }, {
     "name": "Episode",
@@ -104,53 +68,89 @@
       "name": "episodeId",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN episodeId STRING(MAX) NOT NULL"
     }, {
-      "name": "name",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN name STRING(MAX)"
-    }, {
       "name": "index",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN index FLOAT64 NOT NULL"
     }, {
-      "name": "videoFilename",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoFilename STRING(MAX) NOT NULL"
+      "name": "publishTimeMs",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishTimeMs FLOAT64 NOT NULL"
     }, {
-      "name": "videoDuration",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoDuration FLOAT64 NOT NULL"
-    }, {
-      "name": "videoSize",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoSize FLOAT64 NOT NULL"
-    }, {
-      "name": "publishedTimestamp",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishedTimestamp TIMESTAMP NOT NULL"
-    }, {
-      "name": "premierTimestamp",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimestamp TIMESTAMP NOT NULL"
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN data BYTES(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, name STRING(MAX), index FLOAT64 NOT NULL, videoFilename STRING(MAX) NOT NULL, videoDuration FLOAT64 NOT NULL, videoSize FLOAT64 NOT NULL, publishedTimestamp TIMESTAMP NOT NULL, premierTimestamp TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64 NOT NULL, publishTimeMs FLOAT64 NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"
     }]
   }, {
-    "name": "DeletingCoverImageFile",
+    "name": "CoverImageFile",
     "columns": [{
-      "name": "filename",
-      "addColumnDdl": "ALTER TABLE DeletingCoverImageFile ADD COLUMN filename STRING(MAX) NOT NULL"
+      "name": "r2Filename",
+      "addColumnDdl": "ALTER TABLE CoverImageFile ADD COLUMN r2Filename STRING(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE DeletingCoverImageFile (filename STRING(MAX) NOT NULL) PRIMARY KEY (filename ASC)",
+    "createTableDdl": "CREATE TABLE CoverImageFile (r2Filename STRING(MAX) NOT NULL) PRIMARY KEY (r2Filename ASC)",
     "indexes": []
   }, {
-    "name": "VideoFile",
+    "name": "VideoContainerKey",
     "columns": [{
-      "name": "filename",
-      "addColumnDdl": "ALTER TABLE VideoFile ADD COLUMN filename STRING(MAX) NOT NULL"
-    }, {
-      "name": "used",
-      "addColumnDdl": "ALTER TABLE VideoFile ADD COLUMN used BOOL NOT NULL"
+      "name": "key",
+      "addColumnDdl": "ALTER TABLE VideoContainerKey ADD COLUMN key STRING(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE VideoFile (filename STRING(MAX) NOT NULL, used BOOL NOT NULL) PRIMARY KEY (filename ASC)",
+    "createTableDdl": "CREATE TABLE VideoContainerKey (key STRING(MAX) NOT NULL) PRIMARY KEY (key ASC)",
+    "indexes": []
+  }, {
+    "name": "VideoContainerCreatingTask",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "episodeId",
+      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
+    }, {
+      "name": "executionTimeMs",
+      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
+    }, {
+      "name": "createdTimeMs",
+      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE VideoContainerCreatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC)",
     "indexes": [{
-      "name": "IsUsed",
-      "createIndexDdl": "CREATE INDEX IsUsed ON VideoFile(used)"
+      "name": "CreatingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX CreatingTaskByExecutionTimeMs ON VideoContainerCreatingTask(executionTimeMs)"
+    }]
+  }, {
+    "name": "VideoContainerDeletingTask",
+    "columns": [{
+      "name": "videoContainerId",
+      "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN videoContainerId STRING(MAX) NOT NULL"
+    }, {
+      "name": "executionTimeMs",
+      "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
+    }, {
+      "name": "createdTimeMs",
+      "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE VideoContainerDeletingTask (videoContainerId STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (videoContainerId ASC)",
+    "indexes": [{
+      "name": "DeletingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX DeletingTaskByExecutionTimeMs ON VideoContainerDeletingTask(executionTimeMs)"
+    }]
+  }, {
+    "name": "CoverImageDeletingTask",
+    "columns": [{
+      "name": "r2Filename",
+      "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN r2Filename STRING(MAX) NOT NULL"
+    }, {
+      "name": "executionTimeMs",
+      "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
+    }, {
+      "name": "createdTimeMs",
+      "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE CoverImageDeletingTask (r2Filename STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (r2Filename ASC)",
+    "indexes": [{
+      "name": "CoverImageDeletingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX CoverImageDeletingTaskByExecutionTimeMs ON CoverImageDeletingTask(executionTimeMs)"
     }]
   }]
 }

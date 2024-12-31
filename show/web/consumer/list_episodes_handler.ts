@@ -1,0 +1,94 @@
+import { SERVICE_CLIENT } from "../../../common/service_client";
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import {
+  ListNextPublishedEpisodesForConsumerRow,
+  ListPrevPublishedEpisodesForConsumerRow,
+  listNextPublishedEpisodesForConsumer,
+  listPrevPublishedEpisodesForConsumer,
+} from "../../../db/sql";
+import { Database } from "@google-cloud/spanner";
+import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
+import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import {
+  ListEpisodesRequestBody,
+  ListEpisodesResponse,
+} from "@phading/product_service_interface/show/web/consumer/interface";
+import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import { NodeServiceClient } from "@selfage/node_service_client";
+
+export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
+  public static create(): ListEpisodesHandler {
+    return new ListEpisodesHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
+  }
+
+  public constructor(
+    private database: Database,
+    private serviceClient: NodeServiceClient,
+    private getNow: () => number,
+  ) {
+    super();
+  }
+
+  public async handle(
+    loggingPrefix: string,
+    body: ListEpisodesRequestBody,
+    sessionStr: string,
+  ): Promise<ListEpisodesResponse> {
+    if (!body.seasonId) {
+      throw newBadRequestError(`"seasonId" is required.`);
+    }
+    if (!body.limit) {
+      throw newBadRequestError(`"limit" is required.`);
+    }
+    let { accountId, canConsumeShows } =
+      await exchangeSessionAndCheckCapability(this.serviceClient, {
+        signedSession: sessionStr,
+        checkCanConsumeShows: true,
+      });
+    if (!canConsumeShows) {
+      throw newUnauthorizedError(
+        `Account ${accountId} not allowed to list episodes.`,
+      );
+    }
+    let rows: Array<
+      | ListNextPublishedEpisodesForConsumerRow
+      | ListPrevPublishedEpisodesForConsumerRow
+    >;
+    if (body.next) {
+      rows = await listNextPublishedEpisodesForConsumer(
+        this.database,
+        body.seasonId,
+        SeasonState.PUBLISHED,
+        body.indexCursor ?? 0,
+        this.getNow(),
+        body.limit,
+      );
+    } else {
+      rows = await listPrevPublishedEpisodesForConsumer(
+        this.database,
+        body.seasonId,
+        SeasonState.PUBLISHED,
+        body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        this.getNow(),
+        body.limit,
+      );
+    }
+    return {
+      episodes: rows.map((row) => ({
+        episodeId: row.eData.episodeId,
+        index: row.eData.index,
+        name: row.eData.name,
+        videoDurationSec: row.eData.videoContainer.durationSec,
+        premierTimeMs: row.eData.premierTimeMs,
+      })),
+      indexCursor:
+        rows.length < body.limit
+          ? undefined
+          : rows[rows.length - 1].eData.index,
+    };
+  }
+}

@@ -1,0 +1,5 @@
+export let COVER_IMAGE_HEIGHT = 300;
+export let COVER_IMAGE_WIDTH = 200;
+export let FAR_PAST_DATE = "1900-01-01";
+export let FAR_FUTURE_DATE = "9999-12-31";
+export let FAR_FUTURE_TIME_MS = new Date(FAR_FUTURE_DATE).valueOf();
