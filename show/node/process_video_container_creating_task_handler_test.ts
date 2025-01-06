@@ -154,6 +154,7 @@ TEST_RUNNER.run({
             {
               seasonId: "season1",
               episodeId: "episode1",
+              accountId: "publisher1",
               videoContainerId: "showcontainer1",
             },
             CREATE_VIDEO_CONTAINER_REQUEST_BODY,

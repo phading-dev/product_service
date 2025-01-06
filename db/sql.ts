@@ -1224,6 +1224,50 @@ export async function getEpisodeForPublisher(
   return resRows;
 }
 
+export interface GetSeasonAndEpisodeRow {
+  sData: Season,
+  eData: Episode,
+}
+
+export let GET_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetSeasonAndEpisodeRow> = {
+  name: 'GetSeasonAndEpisodeRow',
+  fields: [{
+    name: 'sData',
+    index: 1,
+    messageType: SEASON,
+  }, {
+    name: 'eData',
+    index: 2,
+    messageType: EPISODE,
+  }],
+};
+
+export async function getSeasonAndEpisode(
+  runner: Database | Transaction,
+  eSeasonIdEq: string,
+  eEpisodeIdEq: string,
+): Promise<Array<GetSeasonAndEpisodeRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT s.data, e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    params: {
+      eSeasonIdEq: eSeasonIdEq,
+      eEpisodeIdEq: eEpisodeIdEq,
+    },
+    types: {
+      eSeasonIdEq: { type: "string" },
+      eEpisodeIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetSeasonAndEpisodeRow>();
+  for (let row of rows) {
+    resRows.push({
+      sData: deserializeMessage(row.at(0).value, SEASON),
+      eData: deserializeMessage(row.at(1).value, EPISODE),
+    });
+  }
+  return resRows;
+}
+
 export interface GetSeasonAndEpisodeForPublisherRow {
   sData: Season,
   eData: Episode,

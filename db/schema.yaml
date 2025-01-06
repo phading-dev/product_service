@@ -676,6 +676,37 @@
       getColumns:
         - name: data
           table: e
+    - name: GetSeasonAndEpisode
+      table:
+        name: Episode
+        as: e
+      join:
+        - type: INNER
+          table:
+            name: Season
+            as: s
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: e
+            rightColumn: seasonId
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn:
+              name: seasonId
+              table: e
+          - op: =
+            leftColumn:
+              name: episodeId
+              table: e
+      getColumns:
+        - name: data
+          table: s
+        - name: data
+          table: e
     - name: GetSeasonAndEpisodeForPublisher
       table:
         name: Episode

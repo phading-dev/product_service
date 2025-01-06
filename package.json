@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/phading-dev/product_service.git"
   },
-  "author": "Yuxuan Xie <teststaybaka@gmail.com> (http://www.yuxuanxie.com)",
+  "author": "Yuxuan Xie <ykuyo.dev@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/phading-dev/product_service/issues"
@@ -30,14 +30,14 @@
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.717.0",
-    "@aws-sdk/lib-storage": "^3.717.0",
-    "@google-cloud/spanner": "^7.16.0",
+    "@aws-sdk/client-s3": "^3.722.0",
+    "@aws-sdk/lib-storage": "^3.722.0",
+    "@google-cloud/spanner": "^7.17.1",
     "@phading/constants": "^0.3.2",
-    "@phading/product_meter_service_interface": "^0.6.1",
+    "@phading/product_meter_service_interface": "^0.7.5",
     "@phading/product_service_interface": "^0.8.4",
     "@phading/user_session_service_interface": "^0.10.1",
-    "@phading/video_service_interface": "^0.1.8",
+    "@phading/video_service_interface": "^0.1.10",
     "@selfage/env_var_getter": "^1.0.2",
     "@selfage/http_error": "^1.1.2",
     "@selfage/node_service_client": "^1.2.4",

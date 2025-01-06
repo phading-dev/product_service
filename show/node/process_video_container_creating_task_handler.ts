@@ -4,6 +4,7 @@ import {
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
   getEpisode,
+  getSeasonAndEpisode,
   insertVideoContainerDeletingTaskStatement,
   insertVideoContainerKeyStatement,
   updateEpisodeStatement,
@@ -50,27 +51,36 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     body: ProcessVideoContainerCreatingTaskRequestBody,
   ): Promise<ProcessVideoContainerCreatingTaskResponse> {
     loggingPrefix = `${loggingPrefix} Video container creating task for season ${body.seasonId} epsiode ${body.episodeId}:`;
-    await this.claimTask(loggingPrefix, body.seasonId, body.episodeId);
-    this.startProcessingAndCatchError(
+    let { accountId } = await this.getPayloadAndClaimTask(
       loggingPrefix,
       body.seasonId,
       body.episodeId,
     );
+    this.startProcessingAndCatchError(
+      loggingPrefix,
+      body.seasonId,
+      body.episodeId,
+      accountId,
+    );
     return {};
   }
 
-  private async claimTask(
+  private async getPayloadAndClaimTask(
     loggingPrefix: string,
     seasonId: string,
     episodeId: string,
-  ): Promise<void> {
+  ): Promise<{
+    accountId: string;
+  }> {
+    let accountId: string;
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getEpisode(transaction, seasonId, episodeId);
+      let rows = await getSeasonAndEpisode(transaction, seasonId, episodeId);
       if (rows.length === 0) {
         throw newConflictError(
-          `Season ${seasonId} Episode ${episodeId} is not found.`,
+          `Season ${seasonId} or episode ${episodeId} is not found.`,
         );
       }
+      accountId = rows[0].sData.publisherId;
       await transaction.batchUpdate([
         updateVideoContainerCreatingTaskStatement(
           seasonId,
@@ -81,16 +91,18 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
       ]);
       await transaction.commit();
     });
+    return { accountId };
   }
 
   private async startProcessingAndCatchError(
     loggingPrefix: string,
     seasonId: string,
     episodeId: string,
+    accountId: string,
   ): Promise<void> {
     console.log(`${loggingPrefix} Task starting.`);
     try {
-      await this.startProcessing(loggingPrefix, seasonId, episodeId);
+      await this.startProcessing(loggingPrefix, seasonId, episodeId, accountId);
       console.log(`${loggingPrefix} Task completed!`);
     } catch (e) {
       console.error(`${loggingPrefix} Task failed! ${e.stack ?? e}`);
@@ -102,6 +114,7 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     loggingPrefix: string,
     seasonId: string,
     episodeId: string,
+    accountId: string,
   ): Promise<void> {
     let videoContainerId = `show${this.generateUuid()}`;
     await this.database.runTransactionAsync(async (transaction) => {
@@ -122,6 +135,7 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
       await createVideoContainer(this.serviceClient, {
         seasonId,
         episodeId,
+        accountId,
         videoContainerId,
       });
       await this.database.runTransactionAsync(async (transaction) => {
