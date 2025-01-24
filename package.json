@@ -33,7 +33,7 @@
     "@aws-sdk/client-s3": "^3.722.0",
     "@aws-sdk/lib-storage": "^3.722.0",
     "@google-cloud/spanner": "^7.17.1",
-    "@phading/constants": "^0.3.2",
+    "@phading/constants": "^0.3.4",
     "@phading/product_meter_service_interface": "^0.7.5",
     "@phading/product_service_interface": "^0.8.4",
     "@phading/user_session_service_interface": "^0.10.1",

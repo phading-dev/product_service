@@ -7,7 +7,10 @@ import {
   listPrevEpisodesForPublisher,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
+import {
+  MAX_LIST_EPISODES_ITEMS,
+  MAX_NUM_OF_EPISODES_PER_SEASON,
+} from "@phading/constants/show";
 import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListEpisodesRequestBody,
@@ -39,6 +42,9 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     }
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
+    }
+    if (body.limit > MAX_LIST_EPISODES_ITEMS) {
+      throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, canPublishShows } =
       await exchangeSessionAndCheckCapability(this.serviceClient, {
