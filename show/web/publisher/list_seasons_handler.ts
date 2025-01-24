@@ -1,9 +1,9 @@
 import { COVER_IMAGE_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
+import { MAX_LIST_SEASONS_ITEMS } from "../../../common/params";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listSeasonsForPublisher } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { MAX_LIST_SEAONS_ITEMS } from "@phading/constants/show";
 import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListSeasonsRequestBody,
@@ -43,7 +43,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
-    if (body.limit > MAX_LIST_SEAONS_ITEMS) {
+    if (body.limit > MAX_LIST_SEASONS_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, canPublishShows } =

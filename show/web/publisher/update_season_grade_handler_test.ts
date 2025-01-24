@@ -10,8 +10,8 @@ import {
 } from "../../../db/sql";
 import { UpdateSeasonGradeHandler } from "./update_season_grade_handler";
 import {
-  GET_TIMEZONE_OFFSET,
-  GetTimezoneOffsetResponse,
+  GET_TODAY_WRT_TIMEZONE,
+  GetTodayWrtTimezoneResponse,
 } from "@phading/product_meter_service_interface/node/interface";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import {
@@ -58,10 +58,10 @@ TEST_RUNNER.run({
                   accountId: "publisher1",
                   canPublishShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
+              case GET_TODAY_WRT_TIMEZONE:
                 return {
-                  negativeOffset: 8,
-                } as GetTimezoneOffsetResponse;
+                  date: "2020-01-01",
+                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -164,10 +164,10 @@ TEST_RUNNER.run({
                   accountId: "publisher1",
                   canPublishShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
+              case GET_TODAY_WRT_TIMEZONE:
                 return {
-                  negativeOffset: 8,
-                } as GetTimezoneOffsetResponse;
+                  date: "2020-01-01",
+                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -314,10 +314,10 @@ TEST_RUNNER.run({
                   accountId: "publisher1",
                   canPublishShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
+              case GET_TODAY_WRT_TIMEZONE:
                 return {
-                  negativeOffset: 8,
-                } as GetTimezoneOffsetResponse;
+                  date: "2019-12-31",
+                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -457,10 +457,10 @@ TEST_RUNNER.run({
                   accountId: "publisher1",
                   canPublishShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
+              case GET_TODAY_WRT_TIMEZONE:
                 return {
-                  negativeOffset: 8,
-                } as GetTimezoneOffsetResponse;
+                  date: "2020-01-01",
+                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }

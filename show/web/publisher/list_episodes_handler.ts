@@ -1,3 +1,4 @@
+import { MAX_LIST_EPISODES_ITEMS } from "../../../common/params";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -7,10 +8,7 @@ import {
   listPrevEpisodesForPublisher,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import {
-  MAX_LIST_EPISODES_ITEMS,
-  MAX_NUM_OF_EPISODES_PER_SEASON,
-} from "@phading/constants/show";
+import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListEpisodesRequestBody,

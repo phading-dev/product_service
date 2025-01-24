@@ -1,4 +1,4 @@
-import { toDateUtc, toTodayISOString } from "../../../common/date_helper";
+import { toDateUtc } from "../../../common/date_helper";
 import { FAR_FUTURE_DATE } from "../../../common/params";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
@@ -15,7 +15,7 @@ import {
   MAX_GRADE,
   MIN_GRADE_EFFECTIVE_GAP_DAY,
 } from "@phading/constants/show";
-import { getTimezoneOffset } from "@phading/product_meter_service_interface/node/client";
+import { getTodayWrtTimezone } from "@phading/product_meter_service_interface/node/client";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { UpdateSeasonGradeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -74,9 +74,9 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
         `Account ${accountId} not allowed to update season grade.`,
       );
     }
-    let { negativeOffset } = await getTimezoneOffset(this.serviceClient, {});
+    let { date } = await getTodayWrtTimezone(this.serviceClient, {});
+    let todayStr = date;
     await this.database.runTransactionAsync(async (transaction) => {
-      let todayStr = toTodayISOString(this.getNowDate(), negativeOffset);
       let [seasonRows, seasonGradeRows] = await Promise.all([
         getSeasonForPublisher(transaction, accountId, body.seasonId),
         getLastSeasonGrades(transaction, body.seasonId, todayStr, 2),

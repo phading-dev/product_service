@@ -8,8 +8,8 @@ import {
 } from "../../../db/sql";
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
 import {
-  GET_TIMEZONE_OFFSET,
-  GetTimezoneOffsetResponse,
+  GET_TODAY_WRT_TIMEZONE,
+  GetTodayWrtTimezoneResponse,
 } from "@phading/product_meter_service_interface/node/interface";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
@@ -71,8 +71,8 @@ TEST_RUNNER.run({
                   accountId: "account1",
                   canConsumeShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
-                return { negativeOffset: 8 } as GetTimezoneOffsetResponse;
+              case GET_TODAY_WRT_TIMEZONE:
+                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -82,7 +82,6 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000), // 2020-02-01T08:00:00z
         );
 
         // Execute
@@ -172,8 +171,8 @@ TEST_RUNNER.run({
                   accountId: "account1",
                   canConsumeShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
-                return { negativeOffset: 8 } as GetTimezoneOffsetResponse;
+              case GET_TODAY_WRT_TIMEZONE:
+                return { date: "2020-02-28" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -183,7 +182,6 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1583038800000), // 2020-03-01T05:00:00z
         );
 
         // Execute
@@ -254,8 +252,8 @@ TEST_RUNNER.run({
                   accountId: "account1",
                   canConsumeShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
-                return { negativeOffset: 8 } as GetTimezoneOffsetResponse;
+              case GET_TODAY_WRT_TIMEZONE:
+                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -265,7 +263,6 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580619600000), // 2020-02-02T05:00:00z
         );
 
         // Execute
@@ -302,8 +299,8 @@ TEST_RUNNER.run({
                   accountId: "account1",
                   canConsumeShows: true,
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TIMEZONE_OFFSET:
-                return { negativeOffset: 8 } as GetTimezoneOffsetResponse;
+              case GET_TODAY_WRT_TIMEZONE:
+                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -313,7 +310,6 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580619600000), // 2020-02-02T05:00:00z
         );
 
         // Execute

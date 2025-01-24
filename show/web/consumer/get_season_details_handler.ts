@@ -1,4 +1,3 @@
-import { toTodayISOString } from "../../../common/date_helper";
 import { COVER_IMAGE_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
@@ -8,7 +7,7 @@ import {
   getPublishedSeasonAndMoreForConsumer,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { getTimezoneOffset } from "@phading/product_meter_service_interface/node/client";
+import { getTodayWrtTimezone } from "@phading/product_meter_service_interface/node/client";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetSeasonDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
@@ -31,7 +30,6 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       COVER_IMAGE_PUBLIC_ACCESS_DOMAIN,
-      () => new Date(),
     );
   }
 
@@ -39,7 +37,6 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
-    private getNowDate: () => Date,
   ) {
     super();
   }
@@ -107,12 +104,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
   private async getLastSeasonGrades(
     seasonId: string,
   ): Promise<Array<GetLastSeasonGradesRow>> {
-    let { negativeOffset } = await getTimezoneOffset(this.serviceClient, {});
-    return getLastSeasonGrades(
-      this.database,
-      seasonId,
-      toTodayISOString(this.getNowDate(), negativeOffset),
-      2,
-    );
+    let { date } = await getTodayWrtTimezone(this.serviceClient, {});
+    return getLastSeasonGrades(this.database, seasonId, date, 2);
   }
 }
