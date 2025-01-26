@@ -49,12 +49,16 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let { accountId, canConsumeShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanConsumeShows: true,
-      });
-    if (!canConsumeShows) {
+        capabilitiesMask: {
+          checkCanConsumeShows: true,
+        },
+      },
+    );
+    if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get season details.`,
       );

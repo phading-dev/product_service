@@ -40,12 +40,16 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get episode details.`,
       );

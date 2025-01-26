@@ -48,12 +48,16 @@ export class DeleteSubtitleTrackHandler extends DeleteSubtitleTrackHandlerInterf
     if (!body.r2TrackDirname) {
       throw newBadRequestError(`"r2TrackDirname" is required.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to delete subtitle track.`,
       );

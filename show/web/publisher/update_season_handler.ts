@@ -57,12 +57,16 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
     if (body.description.length > MAX_SEASON_DESCRIPTION_LENGTH) {
       throw newBadRequestError(`"description" is too long.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update season.`,
       );

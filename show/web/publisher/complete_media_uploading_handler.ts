@@ -48,12 +48,16 @@ export class CompleteMediaUploadingHandler extends CompleteMediaUploadingHandler
     if (!body.uploadSessionUrl) {
       throw newBadRequestError(`"uploadSessionUrl" is required.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to complete media uploading.`,
       );

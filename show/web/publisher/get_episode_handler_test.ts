@@ -55,7 +55,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
-                  canPublishShows: true,
+                  capabilities: {
+                    canPublishShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case GET_VIDEO_CONTAINER:
                 this.request = request;
@@ -157,7 +159,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "publisher1",
-          canPublishShows: true,
+          capabilities: {
+            canPublishShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeHandler(
           SPANNER_DATABASE,

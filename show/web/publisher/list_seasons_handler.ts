@@ -46,12 +46,16 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     if (body.limit > MAX_LIST_SEASONS_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list seasons.`,
       );

@@ -58,7 +58,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
-                  canPublishShows: true,
+                  capabilities: {
+                    canPublishShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case COMMIT_VIDEO_CONTAINER_STAGING_DATA:
                 this.request = request;

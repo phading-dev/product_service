@@ -47,12 +47,16 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, canConsumeShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanConsumeShows: true,
-      });
-    if (!canConsumeShows) {
+        capabilitiesMask: {
+          checkCanConsumeShows: true,
+        },
+      },
+    );
+    if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get episode details.`,
       );
@@ -66,7 +70,9 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
       now,
     );
     if (rows.length === 0) {
-      throw newNotFoundError(`Season ${body.seasonId} episode ${body.episodeId} is not found.`);
+      throw newNotFoundError(
+        `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
+      );
     }
     let { eData } = rows[0];
     return {

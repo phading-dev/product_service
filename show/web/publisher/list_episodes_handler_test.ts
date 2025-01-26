@@ -67,7 +67,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "publisher1",
-          canPublishShows: true,
+          capabilities: {
+            canPublishShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
@@ -212,7 +214,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "publisher1",
-          canPublishShows: true,
+          capabilities: {
+            canPublishShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
@@ -335,7 +339,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "publisher2",
-          canPublishShows: true,
+          capabilities: {
+            canPublishShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,

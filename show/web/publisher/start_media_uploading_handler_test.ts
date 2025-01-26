@@ -54,7 +54,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
-                  canPublishShows: true,
+                  capabilities: {
+                    canPublishShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case START_MEDIA_UPLOADING:
                 this.request = request;

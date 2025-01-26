@@ -44,12 +44,16 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     if (body.limit > MAX_LIST_EPISODES_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get more episodes.`,
       );

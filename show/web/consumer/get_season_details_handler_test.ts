@@ -69,7 +69,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
-                  canConsumeShows: true,
+                  capabilities: {
+                    canConsumeShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case GET_TODAY_WRT_TIMEZONE:
                 return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
@@ -169,7 +171,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
-                  canConsumeShows: true,
+                  capabilities: {
+                    canConsumeShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case GET_TODAY_WRT_TIMEZONE:
                 return { date: "2020-02-28" } as GetTodayWrtTimezoneResponse;
@@ -250,7 +254,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
-                  canConsumeShows: true,
+                  capabilities: {
+                    canConsumeShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case GET_TODAY_WRT_TIMEZONE:
                 return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
@@ -297,7 +303,9 @@ TEST_RUNNER.run({
               case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
-                  canConsumeShows: true,
+                  capabilities: {
+                    canConsumeShows: true,
+                  },
                 } as ExchangeSessionAndCheckCapabilityResponse;
               case GET_TODAY_WRT_TIMEZONE:
                 return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;

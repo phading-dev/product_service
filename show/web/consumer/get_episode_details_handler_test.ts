@@ -51,7 +51,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeDetailsHandler(
           SPANNER_DATABASE,
@@ -129,7 +131,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeDetailsHandler(
           SPANNER_DATABASE,
@@ -206,7 +210,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeDetailsHandler(
           SPANNER_DATABASE,
@@ -230,7 +236,9 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error,
-          eqHttpError(newNotFoundError("Season season1 episode episode1 is not found.")),
+          eqHttpError(
+            newNotFoundError("Season season1 episode episode1 is not found."),
+          ),
           "error",
         );
       },
@@ -274,7 +282,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeDetailsHandler(
           SPANNER_DATABASE,
@@ -298,7 +308,9 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error,
-          eqHttpError(newNotFoundError("Season season1 episode episode1 is not found.")),
+          eqHttpError(
+            newNotFoundError("Season season1 episode episode1 is not found."),
+          ),
           "error",
         );
       },

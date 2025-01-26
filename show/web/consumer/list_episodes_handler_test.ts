@@ -78,7 +78,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
@@ -226,7 +228,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
@@ -330,7 +334,9 @@ TEST_RUNNER.run({
         let serviceClientMock = new NodeServiceClientMock();
         serviceClientMock.response = {
           accountId: "account1",
-          canConsumeShows: true,
+          capabilities: {
+            canConsumeShows: true,
+          },
         } as ExchangeSessionAndCheckCapabilityResponse;
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,

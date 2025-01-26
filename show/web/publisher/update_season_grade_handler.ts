@@ -64,12 +64,16 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     if (body.grade < 1 || body.grade > MAX_GRADE) {
       throw newBadRequestError(`"grade" is too large or too small.`);
     }
-    let { accountId, canPublishShows } =
-      await exchangeSessionAndCheckCapability(this.serviceClient, {
+    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
+      this.serviceClient,
+      {
         signedSession: sessionStr,
-        checkCanPublishShows: true,
-      });
-    if (!canPublishShows) {
+        capabilitiesMask: {
+          checkCanPublishShows: true,
+        },
+      },
+    );
+    if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update season grade.`,
       );
