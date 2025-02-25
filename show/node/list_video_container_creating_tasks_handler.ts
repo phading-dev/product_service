@@ -1,5 +1,5 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
-import { listVideoContainerCreatingTasks } from "../../db/sql";
+import { listPendingVideoContainerCreatingTasks } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ListVideoContainerCreatingTasksHandlerInterface } from "@phading/product_service_interface/show/node/handler";
 import {
@@ -25,7 +25,7 @@ export class ListVideoContainerCreatingTasksHandler extends ListVideoContainerCr
     loggingPrefix: string,
     body: ListVideoContainerCreatingTasksRequestBody,
   ): Promise<ListVideoContainerCreatingTasksResponse> {
-    let tasks = await listVideoContainerCreatingTasks(
+    let tasks = await listPendingVideoContainerCreatingTasks(
       this.database,
       this.getNow(),
     );

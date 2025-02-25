@@ -1,5 +1,5 @@
 import crypto = require("crypto");
-import { FAR_FUTURE_DATE, FAR_PAST_DATE } from "../../../common/params";
+import { FAR_FUTURE_DATE, FAR_PAST_DATE } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { Season, SeasonGrade } from "../../../db/schema";
@@ -16,7 +16,7 @@ import {
   CreateSeasonRequestBody,
   CreateSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -50,14 +50,13 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
     if (body.name.length > MAX_SEASON_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(

@@ -1,7 +1,7 @@
-import { VIDEO_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getPublishedEpisodeForConsumer } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetEpisodeDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
@@ -9,7 +9,7 @@ import {
   GetEpisodeDetailsRequestBody,
   GetEpisodeDetailsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -22,7 +22,7 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     return new GetEpisodeDetailsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      VIDEO_PUBLIC_ACCESS_DOMAIN,
+      ENV_VARS.r2VideoPublicAccessDomain,
       () => Date.now(),
     );
   }
@@ -47,14 +47,13 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanConsumeShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(

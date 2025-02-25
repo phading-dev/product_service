@@ -8,8 +8,8 @@ import {
   CancelMediaFormattingRequestBody,
   CancelMediaFormattingResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
-import { cancelMediaFormatting } from "@phading/video_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newCancelMediaFormattingRequest } from "@phading/video_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -45,14 +45,13 @@ export class CancelMediaFormattingHandler extends CancelMediaFormattingHandlerIn
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
@@ -76,9 +75,11 @@ export class CancelMediaFormattingHandler extends CancelMediaFormattingHandlerIn
         `Season ${body.seasonId} episode ${body.episodeId} does not have a video container yet.`,
       );
     }
-    await cancelMediaFormatting(this.serviceClient, {
-      containerId: seasonAndEpisode.eData.videoContainerId,
-    });
+    await this.serviceClient.send(
+      newCancelMediaFormattingRequest({
+        containerId: seasonAndEpisode.eData.videoContainerId,
+      }),
+    );
     await updateSeasonLastChangeTime(
       this.database,
       accountId,

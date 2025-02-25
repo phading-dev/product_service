@@ -7,10 +7,6 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
-import {
-  GET_TODAY_WRT_TIMEZONE,
-  GetTodayWrtTimezoneResponse,
-} from "@phading/product_meter_service_interface/node/interface";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
@@ -73,8 +69,6 @@ TEST_RUNNER.run({
                     canConsumeShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -84,6 +78,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
+          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute
@@ -175,8 +170,6 @@ TEST_RUNNER.run({
                     canConsumeShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return { date: "2020-02-28" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -186,6 +179,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
+          () => new Date(1582876800000), // 2020-02-28T08:00:00.000Z
         );
 
         // Execute
@@ -258,8 +252,6 @@ TEST_RUNNER.run({
                     canConsumeShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -269,6 +261,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
+          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute
@@ -307,8 +300,6 @@ TEST_RUNNER.run({
                     canConsumeShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return { date: "2020-02-01" } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -318,6 +309,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
+          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute

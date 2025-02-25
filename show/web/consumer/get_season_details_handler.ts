@@ -1,13 +1,12 @@
-import { COVER_IMAGE_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
+import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  GetLastSeasonGradesRow,
   getLastSeasonGrades,
   getPublishedSeasonAndMoreForConsumer,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { Database } from "@google-cloud/spanner";
-import { getTodayWrtTimezone } from "@phading/product_meter_service_interface/node/client";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetSeasonDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
@@ -15,7 +14,7 @@ import {
   GetSeasonDetailsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { NextGrade } from "@phading/product_service_interface/show/web/consumer/season_details";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -29,7 +28,8 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     return new GetSeasonDetailsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      COVER_IMAGE_PUBLIC_ACCESS_DOMAIN,
+      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      () => new Date(),
     );
   }
 
@@ -37,6 +37,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
+    private getNowDate: () => Date,
   ) {
     super();
   }
@@ -49,27 +50,27 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanConsumeShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get season details.`,
       );
     }
+    let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
       getPublishedSeasonAndMoreForConsumer(
         this.database,
         body.seasonId,
         SeasonState.PUBLISHED,
       ),
-      this.getLastSeasonGrades(body.seasonId),
+      getLastSeasonGrades(this.database, body.seasonId, todayStr, 2),
     ]);
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -103,12 +104,5 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         nextGrade,
       },
     };
-  }
-
-  private async getLastSeasonGrades(
-    seasonId: string,
-  ): Promise<Array<GetLastSeasonGradesRow>> {
-    let { date } = await getTodayWrtTimezone(this.serviceClient, {});
-    return getLastSeasonGrades(this.database, seasonId, date, 2);
   }
 }

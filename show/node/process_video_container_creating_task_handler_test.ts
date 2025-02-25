@@ -2,19 +2,21 @@ import { SPANNER_DATABASE } from "../../common/spanner_database";
 import { Episode } from "../../db/schema";
 import {
   GET_EPISODE_ROW,
-  LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW,
-  LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+  GET_VIDEO_CONTAINER_CREATING_TASK_METADATA_ROW,
+  GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   checkPresenceOfVideoContainerKey,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
   deleteVideoContainerKeyStatement,
   getEpisode,
+  getVideoContainerCreatingTaskMetadata,
+  getVideoContainerDeletingTask,
   insertEpisodeStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
-  listVideoContainerCreatingTasks,
-  listVideoContainerDeletingTasks,
+  listPendingVideoContainerCreatingTasks,
+  listPendingVideoContainerDeletingTasks,
 } from "../../db/sql";
 import { ProcessVideoContainerCreatingTaskHandler } from "./process_video_container_creating_task_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -24,7 +26,13 @@ import {
 } from "@phading/video_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
-import { assertThat, eq, isArray } from "@selfage/test_matcher";
+import {
+  assertReject,
+  assertThat,
+  eq,
+  eqError,
+  isArray,
+} from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 let TWO_YEAR_MS = 2 * 365 * 24 * 60 * 60 * 1000;
@@ -43,6 +51,7 @@ async function insertEpisode(episode: Episode) {
       insertVideoContainerCreatingTaskStatement(
         episode.seasonId,
         episode.episodeId,
+        0,
         100,
         0,
       ),
@@ -67,7 +76,7 @@ TEST_RUNNER.run({
   name: "ProcessVideoContainerCreatingTaskHandlerTest",
   cases: [
     {
-      name: "Success",
+      name: "ProcessTask",
       execute: async () => {
         // Prepare
         let episode: Episode = {
@@ -77,25 +86,27 @@ TEST_RUNNER.run({
           publishTimeMs: 200,
         };
         await insertEpisode(episode);
-        let serviceClientMock = new NodeServiceClientMock();
+        let delayResolveFn: () => void;
+        let firstEncounterResolveFn: () => void;
+        let firstEncounterPromise = new Promise<void>(
+          (resolve) => (firstEncounterResolveFn = resolve),
+        );
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(request: any): Promise<any> {
+            this.request = request;
+            firstEncounterResolveFn();
+            await new Promise<void>((resolve) => (delayResolveFn = resolve));
+          }
+        })();
         let handler = new ProcessVideoContainerCreatingTaskHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => "container1",
           () => 1000,
         );
-        let delayResolveFn: () => void;
-        let firstEncounterPromise = new Promise<void>((resolve1) => {
-          handler.interfereFn = async () => {
-            resolve1();
-            await new Promise<void>((resolve2) => {
-              delayResolveFn = resolve2;
-            });
-          };
-        });
 
         // Execute
-        handler.handle("", {
+        let processedPromise = handler.processTask("", {
           seasonId: "season1",
           episodeId: "episode1",
         });
@@ -103,36 +114,29 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await checkPresenceOfVideoContainerKey(
-            SPANNER_DATABASE,
-            "container1",
-          ),
-          isArray([]),
+          (
+            await checkPresenceOfVideoContainerKey(
+              SPANNER_DATABASE,
+              "showcontainer1",
+            )
+          ).length,
+          eq(1),
           "videoContainerKey",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
-          isArray([
-            eqMessage(
-              {
-                videoContainerCreatingTaskSeasonId: "season1",
-                videoContainerCreatingTaskEpisodeId: "episode1",
-                videoContainerCreatingTaskExecutionTimeMs: 301000,
-              },
-              LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW,
-            ),
-          ]),
-          "creating tasks",
-        );
-        assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await getVideoContainerDeletingTask(
+            SPANNER_DATABASE,
+            "showcontainer1",
+          ),
           isArray([
             eqMessage(
               {
                 videoContainerDeletingTaskVideoContainerId: "showcontainer1",
+                videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000 + ONE_YEAR_MS,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
           "deleting tasks",
@@ -140,7 +144,7 @@ TEST_RUNNER.run({
 
         // Execute
         delayResolveFn();
-        await new Promise<void>((resolve) => (handler.doneCallback = resolve));
+        await processedPromise;
 
         // Verify
         assertThat(
@@ -175,12 +179,18 @@ TEST_RUNNER.run({
           "episode",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await listPendingVideoContainerCreatingTasks(
+            SPANNER_DATABASE,
+            TWO_YEAR_MS,
+          ),
           isArray([]),
           "creating tasks 2",
         );
         assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await listPendingVideoContainerDeletingTasks(
+            SPANNER_DATABASE,
+            TWO_YEAR_MS,
+          ),
           isArray([]),
           "deleting tasks 2",
         );
@@ -201,24 +211,24 @@ TEST_RUNNER.run({
         };
         await insertEpisode(episode);
         let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.error = new Error("Fake error");
         let handler = new ProcessVideoContainerCreatingTaskHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => "container1",
           () => 1000,
         );
-        handler.interfereFn = async () => {
-          throw new Error("Fake error");
-        };
 
         // Execute
-        handler.handle("", {
-          seasonId: "season1",
-          episodeId: "episode1",
-        });
-        await new Promise<void>((resolve) => (handler.doneCallback = resolve));
+        let error = await assertReject(
+          handler.processTask("", {
+            seasonId: "season1",
+            episodeId: "episode1",
+          }),
+        );
 
         // Verify
+        assertThat(error, eqError(new Error("Fake error")), "error");
         assertThat(
           await getEpisode(SPANNER_DATABASE, "season1", "episode1"),
           isArray([
@@ -232,31 +242,70 @@ TEST_RUNNER.run({
           "episode",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
-          isArray([
-            eqMessage(
-              {
-                videoContainerCreatingTaskSeasonId: "season1",
-                videoContainerCreatingTaskEpisodeId: "episode1",
-                videoContainerCreatingTaskExecutionTimeMs: 301000,
-              },
-              LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW,
-            ),
-          ]),
-          "creating tasks",
-        );
-        assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await getVideoContainerDeletingTask(
+            SPANNER_DATABASE,
+            "showcontainer1",
+          ),
           isArray([
             eqMessage(
               {
                 videoContainerDeletingTaskVideoContainerId: "showcontainer1",
-                videoContainerDeletingTaskExecutionTimeMs: 181000,
+                videoContainerDeletingTaskRetryCount: 0,
+                videoContainerDeletingTaskExecutionTimeMs: 301000,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
           "deleting tasks",
+        );
+      },
+      tearDown: async () => {
+        await cleanupAll();
+      },
+    },
+    {
+      name: "ClaimTask",
+      execute: async () => {
+        // Prepare
+        let episode: Episode = {
+          seasonId: "season1",
+          episodeId: "episode1",
+          index: 1,
+          publishTimeMs: 200,
+        };
+        await insertEpisode(episode);
+        let serviceClientMock = new NodeServiceClientMock();
+        let handler = new ProcessVideoContainerCreatingTaskHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => "container1",
+          () => 1000,
+        );
+
+        // Execute
+        await handler.claimTask("", {
+          seasonId: "season1",
+          episodeId: "episode1",
+        });
+
+        // Verify
+        assertThat(
+          await getVideoContainerCreatingTaskMetadata(
+            SPANNER_DATABASE,
+            "season1",
+            "episode1",
+          ),
+          isArray([
+            eqMessage(
+              {
+                videoContainerCreatingTaskRetryCount: 1,
+                videoContainerCreatingTaskExecutionTimeMs: 301000,
+              },
+              GET_VIDEO_CONTAINER_CREATING_TASK_METADATA_ROW,
+            ),
+          ]),
+          "videoContainerCreatingTask",
         );
       },
       tearDown: async () => {

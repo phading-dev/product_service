@@ -1,17 +1,17 @@
-import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_vars";
-import { S3_CLIENT } from "../../../common/s3_client";
+import { S3_CLIENT, initS3Client } from "../../../common/s3_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  GET_COVER_IMAGE_DELETING_TASK_ROW,
   GET_SEASON_ROW,
-  LIST_COVER_IMAGE_DELETING_TASKS_ROW,
   checkPresenceOfCoverImageFile,
   deleteCoverImageDeletingTaskStatement,
   deleteCoverImageFileStatement,
   deleteSeasonStatement,
+  getCoverImageDeletingTask,
   getSeason,
   insertSeasonStatement,
-  listCoverImageDeletingTasks,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { UploadCoverImageHandler } from "./upload_cover_image_handler";
 import { DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -29,7 +29,6 @@ import {
 import { TEST_RUNNER } from "@selfage/test_runner";
 import { createReadStream } from "fs";
 
-let TWO_YEAR_MS = 2 * 365 * 24 * 60 * 60 * 1000;
 let ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 async function cleanUpAll() {
@@ -43,9 +42,9 @@ async function cleanUpAll() {
     ]);
     await transaction.commit();
   });
-  await S3_CLIENT.send(
+  await S3_CLIENT.val.send(
     new DeleteObjectCommand({
-      Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+      Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
       Key: "image2",
     }),
   );
@@ -53,6 +52,11 @@ async function cleanUpAll() {
 
 TEST_RUNNER.run({
   name: "UploadCoverImageHandlerTest",
+  environment: {
+    async setUp() {
+      await initS3Client();
+    },
+  },
   cases: [
     {
       name: "Stalled_Success",
@@ -113,14 +117,16 @@ TEST_RUNNER.run({
           "coverImageFile",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, "image2"),
           isArray([
             eqMessage(
               {
                 coverImageDeletingTaskR2Filename: "image2",
+                coverImageDeletingTaskRetryCount: 0,
                 coverImageDeletingTaskExecutionTimeMs: 1000 + ONE_YEAR_MS,
+                coverImageDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_COVER_IMAGE_DELETING_TASKS_ROW,
+              GET_COVER_IMAGE_DELETING_TASK_ROW,
             ),
           ]),
           "coverImageDeletingTasks",
@@ -150,23 +156,25 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, "image1"),
           isArray([
             eqMessage(
               {
                 coverImageDeletingTaskR2Filename: "image1",
+                coverImageDeletingTaskRetryCount: 0,
                 coverImageDeletingTaskExecutionTimeMs: 1000,
+                coverImageDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_COVER_IMAGE_DELETING_TASKS_ROW,
+              GET_COVER_IMAGE_DELETING_TASK_ROW,
             ),
           ]),
           "coverImageDeletingTasks",
         );
         assertThat(
           (
-            await S3_CLIENT.send(
+            await S3_CLIENT.val.send(
               new ListObjectsV2Command({
-                Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+                Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
                 Prefix: "image2",
               }),
             )
@@ -252,14 +260,16 @@ TEST_RUNNER.run({
           "coverImageFile",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, TWO_YEAR_MS),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, "image2"),
           isArray([
             eqMessage(
               {
                 coverImageDeletingTaskR2Filename: "image2",
+                coverImageDeletingTaskRetryCount: 0,
                 coverImageDeletingTaskExecutionTimeMs: 301000,
+                coverImageDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_COVER_IMAGE_DELETING_TASKS_ROW,
+              GET_COVER_IMAGE_DELETING_TASK_ROW,
             ),
           ]),
           "coverImageDeletingTasks",

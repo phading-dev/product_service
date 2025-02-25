@@ -3,7 +3,8 @@ import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
   deleteVideoContainerDeletingTaskStatement,
   deleteVideoContainerKeyStatement,
-  updateVideoContainerDeletingTaskStatement,
+  getVideoContainerDeletingTaskMetadata,
+  updateVideoContainerDeletingTaskMetadataStatement,
 } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ProcessVideoContainerDeletingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";
@@ -11,8 +12,10 @@ import {
   ProcessVideoContainerDeletingTaskRequestBody,
   ProcessVideoContainerDeletingTaskResponse,
 } from "@phading/product_service_interface/show/node/interface";
-import { deleteVideoContainer } from "@phading/video_service_interface/node/client";
+import { newDeleteVideoContainerRequest } from "@phading/video_service_interface/node/client";
+import { newBadRequestError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { ProcessTaskHandlerWrapper } from "@selfage/service_handler/process_task_handler_wrapper";
 
 export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContainerDeletingTaskHandlerInterface {
   public static create(): ProcessVideoContainerDeletingTaskHandler {
@@ -23,9 +26,7 @@ export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContai
     );
   }
 
-  private static RETRY_BACKOFF_MS = 5 * 60 * 1000;
-  public doneCallback: () => void = () => {};
-  public interfereFn: () => Promise<void> = () => Promise.resolve();
+  private taskHandler: ProcessTaskHandlerWrapper;
 
   public constructor(
     private database: Database,
@@ -33,6 +34,11 @@ export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContai
     private getNow: () => number,
   ) {
     super();
+    this.taskHandler = ProcessTaskHandlerWrapper.create(
+      this.descriptor,
+      5 * 60 * 1000,
+      24 * 60 * 60 * 1000,
+    );
   }
 
   public async handle(
@@ -40,53 +46,54 @@ export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContai
     body: ProcessVideoContainerDeletingTaskRequestBody,
   ): Promise<ProcessVideoContainerDeletingTaskResponse> {
     loggingPrefix = `${loggingPrefix} Video container deleting task for video container ${body.videoContainerId}:`;
-    await this.claimTask(loggingPrefix, body.videoContainerId);
-    this.startProcessingAndCatchError(loggingPrefix, body.videoContainerId);
+    await this.taskHandler.wrap(
+      loggingPrefix,
+      () => this.claimTask(loggingPrefix, body),
+      () => this.processTask(loggingPrefix, body),
+    );
     return {};
   }
 
-  private async claimTask(
+  public async claimTask(
     loggingPrefix: string,
-    videoContainerId: string,
+    body: ProcessVideoContainerDeletingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
+      let rows = await getVideoContainerDeletingTaskMetadata(
+        transaction,
+        body.videoContainerId,
+      );
+      if (rows.length === 0) {
+        throw newBadRequestError("Task is not found.");
+      }
+      let task = rows[0];
       await transaction.batchUpdate([
-        updateVideoContainerDeletingTaskStatement(
-          videoContainerId,
+        updateVideoContainerDeletingTaskMetadataStatement(
+          body.videoContainerId,
+          task.videoContainerDeletingTaskRetryCount + 1,
           this.getNow() +
-            ProcessVideoContainerDeletingTaskHandler.RETRY_BACKOFF_MS,
+            this.taskHandler.getBackoffTime(
+              task.videoContainerDeletingTaskRetryCount,
+            ),
         ),
       ]);
       await transaction.commit();
     });
   }
 
-  private async startProcessingAndCatchError(
+  public async processTask(
     loggingPrefix: string,
-    videoContainerId: string,
+    body: ProcessVideoContainerDeletingTaskRequestBody,
   ): Promise<void> {
-    console.log(`${loggingPrefix} Task starting.`);
-    try {
-      await this.startProcessing(loggingPrefix, videoContainerId);
-      console.log(`${loggingPrefix} Task completed!`);
-    } catch (e) {
-      console.error(`${loggingPrefix} Task failed! ${e.stack ?? e}`);
-    }
-    this.doneCallback();
-  }
-
-  private async startProcessing(
-    loggingPrefix: string,
-    videoContainerId: string,
-  ): Promise<void> {
-    await this.interfereFn();
-    await deleteVideoContainer(this.serviceClient, {
-      containerId: videoContainerId,
-    });
+    await this.serviceClient.send(
+      newDeleteVideoContainerRequest({
+        containerId: body.videoContainerId,
+      }),
+    );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([
-        deleteVideoContainerDeletingTaskStatement(videoContainerId),
-        deleteVideoContainerKeyStatement(videoContainerId),
+        deleteVideoContainerDeletingTaskStatement(body.videoContainerId),
+        deleteVideoContainerKeyStatement(body.videoContainerId),
       ]);
       await transaction.commit();
     });

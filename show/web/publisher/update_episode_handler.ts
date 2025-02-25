@@ -12,7 +12,7 @@ import {
   UpdateEpisodeRequestBody,
   UpdateEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -52,14 +52,13 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
     if (body.name.length > MAX_EPISODE_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(

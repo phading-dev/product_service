@@ -1,12 +1,13 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
-  LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+  GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW,
   checkPresenceOfVideoContainerKey,
   deleteVideoContainerDeletingTaskStatement,
   deleteVideoContainerKeyStatement,
+  getVideoContainerDeletingTaskMetadata,
   insertVideoContainerDeletingTaskStatement,
   insertVideoContainerKeyStatement,
-  listVideoContainerDeletingTasks,
+  listPendingVideoContainerDeletingTasks,
 } from "../../db/sql";
 import { ProcessVideoContainerDeletingTaskHandler } from "./process_video_container_deleting_task_handler";
 import {
@@ -22,13 +23,18 @@ TEST_RUNNER.run({
   name: "ProcessVideoContainerDeletingTaskHandlerTest",
   cases: [
     {
-      name: "Success",
+      name: "ProcessTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             insertVideoContainerKeyStatement("showcontainer1"),
-            insertVideoContainerDeletingTaskStatement("showcontainer1", 100, 0),
+            insertVideoContainerDeletingTaskStatement(
+              "showcontainer1",
+              0,
+              100,
+              0,
+            ),
           ]);
           await transaction.commit();
         });
@@ -38,41 +44,10 @@ TEST_RUNNER.run({
           serviceClientMock,
           () => 1000,
         );
-        let delayResolveFn: () => void = () => {};
-        let firstEncounterPromise = new Promise<void>((resolve1) => {
-          handler.interfereFn = async () => {
-            resolve1();
-            await new Promise<void>((resolve2) => {
-              delayResolveFn = resolve2;
-            });
-          };
-        });
 
         // Execute
-        handler.handle("", {
+        await handler.processTask("", {
           videoContainerId: "showcontainer1",
-        });
-        await firstEncounterPromise;
-
-        // Verify
-        assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, 1000000),
-          isArray([
-            eqMessage(
-              {
-                videoContainerDeletingTaskVideoContainerId: "showcontainer1",
-                videoContainerDeletingTaskExecutionTimeMs: 301000,
-              },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
-            ),
-          ]),
-          "listVideoContainerDeletingTasks",
-        );
-
-        // Execute
-        delayResolveFn();
-        await new Promise<void>((resolve) => {
-          handler.doneCallback = resolve;
         });
 
         // Verify
@@ -100,15 +75,72 @@ TEST_RUNNER.run({
           "checkPresenceOfVideoContainerKey",
         );
         assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingVideoContainerDeletingTasks(
+            SPANNER_DATABASE,
+            1000000,
+          ),
           isArray([]),
-          "listVideoContainerDeletingTasks 2",
+          "listVideoContainerDeletingTasks",
         );
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteVideoContainerKeyStatement("showcontainer1"),
+            deleteVideoContainerDeletingTaskStatement("showcontainer1"),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+    {
+      name: "ClaimTask",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertVideoContainerDeletingTaskStatement(
+              "showcontainer1",
+              0,
+              100,
+              0,
+            ),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        let handler = new ProcessVideoContainerDeletingTaskHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => 1000,
+        );
+
+        // Execute
+        await handler.claimTask("", {
+          videoContainerId: "showcontainer1",
+        });
+
+        // Verify
+        assertThat(
+          await getVideoContainerDeletingTaskMetadata(
+            SPANNER_DATABASE,
+            "showcontainer1",
+          ),
+          isArray([
+            eqMessage(
+              {
+                videoContainerDeletingTaskRetryCount: 1,
+                videoContainerDeletingTaskExecutionTimeMs: 301000,
+              },
+              GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW,
+            ),
+          ]),
+          "getVideoContainerDeletingTaskMetadata",
+        );
+      },
+      tearDown: async () => {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
             deleteVideoContainerDeletingTaskStatement("showcontainer1"),
           ]);
           await transaction.commit();

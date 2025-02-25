@@ -7,8 +7,8 @@ import {
   GetEpisodeRequestBody,
   GetEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
-import { getVideoContainer } from "@phading/video_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newGetVideoContainerRequest } from "@phading/video_service_interface/node/client";
 import { VideoContainer } from "@phading/video_service_interface/node/video_container";
 import {
   newBadRequestError,
@@ -40,14 +40,13 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
@@ -68,9 +67,11 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     let { sData, eData } = rows[0];
     let videoContainer: VideoContainer;
     if (eData.videoContainerId) {
-      ({ videoContainer } = await getVideoContainer(this.serviceClient, {
-        containerId: eData.videoContainerId,
-      }));
+      ({ videoContainer } = await this.serviceClient.send(
+        newGetVideoContainerRequest({
+          containerId: eData.videoContainerId,
+        }),
+      ));
     }
     return {
       episode: {

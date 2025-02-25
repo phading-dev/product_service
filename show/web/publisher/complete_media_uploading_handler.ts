@@ -8,8 +8,8 @@ import {
   CompleteMediaUploadingRequestBody,
   CompleteMediaUploadingResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
-import { completeMediaUploading } from "@phading/video_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newCompleteMediaUploadingRequest } from "@phading/video_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -48,14 +48,13 @@ export class CompleteMediaUploadingHandler extends CompleteMediaUploadingHandler
     if (!body.uploadSessionUrl) {
       throw newBadRequestError(`"uploadSessionUrl" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
@@ -79,10 +78,12 @@ export class CompleteMediaUploadingHandler extends CompleteMediaUploadingHandler
         `Season ${body.seasonId} episode ${body.episodeId} does not have a video container yet.`,
       );
     }
-    await completeMediaUploading(this.serviceClient, {
-      containerId: seasonAndEpisode.eData.videoContainerId,
-      uploadSessionUrl: body.uploadSessionUrl,
-    });
+    await this.serviceClient.send(
+      newCompleteMediaUploadingRequest({
+        containerId: seasonAndEpisode.eData.videoContainerId,
+        uploadSessionUrl: body.uploadSessionUrl,
+      }),
+    );
     await updateSeasonLastChangeTime(
       this.database,
       accountId,

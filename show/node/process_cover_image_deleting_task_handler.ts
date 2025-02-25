@@ -1,11 +1,12 @@
-import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../common/env_vars";
 import { S3_CLIENT } from "../../common/s3_client";
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
   deleteCoverImageDeletingTaskStatement,
   deleteCoverImageFileStatement,
-  updateCoverImageDeletingTaskStatement,
+  getCoverImageDeletingTaskMetadata,
+  updateCoverImageDeletingTaskMetadataStatement,
 } from "../../db/sql";
+import { ENV_VARS } from "../../env";
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Database } from "@google-cloud/spanner";
 import { ProcessCoverImageDeletingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";
@@ -13,6 +14,9 @@ import {
   ProcessCoverImageDeletingTaskRequestBody,
   ProcessCoverImageDeletingTaskResponse,
 } from "@phading/product_service_interface/show/node/interface";
+import { newBadRequestError } from "@selfage/http_error";
+import { Ref } from "@selfage/ref";
+import { ProcessTaskHandlerWrapper } from "@selfage/service_handler/process_task_handler_wrapper";
 
 export class ProcessCoverImageDeletingTaskHandler extends ProcessCoverImageDeletingTaskHandlerInterface {
   public static create(): ProcessCoverImageDeletingTaskHandler {
@@ -23,16 +27,19 @@ export class ProcessCoverImageDeletingTaskHandler extends ProcessCoverImageDelet
     );
   }
 
-  private static RETRY_BACKOFF_MS = 5 * 60 * 1000;
-  public doneCallback: () => void = () => {};
-  public interfereFn: () => Promise<void> = () => Promise.resolve();
+  private taskHandler: ProcessTaskHandlerWrapper;
 
   public constructor(
     private database: Database,
-    private s3Client: S3Client,
+    private s3Client: Ref<S3Client>,
     private getNow: () => number,
   ) {
     super();
+    this.taskHandler = ProcessTaskHandlerWrapper.create(
+      this.descriptor,
+      5 * 60 * 1000,
+      24 * 60 * 60 * 1000,
+    );
   }
 
   public async handle(
@@ -40,55 +47,55 @@ export class ProcessCoverImageDeletingTaskHandler extends ProcessCoverImageDelet
     body: ProcessCoverImageDeletingTaskRequestBody,
   ): Promise<ProcessCoverImageDeletingTaskResponse> {
     loggingPrefix = `${loggingPrefix} Cover image deleting task for file ${body.r2Filename}:`;
-    await this.claimTask(loggingPrefix, body.r2Filename);
-    this.startProcessingAndCatchError(loggingPrefix, body.r2Filename);
+    await this.taskHandler.wrap(
+      loggingPrefix,
+      () => this.claimTask(loggingPrefix, body),
+      () => this.processTask(loggingPrefix, body),
+    );
     return {};
   }
 
-  private async claimTask(
+  public async claimTask(
     loggingPrefix: string,
-    r2Filename: string,
+    body: ProcessCoverImageDeletingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
+      let rows = await getCoverImageDeletingTaskMetadata(
+        transaction,
+        body.r2Filename,
+      );
+      if (rows.length === 0) {
+        throw newBadRequestError("Task is not found.");
+      }
+      let task = rows[0];
       await transaction.batchUpdate([
-        updateCoverImageDeletingTaskStatement(
-          r2Filename,
-          this.getNow() + ProcessCoverImageDeletingTaskHandler.RETRY_BACKOFF_MS,
+        updateCoverImageDeletingTaskMetadataStatement(
+          body.r2Filename,
+          task.coverImageDeletingTaskRetryCount + 1,
+          this.getNow() +
+            this.taskHandler.getBackoffTime(
+              task.coverImageDeletingTaskRetryCount,
+            ),
         ),
       ]);
       await transaction.commit();
     });
   }
 
-  private async startProcessingAndCatchError(
+  public async processTask(
     loggingPrefix: string,
-    r2Filename: string,
+    body: ProcessCoverImageDeletingTaskRequestBody,
   ): Promise<void> {
-    console.log(`${loggingPrefix} Task starting.`);
-    try {
-      await this.startProcessing(loggingPrefix, r2Filename);
-      console.log(`${loggingPrefix} Task completed!`);
-    } catch (e) {
-      console.error(`${loggingPrefix} Task failed! ${e.stack ?? e}`);
-    }
-    this.doneCallback();
-  }
-
-  private async startProcessing(
-    loggingPrefix: string,
-    r2Filename: string,
-  ): Promise<void> {
-    await this.interfereFn();
-    await this.s3Client.send(
+    await this.s3Client.val.send(
       new DeleteObjectCommand({
-        Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
-        Key: r2Filename,
+        Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
+        Key: body.r2Filename,
       }),
     );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([
-        deleteCoverImageFileStatement(r2Filename),
-        deleteCoverImageDeletingTaskStatement(r2Filename),
+        deleteCoverImageFileStatement(body.r2Filename),
+        deleteCoverImageDeletingTaskStatement(body.r2Filename),
       ]);
       await transaction.commit();
     });

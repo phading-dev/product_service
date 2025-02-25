@@ -1,20 +1,19 @@
-import { COVER_IMAGE_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
+import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  GetLastSeasonGradesRow,
   getLastSeasonGrades,
   getSeasonAndMoreForPublisher,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { Database } from "@google-cloud/spanner";
-import { getTodayWrtTimezone } from "@phading/product_meter_service_interface/node/client";
 import { GetSeasonHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   GetSeasonRequestBody,
   GetSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { NextGrade } from "@phading/product_service_interface/show/web/publisher/season_details";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -27,7 +26,8 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     return new GetSeasonHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      COVER_IMAGE_PUBLIC_ACCESS_DOMAIN,
+      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      () => new Date(),
     );
   }
 
@@ -35,6 +35,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
+    private getNowDate: () => Date,
   ) {
     super();
   }
@@ -47,23 +48,23 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get season details.`,
       );
     }
+    let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
       getSeasonAndMoreForPublisher(this.database, accountId, body.seasonId),
-      this.getLastSeasonGrades(body.seasonId),
+      getLastSeasonGrades(this.database, body.seasonId, todayStr, 2),
     ]);
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -95,12 +96,5 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         nextGrade,
       },
     };
-  }
-
-  private async getLastSeasonGrades(
-    seasonId: string,
-  ): Promise<Array<GetLastSeasonGradesRow>> {
-    let { date } = await getTodayWrtTimezone(this.serviceClient, {});
-    return getLastSeasonGrades(this.database, seasonId, date, 2);
   }
 }

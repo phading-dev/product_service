@@ -5,11 +5,12 @@ import {
   deleteVideoContainerDeletingTaskStatement,
   getEpisode,
   getSeasonAndEpisode,
+  getVideoContainerCreatingTaskMetadata,
   insertVideoContainerDeletingTaskStatement,
   insertVideoContainerKeyStatement,
   updateEpisodeStatement,
-  updateVideoContainerCreatingTaskStatement,
-  updateVideoContainerDeletingTaskStatement,
+  updateVideoContainerCreatingTaskMetadataStatement,
+  updateVideoContainerDeletingTaskMetadataStatement,
 } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ProcessVideoContainerCreatingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";
@@ -17,9 +18,10 @@ import {
   ProcessVideoContainerCreatingTaskRequestBody,
   ProcessVideoContainerCreatingTaskResponse,
 } from "@phading/product_service_interface/show/node/interface";
-import { createVideoContainer } from "@phading/video_service_interface/node/client";
-import { newConflictError } from "@selfage/http_error";
+import { newCreateVideoContainerRequest } from "@phading/video_service_interface/node/client";
+import { newBadRequestError, newConflictError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { ProcessTaskHandlerWrapper } from "@selfage/service_handler/process_task_handler_wrapper";
 
 export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContainerCreatingTaskHandlerInterface {
   public static create(): ProcessVideoContainerCreatingTaskHandler {
@@ -31,11 +33,9 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     );
   }
 
-  private static RETRY_BACKOFF_MS = 5 * 60 * 1000;
-  private static CLEAN_UP_ON_ERROR_DELAY_MS = 3 * 60 * 1000;
+  private static CLEAN_UP_ON_ERROR_DELAY_MS = 5 * 60 * 1000;
   private static ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-  public doneCallback: () => void = () => {};
-  public interfereFn: () => Promise<void> = () => Promise.resolve();
+  private taskHandler: ProcessTaskHandlerWrapper;
 
   public constructor(
     private database: Database,
@@ -44,6 +44,11 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     private getNow: () => number,
   ) {
     super();
+    this.taskHandler = ProcessTaskHandlerWrapper.create(
+      this.descriptor,
+      5 * 60 * 1000,
+      24 * 60 * 60 * 1000,
+    );
   }
 
   public async handle(
@@ -51,78 +56,68 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     body: ProcessVideoContainerCreatingTaskRequestBody,
   ): Promise<ProcessVideoContainerCreatingTaskResponse> {
     loggingPrefix = `${loggingPrefix} Video container creating task for season ${body.seasonId} epsiode ${body.episodeId}:`;
-    let { accountId } = await this.getPayloadAndClaimTask(
+    await this.taskHandler.wrap(
       loggingPrefix,
-      body.seasonId,
-      body.episodeId,
-    );
-    this.startProcessingAndCatchError(
-      loggingPrefix,
-      body.seasonId,
-      body.episodeId,
-      accountId,
+      () => this.claimTask(loggingPrefix, body),
+      () => this.processTask(loggingPrefix, body),
     );
     return {};
   }
 
-  private async getPayloadAndClaimTask(
+  public async claimTask(
     loggingPrefix: string,
-    seasonId: string,
-    episodeId: string,
-  ): Promise<{
-    accountId: string;
-  }> {
-    let accountId: string;
+    body: ProcessVideoContainerCreatingTaskRequestBody,
+  ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisode(transaction, seasonId, episodeId);
+      let rows = await getVideoContainerCreatingTaskMetadata(
+        transaction,
+        body.seasonId,
+        body.episodeId,
+      );
       if (rows.length === 0) {
-        throw newConflictError(
-          `Season ${seasonId} or episode ${episodeId} is not found.`,
-        );
+        throw newBadRequestError(`Task is not found.`);
       }
-      accountId = rows[0].sData.publisherId;
+      let task = rows[0];
       await transaction.batchUpdate([
-        updateVideoContainerCreatingTaskStatement(
-          seasonId,
-          episodeId,
+        updateVideoContainerCreatingTaskMetadataStatement(
+          body.seasonId,
+          body.episodeId,
+          task.videoContainerCreatingTaskRetryCount + 1,
           this.getNow() +
-            ProcessVideoContainerCreatingTaskHandler.RETRY_BACKOFF_MS,
+            this.taskHandler.getBackoffTime(
+              task.videoContainerCreatingTaskRetryCount,
+            ),
         ),
       ]);
       await transaction.commit();
     });
-    return { accountId };
   }
 
-  private async startProcessingAndCatchError(
+  public async processTask(
     loggingPrefix: string,
-    seasonId: string,
-    episodeId: string,
-    accountId: string,
-  ): Promise<void> {
-    console.log(`${loggingPrefix} Task starting.`);
-    try {
-      await this.startProcessing(loggingPrefix, seasonId, episodeId, accountId);
-      console.log(`${loggingPrefix} Task completed!`);
-    } catch (e) {
-      console.error(`${loggingPrefix} Task failed! ${e.stack ?? e}`);
-    }
-    this.doneCallback();
-  }
-
-  private async startProcessing(
-    loggingPrefix: string,
-    seasonId: string,
-    episodeId: string,
-    accountId: string,
+    body: ProcessVideoContainerCreatingTaskRequestBody,
   ): Promise<void> {
     let videoContainerId = `show${this.generateUuid()}`;
+    let accountId: string;
     await this.database.runTransactionAsync(async (transaction) => {
+      let rows = await getSeasonAndEpisode(
+        transaction,
+        body.seasonId,
+        body.episodeId,
+      );
+      if (rows.length === 0) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
+        );
+      }
+      accountId = rows[0].sData.publisherId;
+
       let now = this.getNow();
       await transaction.batchUpdate([
         insertVideoContainerKeyStatement(videoContainerId),
         insertVideoContainerDeletingTaskStatement(
           videoContainerId,
+          0,
           now + ProcessVideoContainerCreatingTaskHandler.ONE_YEAR_MS,
           now,
         ),
@@ -131,18 +126,19 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     });
 
     try {
-      await this.interfereFn();
-      await createVideoContainer(this.serviceClient, {
-        seasonId,
-        episodeId,
-        accountId,
-        videoContainerId,
-      });
+      await this.serviceClient.send(
+        newCreateVideoContainerRequest({
+          seasonId: body.seasonId,
+          episodeId: body.episodeId,
+          accountId,
+          videoContainerId,
+        }),
+      );
       await this.database.runTransactionAsync(async (transaction) => {
-        let rows = await getEpisode(transaction, seasonId, episodeId);
+        let rows = await getEpisode(transaction, body.seasonId, body.episodeId);
         if (rows.length === 0) {
           throw newConflictError(
-            `Season ${seasonId} Episode ${episodeId} is not found.`,
+            `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
           );
         }
         let { episodeData } = rows[0];
@@ -150,15 +146,19 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
         await transaction.batchUpdate([
           updateEpisodeStatement(episodeData),
           deleteVideoContainerDeletingTaskStatement(videoContainerId),
-          deleteVideoContainerCreatingTaskStatement(seasonId, episodeId),
+          deleteVideoContainerCreatingTaskStatement(
+            body.seasonId,
+            body.episodeId,
+          ),
         ]);
         await transaction.commit();
       });
     } catch (e) {
       await this.database.runTransactionAsync(async (transaction) => {
         await transaction.batchUpdate([
-          updateVideoContainerDeletingTaskStatement(
+          updateVideoContainerDeletingTaskMetadataStatement(
             videoContainerId,
+            0,
             this.getNow() +
               ProcessVideoContainerCreatingTaskHandler.CLEAN_UP_ON_ERROR_DELAY_MS,
           ),

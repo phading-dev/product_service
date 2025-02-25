@@ -1,15 +1,15 @@
-import { COVER_IMAGE_PUBLIC_ACCESS_DOMAIN } from "../../../common/env_vars";
-import { MAX_LIST_SEASONS_ITEMS } from "../../../common/params";
+import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listSeasonsForPublisher } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { Database } from "@google-cloud/spanner";
 import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListSeasonsRequestBody,
   ListSeasonsResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -18,7 +18,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     return new ListSeasonsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      COVER_IMAGE_PUBLIC_ACCESS_DOMAIN,
+      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
       () => Date.now(),
     );
   }
@@ -46,14 +46,13 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     if (body.limit > MAX_LIST_SEASONS_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(

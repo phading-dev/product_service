@@ -1,5 +1,5 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
-import { listCoverImageDeletingTasks } from "../../db/sql";
+import { listPendingCoverImageDeletingTasks } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ListCoverImageDeletingTasksHandlerInterface } from "@phading/product_service_interface/show/node/handler";
 import {
@@ -25,7 +25,7 @@ export class ListCoverImageDeletingTasksHandler extends ListCoverImageDeletingTa
     loggingPrefix: string,
     body: ListCoverImageDeletingTasksRequestBody,
   ): Promise<ListCoverImageDeletingTasksResponse> {
-    let tasks = await listCoverImageDeletingTasks(this.database, this.getNow());
+    let tasks = await listPendingCoverImageDeletingTasks(this.database, this.getNow());
     return {
       tasks: tasks.map((task) => ({
         r2Filename: task.coverImageDeletingTaskR2Filename,

@@ -1,15 +1,16 @@
-import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../common/env_vars";
-import { S3_CLIENT } from "../../common/s3_client";
+import { S3_CLIENT, initS3Client } from "../../common/s3_client";
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
-  LIST_COVER_IMAGE_DELETING_TASKS_ROW,
+  GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW,
   checkPresenceOfCoverImageFile,
   deleteCoverImageDeletingTaskStatement,
   deleteCoverImageFileStatement,
+  getCoverImageDeletingTaskMetadata,
   insertCoverImageDeletingTaskStatement,
   insertCoverImageFileStatement,
-  listCoverImageDeletingTasks,
+  listPendingCoverImageDeletingTasks,
 } from "../../db/sql";
+import { ENV_VARS } from "../../env";
 import { ProcessCoverImageDeletingTaskHandler } from "./process_cover_image_deleting_task_handler";
 import {
   DeleteObjectCommand,
@@ -23,14 +24,19 @@ import { createReadStream } from "fs";
 
 TEST_RUNNER.run({
   name: "ProcessCoverImageDeletingTaskHandlerTest",
+  environment: {
+    async setUp() {
+      await initS3Client();
+    },
+  },
   cases: [
     {
-      name: "Success",
+      name: "ProcessTask",
       execute: async () => {
         // Prepare
-        await S3_CLIENT.send(
+        await S3_CLIENT.val.send(
           new PutObjectCommand({
-            Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+            Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
             Key: "image1",
             Body: createReadStream("test_data/user_image.jpg"),
           }),
@@ -38,7 +44,7 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             insertCoverImageFileStatement("image1"),
-            insertCoverImageDeletingTaskStatement("image1", 100, 0),
+            insertCoverImageDeletingTaskStatement("image1", 0, 100, 0),
           ]);
           await transaction.commit();
         });
@@ -47,41 +53,10 @@ TEST_RUNNER.run({
           S3_CLIENT,
           () => 1000,
         );
-        let delayResolveFn: () => void = () => {};
-        let firstEncounterPromise = new Promise<void>((resolve1) => {
-          handler.interfereFn = async () => {
-            resolve1();
-            await new Promise<void>((resolve2) => {
-              delayResolveFn = resolve2;
-            });
-          };
-        });
 
         // Execute
-        handler.handle("", {
+        await handler.processTask("", {
           r2Filename: "image1",
-        });
-        await firstEncounterPromise;
-
-        // Verify
-        assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
-          isArray([
-            eqMessage(
-              {
-                coverImageDeletingTaskR2Filename: "image1",
-                coverImageDeletingTaskExecutionTimeMs: 301000,
-              },
-              LIST_COVER_IMAGE_DELETING_TASKS_ROW,
-            ),
-          ]),
-          "listCoverImageDeletingTasks",
-        );
-
-        // Execute
-        delayResolveFn();
-        await new Promise<void>((resolve) => {
-          handler.doneCallback = resolve;
         });
 
         // Verify
@@ -92,15 +67,15 @@ TEST_RUNNER.run({
           "coverImageFile",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
           isArray([]),
           "listCoverImageDeletingTasks",
         );
         assertThat(
           (
-            await S3_CLIENT.send(
+            await S3_CLIENT.val.send(
               new ListObjectsV2Command({
-                Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+                Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
                 Prefix: "image",
               }),
             )
@@ -117,12 +92,57 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        await S3_CLIENT.send(
+        await S3_CLIENT.val.send(
           new DeleteObjectCommand({
-            Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+            Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
             Key: "image1",
           }),
         );
+      },
+    },
+    {
+      name: "ClaimTask",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertCoverImageDeletingTaskStatement("image1", 0, 100, 0),
+          ]);
+          await transaction.commit();
+        });
+        let handler = new ProcessCoverImageDeletingTaskHandler(
+          SPANNER_DATABASE,
+          S3_CLIENT,
+          () => 1000,
+        );
+
+        // Execute
+        await handler.claimTask("", {
+          r2Filename: "image1",
+        });
+
+        // Verify
+        assertThat(
+          await getCoverImageDeletingTaskMetadata(SPANNER_DATABASE, "image1"),
+          isArray([
+            eqMessage(
+              {
+                coverImageDeletingTaskRetryCount: 1,
+                coverImageDeletingTaskExecutionTimeMs: 301000,
+              },
+              GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW,
+            ),
+          ]),
+          "coverImageDeletingTask",
+        );
+      },
+      tearDown: async () => {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteCoverImageDeletingTaskStatement("image1"),
+          ]);
+          await transaction.commit();
+        });
       },
     },
   ],

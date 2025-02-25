@@ -1,4 +1,4 @@
-import { MAX_LIST_EPISODES_ITEMS } from "../../../common/params";
+import { MAX_LIST_EPISODES_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -14,7 +14,7 @@ import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -44,14 +44,13 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     if (body.limit > MAX_LIST_EPISODES_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(

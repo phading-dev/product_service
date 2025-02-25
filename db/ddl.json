@@ -107,16 +107,19 @@
       "name": "episodeId",
       "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
     }, {
+      "name": "retryCount",
+      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN retryCount FLOAT64 NOT NULL"
+    }, {
       "name": "executionTimeMs",
       "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
     }, {
       "name": "createdTimeMs",
       "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE VideoContainerCreatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC)",
+    "createTableDdl": "CREATE TABLE VideoContainerCreatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, retryCount FLOAT64 NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (seasonId ASC, episodeId ASC)",
     "indexes": [{
-      "name": "CreatingTaskByExecutionTimeMs",
-      "createIndexDdl": "CREATE INDEX CreatingTaskByExecutionTimeMs ON VideoContainerCreatingTask(executionTimeMs)"
+      "name": "VideoContainerCreatingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX VideoContainerCreatingTaskByExecutionTimeMs ON VideoContainerCreatingTask(executionTimeMs)"
     }]
   }, {
     "name": "VideoContainerDeletingTask",
@@ -124,16 +127,19 @@
       "name": "videoContainerId",
       "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN videoContainerId STRING(MAX) NOT NULL"
     }, {
+      "name": "retryCount",
+      "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN retryCount FLOAT64 NOT NULL"
+    }, {
       "name": "executionTimeMs",
       "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
     }, {
       "name": "createdTimeMs",
       "addColumnDdl": "ALTER TABLE VideoContainerDeletingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE VideoContainerDeletingTask (videoContainerId STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (videoContainerId ASC)",
+    "createTableDdl": "CREATE TABLE VideoContainerDeletingTask (videoContainerId STRING(MAX) NOT NULL, retryCount FLOAT64 NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (videoContainerId ASC)",
     "indexes": [{
-      "name": "DeletingTaskByExecutionTimeMs",
-      "createIndexDdl": "CREATE INDEX DeletingTaskByExecutionTimeMs ON VideoContainerDeletingTask(executionTimeMs)"
+      "name": "VideoContainerDeletingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX VideoContainerDeletingTaskByExecutionTimeMs ON VideoContainerDeletingTask(executionTimeMs)"
     }]
   }, {
     "name": "CoverImageDeletingTask",
@@ -141,13 +147,16 @@
       "name": "r2Filename",
       "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN r2Filename STRING(MAX) NOT NULL"
     }, {
+      "name": "retryCount",
+      "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN retryCount FLOAT64 NOT NULL"
+    }, {
       "name": "executionTimeMs",
       "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN executionTimeMs TIMESTAMP NOT NULL"
     }, {
       "name": "createdTimeMs",
       "addColumnDdl": "ALTER TABLE CoverImageDeletingTask ADD COLUMN createdTimeMs TIMESTAMP NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE CoverImageDeletingTask (r2Filename STRING(MAX) NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (r2Filename ASC)",
+    "createTableDdl": "CREATE TABLE CoverImageDeletingTask (r2Filename STRING(MAX) NOT NULL, retryCount FLOAT64 NOT NULL, executionTimeMs TIMESTAMP NOT NULL, createdTimeMs TIMESTAMP NOT NULL) PRIMARY KEY (r2Filename ASC)",
     "indexes": [{
       "name": "CoverImageDeletingTaskByExecutionTimeMs",
       "createIndexDdl": "CREATE INDEX CoverImageDeletingTaskByExecutionTimeMs ON CoverImageDeletingTask(executionTimeMs)"

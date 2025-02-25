@@ -1,22 +1,23 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  LIST_COVER_IMAGE_DELETING_TASKS_ROW,
-  LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+  GET_COVER_IMAGE_DELETING_TASK_ROW,
+  GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
   deleteSeasonMoreStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
+  getCoverImageDeletingTask,
   getSeason,
   getSeasonMore,
+  getVideoContainerDeletingTask,
   insertEpisodeStatement,
   insertSeasonMoreStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
-  listCoverImageDeletingTasks,
   listNextEpisodesForPublisher,
-  listVideoContainerCreatingTasks,
-  listVideoContainerDeletingTasks,
+  listPendingCoverImageDeletingTasks,
+  listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { DeleteSeasonHandler } from "./delete_season_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -104,10 +105,12 @@ TEST_RUNNER.run({
               "episode1",
               0,
               0,
+              0,
             ),
             insertVideoContainerCreatingTaskStatement(
               "season1",
               "episode3",
+              0,
               0,
               0,
             ),
@@ -148,14 +151,16 @@ TEST_RUNNER.run({
           "seasonMore",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, "cover1"),
           isArray([
             eqMessage(
               {
                 coverImageDeletingTaskR2Filename: "cover1",
+                coverImageDeletingTaskRetryCount: 0,
                 coverImageDeletingTaskExecutionTimeMs: 1000,
+                coverImageDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_COVER_IMAGE_DELETING_TASKS_ROW,
+              GET_COVER_IMAGE_DELETING_TASK_ROW,
             ),
           ]),
           "coverImageDeletingTasks",
@@ -172,29 +177,48 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingVideoContainerCreatingTasks(
+            SPANNER_DATABASE,
+            1000000,
+          ),
           isArray([]),
           "videoContainerCreatingTasks",
         );
         assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, 1000000),
+          await getVideoContainerDeletingTask(
+            SPANNER_DATABASE,
+            "videoContainer2",
+          ),
           isArray([
             eqMessage(
               {
                 videoContainerDeletingTaskVideoContainerId: "videoContainer2",
+                videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
+          ]),
+          "videoContainerDeletingTasks for videoContainer2",
+        );
+        assertThat(
+          await getVideoContainerDeletingTask(
+            SPANNER_DATABASE,
+            "videoContainer4",
+          ),
+          isArray([
             eqMessage(
               {
                 videoContainerDeletingTaskVideoContainerId: "videoContainer4",
+                videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
-          "videoContainerDeletingTasks",
+          "videoContainerDeletingTasks for videoContainer4",
         );
       },
       tearDown: async () => {
@@ -255,7 +279,7 @@ TEST_RUNNER.run({
           "seasonMore",
         );
         assertThat(
-          await listCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
           isArray([]),
           "coverImageDeletingTasks",
         );

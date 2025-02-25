@@ -9,10 +9,6 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { UpdateSeasonGradeHandler } from "./update_season_grade_handler";
-import {
-  GET_TODAY_WRT_TIMEZONE,
-  GetTodayWrtTimezoneResponse,
-} from "@phading/product_meter_service_interface/node/interface";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import {
   EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
@@ -60,10 +56,6 @@ TEST_RUNNER.run({
                     canPublishShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return {
-                  date: "2020-01-01",
-                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -168,10 +160,6 @@ TEST_RUNNER.run({
                     canPublishShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return {
-                  date: "2020-01-01",
-                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -320,10 +308,6 @@ TEST_RUNNER.run({
                     canPublishShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return {
-                  date: "2019-12-31",
-                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -465,10 +449,6 @@ TEST_RUNNER.run({
                     canPublishShows: true,
                   },
                 } as ExchangeSessionAndCheckCapabilityResponse;
-              case GET_TODAY_WRT_TIMEZONE:
-                return {
-                  date: "2020-01-01",
-                } as GetTodayWrtTimezoneResponse;
               default:
                 throw new Error(`Unexpected`);
             }

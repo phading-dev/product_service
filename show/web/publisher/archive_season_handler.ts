@@ -18,7 +18,7 @@ import {
   ArchiveSeasonRequestBody,
   ArchiveSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -49,14 +49,13 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
@@ -85,7 +84,7 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
       seasonData.lastChangeTimeMs = now;
       let statements: Array<Statement> = [
         updateSeasonStatement(seasonData),
-        insertCoverImageDeletingTaskStatement(coverImageToDelete, now, now),
+        insertCoverImageDeletingTaskStatement(coverImageToDelete, 0, now, now),
         deleteAllEpisodesStatement(body.seasonId),
       ];
       let episodes = await listPrevEpisodesForPublisher(
@@ -100,6 +99,7 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           statements.push(
             insertVideoContainerDeletingTaskStatement(
               episode.eData.videoContainerId,
+              0,
               now,
               now,
             ),

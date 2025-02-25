@@ -1,15 +1,15 @@
-import { FAR_FUTURE_TIME_MS } from "../../../common/params";
+import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_SEASON_ROW,
+  GET_VIDEO_CONTAINER_CREATING_TASK_ROW,
   LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
-  LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   getSeason,
+  getVideoContainerCreatingTask,
   insertSeasonStatement,
   listNextEpisodesForPublisher,
-  listVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { CreateEpisodeHandler } from "./create_episode_handler";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
@@ -127,15 +127,21 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, 1000000),
+          await getVideoContainerCreatingTask(
+            SPANNER_DATABASE,
+            "season1",
+            "episode1",
+          ),
           isArray([
             eqMessage(
               {
                 videoContainerCreatingTaskSeasonId: "season1",
                 videoContainerCreatingTaskEpisodeId: "episode1",
+                videoContainerCreatingTaskRetryCount: 0,
                 videoContainerCreatingTaskExecutionTimeMs: 1000,
+                videoContainerCreatingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_CREATING_TASK_ROW,
             ),
           ]),
           "tasks",

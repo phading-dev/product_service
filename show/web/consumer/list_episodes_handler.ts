@@ -14,7 +14,7 @@ import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -44,14 +44,13 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanConsumeShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(

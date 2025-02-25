@@ -1,5 +1,5 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
-import { listVideoContainerDeletingTasks } from "../../db/sql";
+import { listPendingVideoContainerDeletingTasks } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { ListVideoContainerDeletingTasksHandlerInterface } from "@phading/product_service_interface/show/node/handler";
 import {
@@ -25,7 +25,7 @@ export class ListVideoContainerDeletingTasksHandler extends ListVideoContainerDe
     loggingPrefix: string,
     body: ListVideoContainerDeletingTasksRequestBody,
   ): Promise<ListVideoContainerDeletingTasksResponse> {
-    let tasks = await listVideoContainerDeletingTasks(
+    let tasks = await listPendingVideoContainerDeletingTasks(
       this.database,
       this.getNow(),
     );

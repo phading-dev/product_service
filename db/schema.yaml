@@ -104,10 +104,10 @@
         - name: ByPublisher
           columns:
             - publisherId
-      insertStatementName: InsertSeason
-      deleteStatementName: DeleteSeason
-      getStatementName: GetSeason
-      updateStatementName: UpdateSeason
+      insert: InsertSeason
+      delete: DeleteSeason
+      get: GetSeason
+      update: UpdateSeason
     - kind: MessageTable
       name: SeasonMore
       storedInColumn: data
@@ -115,10 +115,10 @@
         - seasonId
       primaryKeys:
         - seasonId
-      insertStatementName: InsertSeasonMore
-      deleteStatementName: DeleteSeasonMore
-      getStatementName: GetSeasonMore
-      updateStatementName: UpdateSeasonMore
+      insert: InsertSeasonMore
+      delete: DeleteSeasonMore
+      get: GetSeasonMore
+      update: UpdateSeasonMore
     - kind: MessageTable
       name: SeasonGrade
       storedInColumn: data
@@ -139,8 +139,8 @@
             - name: endDate
               desc: true
             - startDate
-      insertStatementName: InsertSeasonGrade
-      updateStatementName: UpdateSeasonGrade
+      insert: InsertSeasonGrade
+      update: UpdateSeasonGrade
     - kind: MessageTable
       name: Episode
       storedInColumn: data
@@ -160,10 +160,10 @@
           columns:
             - name: index
               desc: true
-      insertStatementName: InsertEpisode
-      deleteStatementName: DeleteEpisode
-      getStatementName: GetEpisode
-      updateStatementName: UpdateEpisode
+      insert: InsertEpisode
+      delete: DeleteEpisode
+      get: GetEpisode
+      update: UpdateEpisode
     - kind: Table
       name: CoverImageFile
       columns:
@@ -178,54 +178,60 @@
           type: string
       primaryKeys:
         - key
-    - kind: Table
+    - kind: TaskTable
       name: VideoContainerCreatingTask
       columns:
         - name: seasonId
           type: string
         - name: episodeId
           type: string
-        - name: executionTimeMs
-          type: timestamp
-        - name: createdTimeMs
-          type: timestamp
+      retryCountColumn: retryCount
+      executionTimeColumn: executionTimeMs
+      createdTimeColumn: createdTimeMs
       primaryKeys:
         - seasonId
         - episodeId
-      indexes:
-        - name: CreatingTaskByExecutionTimeMs
-          columns:
-            - executionTimeMs
-    - kind: Table
+      executionTimeIndex: VideoContainerCreatingTaskByExecutionTimeMs
+      insert: InsertVideoContainerCreatingTask
+      delete: DeleteVideoContainerCreatingTask
+      get: GetVideoContainerCreatingTask
+      listPendingTasks: ListPendingVideoContainerCreatingTasks
+      getMetadata: GetVideoContainerCreatingTaskMetadata
+      updateMetadata: UpdateVideoContainerCreatingTaskMetadata
+    - kind: TaskTable
       name: VideoContainerDeletingTask
       columns:
         - name: videoContainerId
           type: string
-        - name: executionTimeMs
-          type: timestamp
-        - name: createdTimeMs
-          type: timestamp
+      retryCountColumn: retryCount
+      executionTimeColumn: executionTimeMs
+      createdTimeColumn: createdTimeMs
       primaryKeys:
         - videoContainerId
-      indexes:
-        - name: DeletingTaskByExecutionTimeMs
-          columns:
-            - executionTimeMs
-    - kind: Table
+      executionTimeIndex: VideoContainerDeletingTaskByExecutionTimeMs
+      insert: InsertVideoContainerDeletingTask
+      delete: DeleteVideoContainerDeletingTask
+      get: GetVideoContainerDeletingTask
+      listPendingTasks: ListPendingVideoContainerDeletingTasks
+      getMetadata: GetVideoContainerDeletingTaskMetadata
+      updateMetadata: UpdateVideoContainerDeletingTaskMetadata
+    - kind: TaskTable
       name: CoverImageDeletingTask
       columns:
         - name: r2Filename
           type: string
-        - name: executionTimeMs
-          type: timestamp
-        - name: createdTimeMs
-          type: timestamp
+      retryCountColumn: retryCount
+      executionTimeColumn: executionTimeMs
+      createdTimeColumn: createdTimeMs
       primaryKeys:
         - r2Filename
-      indexes:
-        - name: CoverImageDeletingTaskByExecutionTimeMs
-          columns:
-            - executionTimeMs
+      executionTimeIndex: CoverImageDeletingTaskByExecutionTimeMs
+      insert: InsertCoverImageDeletingTask
+      delete: DeleteCoverImageDeletingTask
+      get: GetCoverImageDeletingTask
+      listPendingTasks: ListPendingCoverImageDeletingTasks
+      getMetadata: GetCoverImageDeletingTaskMetadata
+      updateMetadata: UpdateCoverImageDeletingTaskMetadata
   inserts:
     - name: InsertCoverImageFile
       table: CoverImageFile
@@ -235,51 +241,6 @@
       table: VideoContainerKey
       setColumns:
         - key
-    - name: InsertVideoContainerCreatingTask
-      table: VideoContainerCreatingTask
-      setColumns:
-        - seasonId
-        - episodeId
-        - executionTimeMs
-        - createdTimeMs
-    - name: InsertVideoContainerDeletingTask
-      table: VideoContainerDeletingTask
-      setColumns:
-        - videoContainerId
-        - executionTimeMs
-        - createdTimeMs
-    - name: InsertCoverImageDeletingTask
-      table: CoverImageDeletingTask
-      setColumns:
-        - r2Filename
-        - executionTimeMs
-        - createdTimeMs
-  updates:
-    - name: UpdateVideoContainerCreatingTask
-      table: VideoContainerCreatingTask
-      where:
-        op: AND
-        exps:
-          - op: =
-            leftColumn: seasonId
-          - op: =
-            leftColumn: episodeId
-      setColumns:
-        - executionTimeMs
-    - name: UpdateVideoContainerDeletingTask
-      table: VideoContainerDeletingTask
-      where:
-        op: =
-        leftColumn: videoContainerId
-      setColumns:
-        - executionTimeMs
-    - name: UpdateCoverImageDeletingTask
-      table: CoverImageDeletingTask
-      where:
-        op: =
-        leftColumn: r2Filename
-      setColumns:
-        - executionTimeMs
   deletes:
     - name: DeleteAllEpisodes
       table: Episode
@@ -296,25 +257,6 @@
       where:
         op: =
         leftColumn: key
-    - name: DeleteVideoContainerCreatingTask
-      table: VideoContainerCreatingTask
-      where:
-        op: AND
-        exps:
-          - op: =
-            leftColumn: seasonId
-          - op: =
-            leftColumn: episodeId
-    - name: DeleteVideoContainerDeletingTask
-      table: VideoContainerDeletingTask
-      where:
-        op: =
-        leftColumn: videoContainerId
-    - name: DeleteCoverImageDeletingTask
-      table: CoverImageDeletingTask
-      where:
-        op: =
-        leftColumn: r2Filename
   selects:
     # Season
     - name: GetSeasonPublisher
@@ -758,37 +700,5 @@
         leftColumn: key
       getColumns:
         - key
-    # Tasks
-    - name: ListVideoContainerCreatingTasks
-      table: VideoContainerCreatingTask
-      where:
-        op: <=
-        leftColumn: executionTimeMs
-      orderBy:
-        - executionTimeMs
-      getColumns:
-        - seasonId
-        - episodeId
-        - executionTimeMs
-    - name: ListVideoContainerDeletingTasks
-      table: VideoContainerDeletingTask
-      where:
-        op: <=
-        leftColumn: executionTimeMs
-      orderBy:
-        - executionTimeMs
-      getColumns:
-        - videoContainerId
-        - executionTimeMs
-    - name: ListCoverImageDeletingTasks
-      table: CoverImageDeletingTask
-      where:
-        op: <=
-        leftColumn: executionTimeMs
-      orderBy:
-        - executionTimeMs
-      getColumns:
-        - r2Filename
-        - executionTimeMs
   outputDdl: ./db/ddl
   outputSql: ./db/sql

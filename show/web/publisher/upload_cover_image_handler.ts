@@ -1,7 +1,9 @@
 import getStream = require("get-stream");
 import sharp = require("sharp");
-import { SEASON_COVER_IMAGE_BUCKET_NAME } from "../../../common/env_vars";
-import { COVER_IMAGE_HEIGHT, COVER_IMAGE_WIDTH } from "../../../common/params";
+import {
+  COVER_IMAGE_HEIGHT,
+  COVER_IMAGE_WIDTH,
+} from "../../../common/constants";
 import { S3_CLIENT } from "../../../common/s3_client";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
@@ -10,9 +12,10 @@ import {
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
   insertCoverImageFileStatement,
-  updateCoverImageDeletingTaskStatement,
+  updateCoverImageDeletingTaskMetadataStatement,
   updateSeasonStatement,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Database } from "@google-cloud/spanner";
@@ -23,7 +26,7 @@ import {
   UploadCoverImageRequestMetadata,
   UploadCoverImageResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { exchangeSessionAndCheckCapability } from "@phading/user_session_service_interface/node/client";
+import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newConflictError,
@@ -31,6 +34,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { Ref } from "@selfage/ref";
 import { PassThrough, Readable } from "stream";
 import { pipeline } from "stream/promises";
 
@@ -51,7 +55,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
 
   public constructor(
     private database: Database,
-    private s3Client: S3Client,
+    private s3Client: Ref<S3Client>,
     private serviceClient: NodeServiceClient,
     private getNow: () => number,
     private generateUuid: () => string,
@@ -68,14 +72,13 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     if (!metadata.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let { accountId, capabilities } = await exchangeSessionAndCheckCapability(
-      this.serviceClient,
-      {
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newExchangeSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
           checkCanPublishShows: true,
         },
-      },
+      }),
     );
     if (!capabilities.canPublishShows) {
       throw newUnauthorizedError(
@@ -105,6 +108,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
         insertCoverImageFileStatement(coverImageR2Filename),
         insertCoverImageDeletingTaskStatement(
           coverImageR2Filename,
+          0,
           now + UploadCoverImageHandler.ONE_YEAR_MS,
           now,
         ),
@@ -122,8 +126,9 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     } catch (e) {
       await this.database.runTransactionAsync(async (transaction) => {
         await transaction.batchUpdate([
-          updateCoverImageDeletingTaskStatement(
+          updateCoverImageDeletingTaskMetadataStatement(
             coverImageR2Filename,
+            0,
             this.getNow() +
               UploadCoverImageHandler.DELAY_TO_CLEAN_UP_ON_ERROR_MS,
           ),
@@ -147,9 +152,9 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     });
     let passThrough = new PassThrough();
     let upload = new Upload({
-      client: this.s3Client,
+      client: this.s3Client.val,
       params: {
-        Bucket: SEASON_COVER_IMAGE_BUCKET_NAME,
+        Bucket: ENV_VARS.r2SeasonCoverImageBucketName,
         Key: coverImageR2Filename,
         Body: passThrough,
         ContentType: "image/jpeg",
@@ -186,6 +191,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
           ? [
               insertCoverImageDeletingTaskStatement(
                 oldCoverImageR2Filename,
+                0,
                 now,
                 now,
               ),

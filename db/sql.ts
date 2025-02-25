@@ -438,6 +438,591 @@ export function updateEpisodeInternalStatement(
   };
 }
 
+export function insertVideoContainerCreatingTaskStatement(
+  seasonId: string,
+  episodeId: string,
+  retryCount: number,
+  executionTimeMs: number,
+  createdTimeMs: number,
+): Statement {
+  return {
+    sql: "INSERT VideoContainerCreatingTask (seasonId, episodeId, retryCount, executionTimeMs, createdTimeMs) VALUES (@seasonId, @episodeId, @retryCount, @executionTimeMs, @createdTimeMs)",
+    params: {
+      seasonId: seasonId,
+      episodeId: episodeId,
+      retryCount: Spanner.float(retryCount),
+      executionTimeMs: new Date(executionTimeMs).toISOString(),
+      createdTimeMs: new Date(createdTimeMs).toISOString(),
+    },
+    types: {
+      seasonId: { type: "string" },
+      episodeId: { type: "string" },
+      retryCount: { type: "float64" },
+      executionTimeMs: { type: "timestamp" },
+      createdTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
+export function deleteVideoContainerCreatingTaskStatement(
+  videoContainerCreatingTaskSeasonIdEq: string,
+  videoContainerCreatingTaskEpisodeIdEq: string,
+): Statement {
+  return {
+    sql: "DELETE VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
+    params: {
+      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+    },
+    types: {
+      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
+      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetVideoContainerCreatingTaskRow {
+  videoContainerCreatingTaskSeasonId: string,
+  videoContainerCreatingTaskEpisodeId: string,
+  videoContainerCreatingTaskRetryCount: number,
+  videoContainerCreatingTaskExecutionTimeMs: number,
+  videoContainerCreatingTaskCreatedTimeMs: number,
+}
+
+export let GET_VIDEO_CONTAINER_CREATING_TASK_ROW: MessageDescriptor<GetVideoContainerCreatingTaskRow> = {
+  name: 'GetVideoContainerCreatingTaskRow',
+  fields: [{
+    name: 'videoContainerCreatingTaskSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'videoContainerCreatingTaskEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'videoContainerCreatingTaskRetryCount',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerCreatingTaskExecutionTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerCreatingTaskCreatedTimeMs',
+    index: 5,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getVideoContainerCreatingTask(
+  runner: Database | Transaction,
+  videoContainerCreatingTaskSeasonIdEq: string,
+  videoContainerCreatingTaskEpisodeIdEq: string,
+): Promise<Array<GetVideoContainerCreatingTaskRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerCreatingTask.seasonId, VideoContainerCreatingTask.episodeId, VideoContainerCreatingTask.retryCount, VideoContainerCreatingTask.executionTimeMs, VideoContainerCreatingTask.createdTimeMs FROM VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
+    params: {
+      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+    },
+    types: {
+      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
+      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetVideoContainerCreatingTaskRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerCreatingTaskSeasonId: row.at(0).value,
+      videoContainerCreatingTaskEpisodeId: row.at(1).value,
+      videoContainerCreatingTaskRetryCount: row.at(2).value.value,
+      videoContainerCreatingTaskExecutionTimeMs: row.at(3).value.valueOf(),
+      videoContainerCreatingTaskCreatedTimeMs: row.at(4).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export interface ListPendingVideoContainerCreatingTasksRow {
+  videoContainerCreatingTaskSeasonId: string,
+  videoContainerCreatingTaskEpisodeId: string,
+}
+
+export let LIST_PENDING_VIDEO_CONTAINER_CREATING_TASKS_ROW: MessageDescriptor<ListPendingVideoContainerCreatingTasksRow> = {
+  name: 'ListPendingVideoContainerCreatingTasksRow',
+  fields: [{
+    name: 'videoContainerCreatingTaskSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'videoContainerCreatingTaskEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function listPendingVideoContainerCreatingTasks(
+  runner: Database | Transaction,
+  videoContainerCreatingTaskExecutionTimeMsLe: number,
+): Promise<Array<ListPendingVideoContainerCreatingTasksRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerCreatingTask.seasonId, VideoContainerCreatingTask.episodeId FROM VideoContainerCreatingTask WHERE VideoContainerCreatingTask.executionTimeMs <= @videoContainerCreatingTaskExecutionTimeMsLe",
+    params: {
+      videoContainerCreatingTaskExecutionTimeMsLe: new Date(videoContainerCreatingTaskExecutionTimeMsLe).toISOString(),
+    },
+    types: {
+      videoContainerCreatingTaskExecutionTimeMsLe: { type: "timestamp" },
+    }
+  });
+  let resRows = new Array<ListPendingVideoContainerCreatingTasksRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerCreatingTaskSeasonId: row.at(0).value,
+      videoContainerCreatingTaskEpisodeId: row.at(1).value,
+    });
+  }
+  return resRows;
+}
+
+export interface GetVideoContainerCreatingTaskMetadataRow {
+  videoContainerCreatingTaskRetryCount: number,
+  videoContainerCreatingTaskExecutionTimeMs: number,
+}
+
+export let GET_VIDEO_CONTAINER_CREATING_TASK_METADATA_ROW: MessageDescriptor<GetVideoContainerCreatingTaskMetadataRow> = {
+  name: 'GetVideoContainerCreatingTaskMetadataRow',
+  fields: [{
+    name: 'videoContainerCreatingTaskRetryCount',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerCreatingTaskExecutionTimeMs',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getVideoContainerCreatingTaskMetadata(
+  runner: Database | Transaction,
+  videoContainerCreatingTaskSeasonIdEq: string,
+  videoContainerCreatingTaskEpisodeIdEq: string,
+): Promise<Array<GetVideoContainerCreatingTaskMetadataRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerCreatingTask.retryCount, VideoContainerCreatingTask.executionTimeMs FROM VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
+    params: {
+      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+    },
+    types: {
+      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
+      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetVideoContainerCreatingTaskMetadataRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerCreatingTaskRetryCount: row.at(0).value.value,
+      videoContainerCreatingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export function updateVideoContainerCreatingTaskMetadataStatement(
+  videoContainerCreatingTaskSeasonIdEq: string,
+  videoContainerCreatingTaskEpisodeIdEq: string,
+  setRetryCount: number,
+  setExecutionTimeMs: number,
+): Statement {
+  return {
+    sql: "UPDATE VideoContainerCreatingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
+    params: {
+      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+      setRetryCount: Spanner.float(setRetryCount),
+      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+    },
+    types: {
+      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
+      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
+      setRetryCount: { type: "float64" },
+      setExecutionTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
+export function insertVideoContainerDeletingTaskStatement(
+  videoContainerId: string,
+  retryCount: number,
+  executionTimeMs: number,
+  createdTimeMs: number,
+): Statement {
+  return {
+    sql: "INSERT VideoContainerDeletingTask (videoContainerId, retryCount, executionTimeMs, createdTimeMs) VALUES (@videoContainerId, @retryCount, @executionTimeMs, @createdTimeMs)",
+    params: {
+      videoContainerId: videoContainerId,
+      retryCount: Spanner.float(retryCount),
+      executionTimeMs: new Date(executionTimeMs).toISOString(),
+      createdTimeMs: new Date(createdTimeMs).toISOString(),
+    },
+    types: {
+      videoContainerId: { type: "string" },
+      retryCount: { type: "float64" },
+      executionTimeMs: { type: "timestamp" },
+      createdTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
+export function deleteVideoContainerDeletingTaskStatement(
+  videoContainerDeletingTaskVideoContainerIdEq: string,
+): Statement {
+  return {
+    sql: "DELETE VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
+    params: {
+      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+    },
+    types: {
+      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetVideoContainerDeletingTaskRow {
+  videoContainerDeletingTaskVideoContainerId: string,
+  videoContainerDeletingTaskRetryCount: number,
+  videoContainerDeletingTaskExecutionTimeMs: number,
+  videoContainerDeletingTaskCreatedTimeMs: number,
+}
+
+export let GET_VIDEO_CONTAINER_DELETING_TASK_ROW: MessageDescriptor<GetVideoContainerDeletingTaskRow> = {
+  name: 'GetVideoContainerDeletingTaskRow',
+  fields: [{
+    name: 'videoContainerDeletingTaskVideoContainerId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'videoContainerDeletingTaskRetryCount',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerDeletingTaskExecutionTimeMs',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerDeletingTaskCreatedTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getVideoContainerDeletingTask(
+  runner: Database | Transaction,
+  videoContainerDeletingTaskVideoContainerIdEq: string,
+): Promise<Array<GetVideoContainerDeletingTaskRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerDeletingTask.videoContainerId, VideoContainerDeletingTask.retryCount, VideoContainerDeletingTask.executionTimeMs, VideoContainerDeletingTask.createdTimeMs FROM VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
+    params: {
+      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+    },
+    types: {
+      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetVideoContainerDeletingTaskRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerDeletingTaskVideoContainerId: row.at(0).value,
+      videoContainerDeletingTaskRetryCount: row.at(1).value.value,
+      videoContainerDeletingTaskExecutionTimeMs: row.at(2).value.valueOf(),
+      videoContainerDeletingTaskCreatedTimeMs: row.at(3).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export interface ListPendingVideoContainerDeletingTasksRow {
+  videoContainerDeletingTaskVideoContainerId: string,
+}
+
+export let LIST_PENDING_VIDEO_CONTAINER_DELETING_TASKS_ROW: MessageDescriptor<ListPendingVideoContainerDeletingTasksRow> = {
+  name: 'ListPendingVideoContainerDeletingTasksRow',
+  fields: [{
+    name: 'videoContainerDeletingTaskVideoContainerId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function listPendingVideoContainerDeletingTasks(
+  runner: Database | Transaction,
+  videoContainerDeletingTaskExecutionTimeMsLe: number,
+): Promise<Array<ListPendingVideoContainerDeletingTasksRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerDeletingTask.videoContainerId FROM VideoContainerDeletingTask WHERE VideoContainerDeletingTask.executionTimeMs <= @videoContainerDeletingTaskExecutionTimeMsLe",
+    params: {
+      videoContainerDeletingTaskExecutionTimeMsLe: new Date(videoContainerDeletingTaskExecutionTimeMsLe).toISOString(),
+    },
+    types: {
+      videoContainerDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
+    }
+  });
+  let resRows = new Array<ListPendingVideoContainerDeletingTasksRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerDeletingTaskVideoContainerId: row.at(0).value,
+    });
+  }
+  return resRows;
+}
+
+export interface GetVideoContainerDeletingTaskMetadataRow {
+  videoContainerDeletingTaskRetryCount: number,
+  videoContainerDeletingTaskExecutionTimeMs: number,
+}
+
+export let GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW: MessageDescriptor<GetVideoContainerDeletingTaskMetadataRow> = {
+  name: 'GetVideoContainerDeletingTaskMetadataRow',
+  fields: [{
+    name: 'videoContainerDeletingTaskRetryCount',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'videoContainerDeletingTaskExecutionTimeMs',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getVideoContainerDeletingTaskMetadata(
+  runner: Database | Transaction,
+  videoContainerDeletingTaskVideoContainerIdEq: string,
+): Promise<Array<GetVideoContainerDeletingTaskMetadataRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerDeletingTask.retryCount, VideoContainerDeletingTask.executionTimeMs FROM VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
+    params: {
+      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+    },
+    types: {
+      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetVideoContainerDeletingTaskMetadataRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerDeletingTaskRetryCount: row.at(0).value.value,
+      videoContainerDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export function updateVideoContainerDeletingTaskMetadataStatement(
+  videoContainerDeletingTaskVideoContainerIdEq: string,
+  setRetryCount: number,
+  setExecutionTimeMs: number,
+): Statement {
+  return {
+    sql: "UPDATE VideoContainerDeletingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
+    params: {
+      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+      setRetryCount: Spanner.float(setRetryCount),
+      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+    },
+    types: {
+      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
+      setRetryCount: { type: "float64" },
+      setExecutionTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
+export function insertCoverImageDeletingTaskStatement(
+  r2Filename: string,
+  retryCount: number,
+  executionTimeMs: number,
+  createdTimeMs: number,
+): Statement {
+  return {
+    sql: "INSERT CoverImageDeletingTask (r2Filename, retryCount, executionTimeMs, createdTimeMs) VALUES (@r2Filename, @retryCount, @executionTimeMs, @createdTimeMs)",
+    params: {
+      r2Filename: r2Filename,
+      retryCount: Spanner.float(retryCount),
+      executionTimeMs: new Date(executionTimeMs).toISOString(),
+      createdTimeMs: new Date(createdTimeMs).toISOString(),
+    },
+    types: {
+      r2Filename: { type: "string" },
+      retryCount: { type: "float64" },
+      executionTimeMs: { type: "timestamp" },
+      createdTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
+export function deleteCoverImageDeletingTaskStatement(
+  coverImageDeletingTaskR2FilenameEq: string,
+): Statement {
+  return {
+    sql: "DELETE CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
+    params: {
+      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+    },
+    types: {
+      coverImageDeletingTaskR2FilenameEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetCoverImageDeletingTaskRow {
+  coverImageDeletingTaskR2Filename: string,
+  coverImageDeletingTaskRetryCount: number,
+  coverImageDeletingTaskExecutionTimeMs: number,
+  coverImageDeletingTaskCreatedTimeMs: number,
+}
+
+export let GET_COVER_IMAGE_DELETING_TASK_ROW: MessageDescriptor<GetCoverImageDeletingTaskRow> = {
+  name: 'GetCoverImageDeletingTaskRow',
+  fields: [{
+    name: 'coverImageDeletingTaskR2Filename',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'coverImageDeletingTaskRetryCount',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'coverImageDeletingTaskExecutionTimeMs',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'coverImageDeletingTaskCreatedTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getCoverImageDeletingTask(
+  runner: Database | Transaction,
+  coverImageDeletingTaskR2FilenameEq: string,
+): Promise<Array<GetCoverImageDeletingTaskRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT CoverImageDeletingTask.r2Filename, CoverImageDeletingTask.retryCount, CoverImageDeletingTask.executionTimeMs, CoverImageDeletingTask.createdTimeMs FROM CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
+    params: {
+      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+    },
+    types: {
+      coverImageDeletingTaskR2FilenameEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetCoverImageDeletingTaskRow>();
+  for (let row of rows) {
+    resRows.push({
+      coverImageDeletingTaskR2Filename: row.at(0).value,
+      coverImageDeletingTaskRetryCount: row.at(1).value.value,
+      coverImageDeletingTaskExecutionTimeMs: row.at(2).value.valueOf(),
+      coverImageDeletingTaskCreatedTimeMs: row.at(3).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export interface ListPendingCoverImageDeletingTasksRow {
+  coverImageDeletingTaskR2Filename: string,
+}
+
+export let LIST_PENDING_COVER_IMAGE_DELETING_TASKS_ROW: MessageDescriptor<ListPendingCoverImageDeletingTasksRow> = {
+  name: 'ListPendingCoverImageDeletingTasksRow',
+  fields: [{
+    name: 'coverImageDeletingTaskR2Filename',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function listPendingCoverImageDeletingTasks(
+  runner: Database | Transaction,
+  coverImageDeletingTaskExecutionTimeMsLe: number,
+): Promise<Array<ListPendingCoverImageDeletingTasksRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT CoverImageDeletingTask.r2Filename FROM CoverImageDeletingTask WHERE CoverImageDeletingTask.executionTimeMs <= @coverImageDeletingTaskExecutionTimeMsLe",
+    params: {
+      coverImageDeletingTaskExecutionTimeMsLe: new Date(coverImageDeletingTaskExecutionTimeMsLe).toISOString(),
+    },
+    types: {
+      coverImageDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
+    }
+  });
+  let resRows = new Array<ListPendingCoverImageDeletingTasksRow>();
+  for (let row of rows) {
+    resRows.push({
+      coverImageDeletingTaskR2Filename: row.at(0).value,
+    });
+  }
+  return resRows;
+}
+
+export interface GetCoverImageDeletingTaskMetadataRow {
+  coverImageDeletingTaskRetryCount: number,
+  coverImageDeletingTaskExecutionTimeMs: number,
+}
+
+export let GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW: MessageDescriptor<GetCoverImageDeletingTaskMetadataRow> = {
+  name: 'GetCoverImageDeletingTaskMetadataRow',
+  fields: [{
+    name: 'coverImageDeletingTaskRetryCount',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'coverImageDeletingTaskExecutionTimeMs',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getCoverImageDeletingTaskMetadata(
+  runner: Database | Transaction,
+  coverImageDeletingTaskR2FilenameEq: string,
+): Promise<Array<GetCoverImageDeletingTaskMetadataRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT CoverImageDeletingTask.retryCount, CoverImageDeletingTask.executionTimeMs FROM CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
+    params: {
+      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+    },
+    types: {
+      coverImageDeletingTaskR2FilenameEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetCoverImageDeletingTaskMetadataRow>();
+  for (let row of rows) {
+    resRows.push({
+      coverImageDeletingTaskRetryCount: row.at(0).value.value,
+      coverImageDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+    });
+  }
+  return resRows;
+}
+
+export function updateCoverImageDeletingTaskMetadataStatement(
+  coverImageDeletingTaskR2FilenameEq: string,
+  setRetryCount: number,
+  setExecutionTimeMs: number,
+): Statement {
+  return {
+    sql: "UPDATE CoverImageDeletingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
+    params: {
+      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+      setRetryCount: Spanner.float(setRetryCount),
+      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+    },
+    types: {
+      coverImageDeletingTaskR2FilenameEq: { type: "string" },
+      setRetryCount: { type: "float64" },
+      setExecutionTimeMs: { type: "timestamp" },
+    }
+  };
+}
+
 export function insertCoverImageFileStatement(
   r2Filename: string,
 ): Statement {
@@ -462,123 +1047,6 @@ export function insertVideoContainerKeyStatement(
     },
     types: {
       key: { type: "string" },
-    }
-  };
-}
-
-export function insertVideoContainerCreatingTaskStatement(
-  seasonId: string,
-  episodeId: string,
-  executionTimeMs: number,
-  createdTimeMs: number,
-): Statement {
-  return {
-    sql: "INSERT VideoContainerCreatingTask (seasonId, episodeId, executionTimeMs, createdTimeMs) VALUES (@seasonId, @episodeId, @executionTimeMs, @createdTimeMs)",
-    params: {
-      seasonId: seasonId,
-      episodeId: episodeId,
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
-    },
-    types: {
-      seasonId: { type: "string" },
-      episodeId: { type: "string" },
-      executionTimeMs: { type: "timestamp" },
-      createdTimeMs: { type: "timestamp" },
-    }
-  };
-}
-
-export function insertVideoContainerDeletingTaskStatement(
-  videoContainerId: string,
-  executionTimeMs: number,
-  createdTimeMs: number,
-): Statement {
-  return {
-    sql: "INSERT VideoContainerDeletingTask (videoContainerId, executionTimeMs, createdTimeMs) VALUES (@videoContainerId, @executionTimeMs, @createdTimeMs)",
-    params: {
-      videoContainerId: videoContainerId,
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
-    },
-    types: {
-      videoContainerId: { type: "string" },
-      executionTimeMs: { type: "timestamp" },
-      createdTimeMs: { type: "timestamp" },
-    }
-  };
-}
-
-export function insertCoverImageDeletingTaskStatement(
-  r2Filename: string,
-  executionTimeMs: number,
-  createdTimeMs: number,
-): Statement {
-  return {
-    sql: "INSERT CoverImageDeletingTask (r2Filename, executionTimeMs, createdTimeMs) VALUES (@r2Filename, @executionTimeMs, @createdTimeMs)",
-    params: {
-      r2Filename: r2Filename,
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
-    },
-    types: {
-      r2Filename: { type: "string" },
-      executionTimeMs: { type: "timestamp" },
-      createdTimeMs: { type: "timestamp" },
-    }
-  };
-}
-
-export function updateVideoContainerCreatingTaskStatement(
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
-  setExecutionTimeMs: number,
-): Statement {
-  return {
-    sql: "UPDATE VideoContainerCreatingTask SET executionTimeMs = @setExecutionTimeMs WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
-    params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
-    },
-    types: {
-      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
-      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
-      setExecutionTimeMs: { type: "timestamp" },
-    }
-  };
-}
-
-export function updateVideoContainerDeletingTaskStatement(
-  videoContainerDeletingTaskVideoContainerIdEq: string,
-  setExecutionTimeMs: number,
-): Statement {
-  return {
-    sql: "UPDATE VideoContainerDeletingTask SET executionTimeMs = @setExecutionTimeMs WHERE VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq",
-    params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
-    },
-    types: {
-      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
-      setExecutionTimeMs: { type: "timestamp" },
-    }
-  };
-}
-
-export function updateCoverImageDeletingTaskStatement(
-  coverImageDeletingTaskR2FilenameEq: string,
-  setExecutionTimeMs: number,
-): Statement {
-  return {
-    sql: "UPDATE CoverImageDeletingTask SET executionTimeMs = @setExecutionTimeMs WHERE CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq",
-    params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
-    },
-    types: {
-      coverImageDeletingTaskR2FilenameEq: { type: "string" },
-      setExecutionTimeMs: { type: "timestamp" },
     }
   };
 }
@@ -621,51 +1089,6 @@ export function deleteVideoContainerKeyStatement(
     },
     types: {
       videoContainerKeyKeyEq: { type: "string" },
-    }
-  };
-}
-
-export function deleteVideoContainerCreatingTaskStatement(
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
-): Statement {
-  return {
-    sql: "DELETE VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
-    params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
-    },
-    types: {
-      videoContainerCreatingTaskSeasonIdEq: { type: "string" },
-      videoContainerCreatingTaskEpisodeIdEq: { type: "string" },
-    }
-  };
-}
-
-export function deleteVideoContainerDeletingTaskStatement(
-  videoContainerDeletingTaskVideoContainerIdEq: string,
-): Statement {
-  return {
-    sql: "DELETE VideoContainerDeletingTask WHERE VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq",
-    params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
-    },
-    types: {
-      videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
-    }
-  };
-}
-
-export function deleteCoverImageDeletingTaskStatement(
-  coverImageDeletingTaskR2FilenameEq: string,
-): Statement {
-  return {
-    sql: "DELETE CoverImageDeletingTask WHERE CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq",
-    params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
-    },
-    types: {
-      coverImageDeletingTaskR2FilenameEq: { type: "string" },
     }
   };
 }
@@ -1380,135 +1803,6 @@ export async function checkPresenceOfVideoContainerKey(
   for (let row of rows) {
     resRows.push({
       videoContainerKeyKey: row.at(0).value,
-    });
-  }
-  return resRows;
-}
-
-export interface ListVideoContainerCreatingTasksRow {
-  videoContainerCreatingTaskSeasonId: string,
-  videoContainerCreatingTaskEpisodeId: string,
-  videoContainerCreatingTaskExecutionTimeMs: number,
-}
-
-export let LIST_VIDEO_CONTAINER_CREATING_TASKS_ROW: MessageDescriptor<ListVideoContainerCreatingTasksRow> = {
-  name: 'ListVideoContainerCreatingTasksRow',
-  fields: [{
-    name: 'videoContainerCreatingTaskSeasonId',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'videoContainerCreatingTaskEpisodeId',
-    index: 2,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'videoContainerCreatingTaskExecutionTimeMs',
-    index: 3,
-    primitiveType: PrimitiveType.NUMBER,
-  }],
-};
-
-export async function listVideoContainerCreatingTasks(
-  runner: Database | Transaction,
-  videoContainerCreatingTaskExecutionTimeMsLe: number,
-): Promise<Array<ListVideoContainerCreatingTasksRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT VideoContainerCreatingTask.seasonId, VideoContainerCreatingTask.episodeId, VideoContainerCreatingTask.executionTimeMs FROM VideoContainerCreatingTask WHERE VideoContainerCreatingTask.executionTimeMs <= @videoContainerCreatingTaskExecutionTimeMsLe ORDER BY VideoContainerCreatingTask.executionTimeMs",
-    params: {
-      videoContainerCreatingTaskExecutionTimeMsLe: new Date(videoContainerCreatingTaskExecutionTimeMsLe).toISOString(),
-    },
-    types: {
-      videoContainerCreatingTaskExecutionTimeMsLe: { type: "timestamp" },
-    }
-  });
-  let resRows = new Array<ListVideoContainerCreatingTasksRow>();
-  for (let row of rows) {
-    resRows.push({
-      videoContainerCreatingTaskSeasonId: row.at(0).value,
-      videoContainerCreatingTaskEpisodeId: row.at(1).value,
-      videoContainerCreatingTaskExecutionTimeMs: row.at(2).value.valueOf(),
-    });
-  }
-  return resRows;
-}
-
-export interface ListVideoContainerDeletingTasksRow {
-  videoContainerDeletingTaskVideoContainerId: string,
-  videoContainerDeletingTaskExecutionTimeMs: number,
-}
-
-export let LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW: MessageDescriptor<ListVideoContainerDeletingTasksRow> = {
-  name: 'ListVideoContainerDeletingTasksRow',
-  fields: [{
-    name: 'videoContainerDeletingTaskVideoContainerId',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'videoContainerDeletingTaskExecutionTimeMs',
-    index: 2,
-    primitiveType: PrimitiveType.NUMBER,
-  }],
-};
-
-export async function listVideoContainerDeletingTasks(
-  runner: Database | Transaction,
-  videoContainerDeletingTaskExecutionTimeMsLe: number,
-): Promise<Array<ListVideoContainerDeletingTasksRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT VideoContainerDeletingTask.videoContainerId, VideoContainerDeletingTask.executionTimeMs FROM VideoContainerDeletingTask WHERE VideoContainerDeletingTask.executionTimeMs <= @videoContainerDeletingTaskExecutionTimeMsLe ORDER BY VideoContainerDeletingTask.executionTimeMs",
-    params: {
-      videoContainerDeletingTaskExecutionTimeMsLe: new Date(videoContainerDeletingTaskExecutionTimeMsLe).toISOString(),
-    },
-    types: {
-      videoContainerDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
-    }
-  });
-  let resRows = new Array<ListVideoContainerDeletingTasksRow>();
-  for (let row of rows) {
-    resRows.push({
-      videoContainerDeletingTaskVideoContainerId: row.at(0).value,
-      videoContainerDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
-    });
-  }
-  return resRows;
-}
-
-export interface ListCoverImageDeletingTasksRow {
-  coverImageDeletingTaskR2Filename: string,
-  coverImageDeletingTaskExecutionTimeMs: number,
-}
-
-export let LIST_COVER_IMAGE_DELETING_TASKS_ROW: MessageDescriptor<ListCoverImageDeletingTasksRow> = {
-  name: 'ListCoverImageDeletingTasksRow',
-  fields: [{
-    name: 'coverImageDeletingTaskR2Filename',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'coverImageDeletingTaskExecutionTimeMs',
-    index: 2,
-    primitiveType: PrimitiveType.NUMBER,
-  }],
-};
-
-export async function listCoverImageDeletingTasks(
-  runner: Database | Transaction,
-  coverImageDeletingTaskExecutionTimeMsLe: number,
-): Promise<Array<ListCoverImageDeletingTasksRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT CoverImageDeletingTask.r2Filename, CoverImageDeletingTask.executionTimeMs FROM CoverImageDeletingTask WHERE CoverImageDeletingTask.executionTimeMs <= @coverImageDeletingTaskExecutionTimeMsLe ORDER BY CoverImageDeletingTask.executionTimeMs",
-    params: {
-      coverImageDeletingTaskExecutionTimeMsLe: new Date(coverImageDeletingTaskExecutionTimeMsLe).toISOString(),
-    },
-    types: {
-      coverImageDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
-    }
-  });
-  let resRows = new Array<ListCoverImageDeletingTasksRow>();
-  for (let row of rows) {
-    resRows.push({
-      coverImageDeletingTaskR2Filename: row.at(0).value,
-      coverImageDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
     });
   }
   return resRows;

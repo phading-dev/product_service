@@ -1,17 +1,18 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_SEASON_ROW,
+  GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
-  LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
   deleteSeasonStatement,
   deleteVideoContainerDeletingTaskStatement,
   getSeason,
+  getVideoContainerDeletingTask,
   insertEpisodeStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
   listNextEpisodesForPublisher,
-  listVideoContainerCreatingTasks,
-  listVideoContainerDeletingTasks,
+  listPendingVideoContainerCreatingTasks,
+  listPendingVideoContainerDeletingTasks,
 } from "../../../db/sql";
 import { DeleteEpisodeHandler } from "./delete_episode_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -168,14 +169,19 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, 1000000),
+          await getVideoContainerDeletingTask(
+            SPANNER_DATABASE,
+            "videocontainer2",
+          ),
           isArray([
             eqMessage(
               {
                 videoContainerDeletingTaskVideoContainerId: "videocontainer2",
+                videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
               },
-              LIST_VIDEO_CONTAINER_DELETING_TASKS_ROW,
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
           "videoContainerDeletingTasks",
@@ -225,6 +231,7 @@ TEST_RUNNER.run({
             insertVideoContainerCreatingTaskStatement(
               "season1",
               "episode2",
+              0,
               0,
               0,
             ),
@@ -299,12 +306,18 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await listVideoContainerCreatingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingVideoContainerCreatingTasks(
+            SPANNER_DATABASE,
+            1000000,
+          ),
           isArray([]),
           "videoContainerCreatingTasks",
         );
         assertThat(
-          await listVideoContainerDeletingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingVideoContainerDeletingTasks(
+            SPANNER_DATABASE,
+            1000000,
+          ),
           isArray([]),
           "videoContainerDeletingTasks",
         );
