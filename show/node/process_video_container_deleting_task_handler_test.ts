@@ -108,10 +108,9 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
         let handler = new ProcessVideoContainerDeletingTaskHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
+          undefined,
           () => 1000,
         );
 

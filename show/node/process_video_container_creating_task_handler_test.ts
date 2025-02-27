@@ -275,11 +275,10 @@ TEST_RUNNER.run({
           publishTimeMs: 200,
         };
         await insertEpisode(episode);
-        let serviceClientMock = new NodeServiceClientMock();
         let handler = new ProcessVideoContainerCreatingTaskHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
-          () => "container1",
+          undefined,
+          undefined,
           () => 1000,
         );
 

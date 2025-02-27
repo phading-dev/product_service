@@ -112,7 +112,7 @@ TEST_RUNNER.run({
         });
         let handler = new ProcessCoverImageDeletingTaskHandler(
           SPANNER_DATABASE,
-          S3_CLIENT,
+          undefined,
           () => 1000,
         );
 
