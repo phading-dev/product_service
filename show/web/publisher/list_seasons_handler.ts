@@ -2,7 +2,7 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listSeasonsForPublisher } from "../../../db/sql";
-import { ENV_VARS } from "../../../env";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {

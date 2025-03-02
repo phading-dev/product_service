@@ -1,3 +1,4 @@
+import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
 import { ListSeasonsHandler } from "./list_seasons_handler";

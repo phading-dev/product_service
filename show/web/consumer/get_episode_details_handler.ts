@@ -1,7 +1,7 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getPublishedEpisodeForConsumer } from "../../../db/sql";
-import { ENV_VARS } from "../../../env";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetEpisodeDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";

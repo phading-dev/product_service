@@ -6,7 +6,7 @@ import {
   getCoverImageDeletingTaskMetadata,
   updateCoverImageDeletingTaskMetadataStatement,
 } from "../../db/sql";
-import { ENV_VARS } from "../../env";
+import { ENV_VARS } from "../../env_vars";
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Database } from "@google-cloud/spanner";
 import { ProcessCoverImageDeletingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";

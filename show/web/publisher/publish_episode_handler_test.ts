@@ -1,3 +1,4 @@
+import "../../../local/env";
 import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {

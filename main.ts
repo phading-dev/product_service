@@ -1,6 +1,6 @@
 import http = require("http");
 import { initS3Client } from "./common/s3_client";
-import { ENV_VARS } from "./env";
+import { ENV_VARS } from "./env_vars";
 import { CacheVideoContainer } from "./show/node/cache_video_container";
 import { GetSeasonGradeHandler } from "./show/node/get_season_grade_handler";
 import { GetSeasonPublisherHandler } from "./show/node/get_season_publisher_handler";

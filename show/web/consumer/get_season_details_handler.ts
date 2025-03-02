@@ -5,7 +5,7 @@ import {
   getLastSeasonGrades,
   getPublishedSeasonAndMoreForConsumer,
 } from "../../../db/sql";
-import { ENV_VARS } from "../../../env";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetSeasonDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";

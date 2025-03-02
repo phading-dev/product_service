@@ -15,7 +15,7 @@ import {
   updateCoverImageDeletingTaskMetadataStatement,
   updateSeasonStatement,
 } from "../../../db/sql";
-import { ENV_VARS } from "../../../env";
+import { ENV_VARS } from "../../../env_vars";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Database } from "@google-cloud/spanner";

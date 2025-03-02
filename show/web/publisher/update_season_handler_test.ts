@@ -1,3 +1,4 @@
+import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,

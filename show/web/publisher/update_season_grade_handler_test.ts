@@ -1,3 +1,4 @@
+import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_LAST_SEASON_GRADES_ROW,

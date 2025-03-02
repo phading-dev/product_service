@@ -1,4 +1,4 @@
-import { ENV_VARS } from "../env";
+import { ENV_VARS } from "../env_vars";
 
 export function toTodaISOString(date: Date): string {
   if (date.getUTCHours() < ENV_VARS.timezoneNegativeOffset) {
