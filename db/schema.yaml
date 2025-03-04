@@ -81,6 +81,36 @@
     - name: publishTimeMs
       type: number
       index: 8
+- kind: Message
+  name: IndividualSeasonRating
+  fields:
+    - name: raterId
+      type: string
+      index: 1
+    - name: seasonId
+      type: string
+      index: 2
+    - name: rating
+      type: number
+      index: 3
+    - name: ratedTimeMs
+      type: number
+      index: 4
+- kind: Message
+  name: SeasonRating
+  fields:
+    - name: seasonId
+      type: string
+      index: 1
+    - name: totalRatings
+      type: number
+      index: 2
+    - name: count
+      type: number
+      index: 3
+    - name: updatedTimeMs
+      type: number
+      index: 4
 - kind: SpannerDatabase
   name: ProductDatabase
   tables:
@@ -164,6 +194,30 @@
       delete: DeleteEpisode
       get: GetEpisode
       update: UpdateEpisode
+    - kind: MessageTable
+      name: IndividualSeasonRating
+      storedInColumn: data
+      columns:
+        - raterId
+        - seasonId
+      primaryKeys:
+        - raterId
+        - seasonId
+      insert: InsertIndividualSeasonRating
+      delete: DeleteIndividualSeasonRating
+      get: GetIndividualSeasonRating
+      update: UpdateIndividualSeasonRating
+    - kind: MessageTable
+      name: SeasonRating
+      storedInColumn: data
+      columns:
+        - seasonId
+      primaryKeys:
+        - seasonId
+      insert: InsertSeasonRating
+      delete: DeleteSeasonRating
+      get: GetSeasonRating
+      update: UpdateSeasonRating
     - kind: Table
       name: CoverImageFile
       columns:
@@ -259,6 +313,13 @@
         leftColumn: key
   selects:
     # Season
+    - name: CheckPresenceOfSeason
+      table: Season
+      where:
+        op: =
+        leftColumn: seasonId
+      getColumns:
+        - lastChangeTimeMs
     - name: GetSeasonPublisher
       table: Season
       where:
@@ -386,6 +447,17 @@
       getColumns:
         - data
     # Episode
+    - name: CheckPresenceOfEpisode
+      table: Episode
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn: seasonId
+          - op: =
+            leftColumn: episodeId
+      getColumns:
+        - publishTimeMs
     - name: GetPublishedEpisodeForConsumer
       table:
         name: Episode

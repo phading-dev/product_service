@@ -140,7 +140,7 @@ spec:
 
   let mainTemplate = `import "./env";
 import "../main";
-`
+`;
   writeFileSync(`${env}/main.ts`, mainTemplate);
 }
 

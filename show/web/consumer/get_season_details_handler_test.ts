@@ -5,6 +5,7 @@ import {
   deleteSeasonStatement,
   insertSeasonGradeStatement,
   insertSeasonMoreStatement,
+  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
@@ -25,7 +26,7 @@ TEST_RUNNER.run({
   name: "GetSeasonDetailsHandlerTest",
   cases: [
     {
-      name: "GetSeasonWithoutDescriptionAndWithOneEffectiveGrade",
+      name: "GetSeasonWithoutDescriptionAndWithoutRatingAndWithOneEffectiveGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -101,6 +102,7 @@ TEST_RUNNER.run({
                 totalEpisodes: 3,
                 description: "",
                 grade: 9,
+                averagedRating: 0,
               },
             },
             GET_SEASON_DETAILS_RESPONSE,
@@ -119,7 +121,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithTwoGrades",
+      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithRatingAndWithTwoGrades",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -157,6 +159,12 @@ TEST_RUNNER.run({
               startDate: "2020-03-01",
               endDate: "2020-04-01",
               grade: 8,
+            }),
+            insertSeasonRatingStatement({
+              seasonId: "season1",
+              totalRatings: 15,
+              count: 5,
+              updatedTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -206,6 +214,7 @@ TEST_RUNNER.run({
                   grade: 8,
                   effectiveDate: "2020-03-01",
                 },
+                averagedRating: 3,
               },
             },
             GET_SEASON_DETAILS_RESPONSE,

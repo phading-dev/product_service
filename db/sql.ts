@@ -1,7 +1,7 @@
 import { Statement } from '@google-cloud/spanner/build/src/transaction';
 import { SeasonState } from '@phading/product_service_interface/show/season_state';
 import { Spanner, Database, Transaction } from '@google-cloud/spanner';
-import { Season, SEASON, SeasonMore, SEASON_MORE, SeasonGrade, SEASON_GRADE, Episode, EPISODE } from './schema';
+import { Season, SEASON, SeasonMore, SEASON_MORE, SeasonGrade, SEASON_GRADE, Episode, EPISODE, IndividualSeasonRating, INDIVIDUAL_SEASON_RATING, SeasonRating, SEASON_RATING } from './schema';
 import { serializeMessage, deserializeMessage } from '@selfage/message/serializer';
 import { MessageDescriptor, PrimitiveType } from '@selfage/message/descriptor';
 
@@ -433,6 +433,222 @@ export function updateEpisodeInternalStatement(
       episodeEpisodeIdEq: { type: "string" },
       setIndex: { type: "float64" },
       setPublishTimeMs: { type: "float64" },
+      setData: { type: "bytes" },
+    }
+  };
+}
+
+export function insertIndividualSeasonRatingStatement(
+  data: IndividualSeasonRating,
+): Statement {
+  return insertIndividualSeasonRatingInternalStatement(
+    data.raterId,
+    data.seasonId,
+    data
+  );
+}
+
+export function insertIndividualSeasonRatingInternalStatement(
+  raterId: string,
+  seasonId: string,
+  data: IndividualSeasonRating,
+): Statement {
+  return {
+    sql: "INSERT IndividualSeasonRating (raterId, seasonId, data) VALUES (@raterId, @seasonId, @data)",
+    params: {
+      raterId: raterId,
+      seasonId: seasonId,
+      data: Buffer.from(serializeMessage(data, INDIVIDUAL_SEASON_RATING).buffer),
+    },
+    types: {
+      raterId: { type: "string" },
+      seasonId: { type: "string" },
+      data: { type: "bytes" },
+    }
+  };
+}
+
+export function deleteIndividualSeasonRatingStatement(
+  individualSeasonRatingRaterIdEq: string,
+  individualSeasonRatingSeasonIdEq: string,
+): Statement {
+  return {
+    sql: "DELETE IndividualSeasonRating WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
+    params: {
+      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
+    },
+    types: {
+      individualSeasonRatingRaterIdEq: { type: "string" },
+      individualSeasonRatingSeasonIdEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetIndividualSeasonRatingRow {
+  individualSeasonRatingData: IndividualSeasonRating,
+}
+
+export let GET_INDIVIDUAL_SEASON_RATING_ROW: MessageDescriptor<GetIndividualSeasonRatingRow> = {
+  name: 'GetIndividualSeasonRatingRow',
+  fields: [{
+    name: 'individualSeasonRatingData',
+    index: 1,
+    messageType: INDIVIDUAL_SEASON_RATING,
+  }],
+};
+
+export async function getIndividualSeasonRating(
+  runner: Database | Transaction,
+  individualSeasonRatingRaterIdEq: string,
+  individualSeasonRatingSeasonIdEq: string,
+): Promise<Array<GetIndividualSeasonRatingRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT IndividualSeasonRating.data FROM IndividualSeasonRating WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
+    params: {
+      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
+    },
+    types: {
+      individualSeasonRatingRaterIdEq: { type: "string" },
+      individualSeasonRatingSeasonIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetIndividualSeasonRatingRow>();
+  for (let row of rows) {
+    resRows.push({
+      individualSeasonRatingData: deserializeMessage(row.at(0).value, INDIVIDUAL_SEASON_RATING),
+    });
+  }
+  return resRows;
+}
+
+export function updateIndividualSeasonRatingStatement(
+  data: IndividualSeasonRating,
+): Statement {
+  return updateIndividualSeasonRatingInternalStatement(
+    data.raterId,
+    data.seasonId,
+    data
+  );
+}
+
+export function updateIndividualSeasonRatingInternalStatement(
+  individualSeasonRatingRaterIdEq: string,
+  individualSeasonRatingSeasonIdEq: string,
+  setData: IndividualSeasonRating,
+): Statement {
+  return {
+    sql: "UPDATE IndividualSeasonRating SET data = @setData WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
+    params: {
+      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
+      setData: Buffer.from(serializeMessage(setData, INDIVIDUAL_SEASON_RATING).buffer),
+    },
+    types: {
+      individualSeasonRatingRaterIdEq: { type: "string" },
+      individualSeasonRatingSeasonIdEq: { type: "string" },
+      setData: { type: "bytes" },
+    }
+  };
+}
+
+export function insertSeasonRatingStatement(
+  data: SeasonRating,
+): Statement {
+  return insertSeasonRatingInternalStatement(
+    data.seasonId,
+    data
+  );
+}
+
+export function insertSeasonRatingInternalStatement(
+  seasonId: string,
+  data: SeasonRating,
+): Statement {
+  return {
+    sql: "INSERT SeasonRating (seasonId, data) VALUES (@seasonId, @data)",
+    params: {
+      seasonId: seasonId,
+      data: Buffer.from(serializeMessage(data, SEASON_RATING).buffer),
+    },
+    types: {
+      seasonId: { type: "string" },
+      data: { type: "bytes" },
+    }
+  };
+}
+
+export function deleteSeasonRatingStatement(
+  seasonRatingSeasonIdEq: string,
+): Statement {
+  return {
+    sql: "DELETE SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    params: {
+      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+    },
+    types: {
+      seasonRatingSeasonIdEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetSeasonRatingRow {
+  seasonRatingData: SeasonRating,
+}
+
+export let GET_SEASON_RATING_ROW: MessageDescriptor<GetSeasonRatingRow> = {
+  name: 'GetSeasonRatingRow',
+  fields: [{
+    name: 'seasonRatingData',
+    index: 1,
+    messageType: SEASON_RATING,
+  }],
+};
+
+export async function getSeasonRating(
+  runner: Database | Transaction,
+  seasonRatingSeasonIdEq: string,
+): Promise<Array<GetSeasonRatingRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT SeasonRating.data FROM SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    params: {
+      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+    },
+    types: {
+      seasonRatingSeasonIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetSeasonRatingRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonRatingData: deserializeMessage(row.at(0).value, SEASON_RATING),
+    });
+  }
+  return resRows;
+}
+
+export function updateSeasonRatingStatement(
+  data: SeasonRating,
+): Statement {
+  return updateSeasonRatingInternalStatement(
+    data.seasonId,
+    data
+  );
+}
+
+export function updateSeasonRatingInternalStatement(
+  seasonRatingSeasonIdEq: string,
+  setData: SeasonRating,
+): Statement {
+  return {
+    sql: "UPDATE SeasonRating SET data = @setData WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    params: {
+      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+      setData: Buffer.from(serializeMessage(setData, SEASON_RATING).buffer),
+    },
+    types: {
+      seasonRatingSeasonIdEq: { type: "string" },
       setData: { type: "bytes" },
     }
   };
@@ -1093,6 +1309,41 @@ export function deleteVideoContainerKeyStatement(
   };
 }
 
+export interface CheckPresenceOfSeasonRow {
+  seasonLastChangeTimeMs: number,
+}
+
+export let CHECK_PRESENCE_OF_SEASON_ROW: MessageDescriptor<CheckPresenceOfSeasonRow> = {
+  name: 'CheckPresenceOfSeasonRow',
+  fields: [{
+    name: 'seasonLastChangeTimeMs',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function checkPresenceOfSeason(
+  runner: Database | Transaction,
+  seasonSeasonIdEq: string,
+): Promise<Array<CheckPresenceOfSeasonRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.lastChangeTimeMs FROM Season WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: seasonSeasonIdEq,
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<CheckPresenceOfSeasonRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonLastChangeTimeMs: row.at(0).value.value,
+    });
+  }
+  return resRows;
+}
+
 export interface GetSeasonPublisherRow {
   seasonPublisherId: string,
 }
@@ -1375,6 +1626,44 @@ export async function getLastSeasonGrades(
   for (let row of rows) {
     resRows.push({
       seasonGradeData: deserializeMessage(row.at(0).value, SEASON_GRADE),
+    });
+  }
+  return resRows;
+}
+
+export interface CheckPresenceOfEpisodeRow {
+  episodePublishTimeMs: number,
+}
+
+export let CHECK_PRESENCE_OF_EPISODE_ROW: MessageDescriptor<CheckPresenceOfEpisodeRow> = {
+  name: 'CheckPresenceOfEpisodeRow',
+  fields: [{
+    name: 'episodePublishTimeMs',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function checkPresenceOfEpisode(
+  runner: Database | Transaction,
+  episodeSeasonIdEq: string,
+  episodeEpisodeIdEq: string,
+): Promise<Array<CheckPresenceOfEpisodeRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Episode.publishTimeMs FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: episodeSeasonIdEq,
+      episodeEpisodeIdEq: episodeEpisodeIdEq,
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<CheckPresenceOfEpisodeRow>();
+  for (let row of rows) {
+    resRows.push({
+      episodePublishTimeMs: row.at(0).value.value,
     });
   }
   return resRows;

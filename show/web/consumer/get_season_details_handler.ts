@@ -4,6 +4,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
   getPublishedSeasonAndMoreForConsumer,
+  getSeasonRating,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
@@ -64,13 +65,14 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       );
     }
     let todayStr = toTodaISOString(this.getNowDate());
-    let [seasonRows, seasonGradeRows] = await Promise.all([
+    let [seasonRows, seasonGradeRows, ratingRows] = await Promise.all([
       getPublishedSeasonAndMoreForConsumer(
         this.database,
         body.seasonId,
         SeasonState.PUBLISHED,
       ),
       getLastSeasonGrades(this.database, body.seasonId, todayStr, 2),
+      getSeasonRating(this.database, body.seasonId),
     ]);
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -93,6 +95,11 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       };
     }
     let { sData, mData } = seasonRows[0];
+    let averagedRating =
+      ratingRows.length === 0
+        ? 0
+        : ratingRows[0].seasonRatingData.totalRatings /
+          ratingRows[0].seasonRatingData.count;
     return {
       seasonDetails: {
         publisherId: sData.publisherId,
@@ -102,6 +109,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         description: mData.description,
         grade,
         nextGrade,
+        averagedRating,
       },
     };
   }

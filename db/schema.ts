@@ -148,3 +148,59 @@ export let EPISODE: MessageDescriptor<Episode> = {
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
+
+export interface IndividualSeasonRating {
+  raterId?: string,
+  seasonId?: string,
+  rating?: number,
+  ratedTimeMs?: number,
+}
+
+export let INDIVIDUAL_SEASON_RATING: MessageDescriptor<IndividualSeasonRating> = {
+  name: 'IndividualSeasonRating',
+  fields: [{
+    name: 'raterId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'rating',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ratedTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export interface SeasonRating {
+  seasonId?: string,
+  totalRatings?: number,
+  count?: number,
+  updatedTimeMs?: number,
+}
+
+export let SEASON_RATING: MessageDescriptor<SeasonRating> = {
+  name: 'SeasonRating',
+  fields: [{
+    name: 'seasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'totalRatings',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'count',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'updatedTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};

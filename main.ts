@@ -2,6 +2,8 @@ import http = require("http");
 import { initS3Client } from "./common/s3_client";
 import { ENV_VARS } from "./env_vars";
 import { CacheVideoContainer } from "./show/node/cache_video_container";
+import { CheckPresenceOfEpisodeHandler } from "./show/node/check_presence_of_episode_handler";
+import { CheckPresenceOfSeasonHandler } from "./show/node/check_presence_of_season_handler";
 import { GetSeasonGradeHandler } from "./show/node/get_season_grade_handler";
 import { GetSeasonPublisherHandler } from "./show/node/get_season_publisher_handler";
 import { ListCoverImageDeletingTasksHandler } from "./show/node/list_cover_image_deleting_tasks_handler";
@@ -11,8 +13,11 @@ import { ProcessCoverImageDeletingTaskHandler } from "./show/node/process_cover_
 import { ProcessVideoContainerCreatingTaskHandler } from "./show/node/process_video_container_creating_task_handler";
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
 import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
+import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
 import { ListEpisodesHandler as ConsumerListEpisodesHandler } from "./show/web/consumer/list_episodes_handler";
+import { RateSeasonHandler } from "./show/web/consumer/rate_season_handler";
+import { UnrateSeasonHandler } from "./show/web/consumer/unrate_season_handler";
 import { ArchiveSeasonHandler } from "./show/web/publisher/archive_season_handler";
 import { CancelMediaFormattingHandler } from "./show/web/publisher/cancel_media_formatting_handler";
 import { CancelMediaUploadingHandler } from "./show/web/publisher/cancel_media_uploading_handler";
@@ -61,6 +66,8 @@ async function main() {
   service
     .addHandlerRegister(PRODUCT_NODE_SERVICE)
     .add(CacheVideoContainer.create())
+    .add(CheckPresenceOfEpisodeHandler.create())
+    .add(CheckPresenceOfSeasonHandler.create())
     .add(GetSeasonGradeHandler.create())
     .add(GetSeasonPublisherHandler.create())
     .add(ListCoverImageDeletingTasksHandler.create())
@@ -72,8 +79,11 @@ async function main() {
   service
     .addHandlerRegister(PRODUCT_WEB_SERVICE)
     .add(GetEpisodeDetailsHandler.create())
+    .add(GetIndividualSeasonRatingHandler.create())
     .add(GetSeasonDetailsHandler.create())
     .add(ConsumerListEpisodesHandler.create())
+    .add(RateSeasonHandler.create())
+    .add(UnrateSeasonHandler.create())
     .add(ArchiveSeasonHandler.create())
     .add(CancelMediaFormattingHandler.create())
     .add(CancelMediaUploadingHandler.create())

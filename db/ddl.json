@@ -83,6 +83,31 @@
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"
     }]
   }, {
+    "name": "IndividualSeasonRating",
+    "columns": [{
+      "name": "raterId",
+      "addColumnDdl": "ALTER TABLE IndividualSeasonRating ADD COLUMN raterId STRING(MAX) NOT NULL"
+    }, {
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE IndividualSeasonRating ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE IndividualSeasonRating ADD COLUMN data BYTES(MAX) NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE IndividualSeasonRating (raterId STRING(MAX) NOT NULL, seasonId STRING(MAX) NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (raterId ASC, seasonId ASC)",
+    "indexes": []
+  }, {
+    "name": "SeasonRating",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "data",
+      "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN data BYTES(MAX) NOT NULL"
+    }],
+    "createTableDdl": "CREATE TABLE SeasonRating (seasonId STRING(MAX) NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "indexes": []
+  }, {
     "name": "CoverImageFile",
     "columns": [{
       "name": "r2Filename",
