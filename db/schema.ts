@@ -10,6 +10,7 @@ export interface Season {
   coverImageR2Filename?: string,
   totalEpisodes?: number,
   lastChangeTimeMs?: number,
+  recentPublishTimeMs?: number,
 }
 
 export let SEASON: MessageDescriptor<Season> = {
@@ -41,6 +42,10 @@ export let SEASON: MessageDescriptor<Season> = {
   }, {
     name: 'lastChangeTimeMs',
     index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'recentPublishTimeMs',
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -181,6 +186,7 @@ export interface SeasonRating {
   seasonId?: string,
   totalRatings?: number,
   count?: number,
+  averageRating?: number,
   updatedTimeMs?: number,
 }
 
@@ -199,8 +205,12 @@ export let SEASON_RATING: MessageDescriptor<SeasonRating> = {
     index: 3,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'updatedTimeMs',
+    name: 'averageRating',
     index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'updatedTimeMs',
+    index: 5,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };

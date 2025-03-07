@@ -75,6 +75,7 @@ TEST_RUNNER.run({
                   name: "Season 1",
                   totalEpisodes: 0,
                   lastChangeTimeMs: 1000,
+                  recentPublishTimeMs: 1000,
                 },
                 mData: {
                   seasonId: "uuid0",

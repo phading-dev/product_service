@@ -31,6 +31,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "A name",
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -79,6 +80,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   name: "A new name",
                   lastChangeTimeMs: 1000,
+                  recentPublishTimeMs: 100,
                 },
                 mData: {
                   seasonId: "season1",
@@ -114,6 +116,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Another name",
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -163,6 +166,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   name: "Updated name",
                   lastChangeTimeMs: 1000,
+                  recentPublishTimeMs: 100,
                 },
                 mData: {
                   seasonId: "season1",

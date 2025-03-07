@@ -26,6 +26,7 @@ TEST_RUNNER.run({
               name: "Season 1",
               coverImageR2Filename: "season1.jpg",
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
               totalEpisodes: 1,
             }),
             insertSeasonStatement({
@@ -35,6 +36,7 @@ TEST_RUNNER.run({
               name: "Season 2",
               coverImageR2Filename: "season2.jpg",
               lastChangeTimeMs: 200,
+              recentPublishTimeMs: 200,
               totalEpisodes: 2,
             }),
             insertSeasonStatement({
@@ -43,6 +45,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 3",
               lastChangeTimeMs: 300,
+              recentPublishTimeMs: 300,
               totalEpisodes: 3,
             }),
             insertSeasonStatement({
@@ -51,6 +54,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 4",
               lastChangeTimeMs: 400,
+              recentPublishTimeMs: 400,
               totalEpisodes: 4,
             }),
           ]);

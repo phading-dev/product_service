@@ -89,6 +89,7 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
             seasonId: body.seasonId,
             count: 1,
             totalRatings: body.rating,
+            averageRating: body.rating,
             updatedTimeMs: this.getNow(),
           }),
         );
@@ -96,6 +97,8 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
         let seasonRatingData = totalRows[0].seasonRatingData;
         seasonRatingData.totalRatings += body.rating;
         seasonRatingData.count += 1;
+        seasonRatingData.averageRating =
+          seasonRatingData.totalRatings / seasonRatingData.count;
         seasonRatingData.updatedTimeMs = this.getNow();
         statements.push(
           insertIndividualSeasonRatingStatement({
@@ -112,6 +115,8 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
           individualRows[0].individualSeasonRatingData;
         seasonRatingData.totalRatings +=
           body.rating - individualSeasonRatingData.rating;
+        seasonRatingData.averageRating =
+          seasonRatingData.totalRatings / seasonRatingData.count;
         seasonRatingData.updatedTimeMs = this.getNow();
         individualSeasonRatingData.rating = body.rating;
         individualSeasonRatingData.ratedTimeMs = this.getNow();

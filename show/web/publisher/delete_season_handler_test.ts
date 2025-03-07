@@ -64,6 +64,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               totalEpisodes: 4,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
               coverImageR2Filename: "cover1",
             }),
             insertSeasonMoreStatement({
@@ -237,6 +238,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -300,6 +302,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
               coverImageR2Filename: "cover1",
             }),
           ]);

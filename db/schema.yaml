@@ -23,6 +23,9 @@
     - name: lastChangeTimeMs
       type: number
       index: 7
+    - name: recentPublishTimeMs
+      type: number
+      index: 8
 - kind: Message
   name: SeasonMore
   fields:
@@ -108,9 +111,12 @@
     - name: count
       type: number
       index: 3
-    - name: updatedTimeMs
+    - name: averageRating
       type: number
       index: 4
+    - name: updatedTimeMs
+      type: number
+      index: 5
 - kind: SpannerDatabase
   name: ProductDatabase
   tables:
@@ -122,18 +128,21 @@
         - publisherId
         - state
         - lastChangeTimeMs
+        - recentPublishTimeMs
       primaryKeys:
         - seasonId
       indexes:
         - name: ByLastChangeTimeMs
           columns:
             - publisherId
-            - state
             - name: lastChangeTimeMs
               desc: true
-        - name: ByPublisher
+            - state
+        - name: ByRecentPublishTimeMs
           columns:
-            - publisherId
+            - name: recentPublishTimeMs
+              desc: true
+            - state
       insert: InsertSeason
       delete: DeleteSeason
       get: GetSeason
@@ -212,8 +221,17 @@
       storedInColumn: data
       columns:
         - seasonId
+        - averageRating
+        - updatedTimeMs
       primaryKeys:
         - seasonId
+      indexes:
+        - name: ByRating
+          columns:
+            - name: averageRating
+              desc: true
+            - name: updatedTimeMs
+              desc: true
       insert: InsertSeasonRating
       delete: DeleteSeasonRating
       get: GetSeasonRating
@@ -338,37 +356,6 @@
             leftColumn: seasonId
       getColumns:
         - data
-    - name: GetPublishedSeasonAndMoreForConsumer
-      table:
-        name: Season
-        as: s
-      join:
-        - type: INNER
-          table:
-            name: SeasonMore
-            as: m
-          on:
-            op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
-      where:
-        op: AND
-        exps:
-          - op: =
-            leftColumn:
-              name: seasonId
-              table: s
-          - op: =
-            leftColumn:
-              name: state
-              table: s
-      getColumns:
-        - name: data
-          table: s
-        - name: data
-          table: m
     - name: GetSeasonAndMoreForPublisher
       table:
         name: Season
@@ -417,6 +404,127 @@
       withLimit: true
       getColumns:
         - data
+    - name: ListPublishedSeasonsByPublishTimeForConsumer
+      table:
+        name: Season
+        as: s
+      join:
+        - type: INNER
+          table:
+            name: SeasonRating
+            as: sr
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn:
+              name: state
+              table: s
+          - op: <
+            leftColumn:
+              name: recentPublishTimeMs
+              table: s
+      orderBy:
+        - column:
+            name: recentPublishTimeMs
+            table: s
+          desc: true
+      withLimit: true
+      getColumns:
+        - name: data
+          table: s
+        - name: data
+          table: sr
+    - name: ListPublishedSeasonsByRatingForConsumer
+      table:
+        name: Season
+        as: s
+      join:
+        - type: INNER
+          table:
+            name: SeasonRating
+            as: sr
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn:
+              name: state
+              table: s
+          - op: OR
+            exps:
+              - op: <
+                leftColumn:
+                  name: averageRating
+                  table: sr
+              - op: AND
+                exps:
+                  - op: =
+                    leftColumn:
+                      name: averageRating
+                      table: sr
+                  - op: <
+                    leftColumn:
+                      name: updatedTimeMs
+                      table: sr
+      orderBy:
+        - column:
+            name: averageRating
+            table: sr
+          desc: true
+        - column:
+            name: updatedTimeMs
+            table: sr
+          desc: true
+      withLimit: true
+      getColumns:
+        - name: data
+          table: s
+        - name: data
+          table: sr
+    - name: GetPublishedSeasonAndMoreForConsumer
+      table:
+        name: Season
+        as: s
+      join:
+        - type: INNER
+          table:
+            name: SeasonMore
+            as: m
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn:
+              name: seasonId
+              table: s
+          - op: =
+            leftColumn:
+              name: state
+              table: s
+      getColumns:
+        - name: data
+          table: s
+        - name: data
+          table: m
     # SeasonGrade
     - name: GetSeasonGrade
       table: SeasonGrade

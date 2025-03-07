@@ -13,6 +13,7 @@ export function insertSeasonStatement(
     data.publisherId,
     data.state,
     data.lastChangeTimeMs,
+    data.recentPublishTimeMs,
     data
   );
 }
@@ -22,15 +23,17 @@ export function insertSeasonInternalStatement(
   publisherId: string,
   state: SeasonState,
   lastChangeTimeMs: number,
+  recentPublishTimeMs: number,
   data: Season,
 ): Statement {
   return {
-    sql: "INSERT Season (seasonId, publisherId, state, lastChangeTimeMs, data) VALUES (@seasonId, @publisherId, @state, @lastChangeTimeMs, @data)",
+    sql: "INSERT Season (seasonId, publisherId, state, lastChangeTimeMs, recentPublishTimeMs, data) VALUES (@seasonId, @publisherId, @state, @lastChangeTimeMs, @recentPublishTimeMs, @data)",
     params: {
       seasonId: seasonId,
       publisherId: publisherId,
       state: Spanner.float(state),
       lastChangeTimeMs: Spanner.float(lastChangeTimeMs),
+      recentPublishTimeMs: Spanner.float(recentPublishTimeMs),
       data: Buffer.from(serializeMessage(data, SEASON).buffer),
     },
     types: {
@@ -38,6 +41,7 @@ export function insertSeasonInternalStatement(
       publisherId: { type: "string" },
       state: { type: "float64" },
       lastChangeTimeMs: { type: "float64" },
+      recentPublishTimeMs: { type: "float64" },
       data: { type: "bytes" },
     }
   };
@@ -100,6 +104,7 @@ export function updateSeasonStatement(
     data.publisherId,
     data.state,
     data.lastChangeTimeMs,
+    data.recentPublishTimeMs,
     data
   );
 }
@@ -109,15 +114,17 @@ export function updateSeasonInternalStatement(
   setPublisherId: string,
   setState: SeasonState,
   setLastChangeTimeMs: number,
+  setRecentPublishTimeMs: number,
   setData: Season,
 ): Statement {
   return {
-    sql: "UPDATE Season SET publisherId = @setPublisherId, state = @setState, lastChangeTimeMs = @setLastChangeTimeMs, data = @setData WHERE (Season.seasonId = @seasonSeasonIdEq)",
+    sql: "UPDATE Season SET publisherId = @setPublisherId, state = @setState, lastChangeTimeMs = @setLastChangeTimeMs, recentPublishTimeMs = @setRecentPublishTimeMs, data = @setData WHERE (Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonSeasonIdEq: seasonSeasonIdEq,
       setPublisherId: setPublisherId,
       setState: Spanner.float(setState),
       setLastChangeTimeMs: Spanner.float(setLastChangeTimeMs),
+      setRecentPublishTimeMs: Spanner.float(setRecentPublishTimeMs),
       setData: Buffer.from(serializeMessage(setData, SEASON).buffer),
     },
     types: {
@@ -125,6 +132,7 @@ export function updateSeasonInternalStatement(
       setPublisherId: { type: "string" },
       setState: { type: "float64" },
       setLastChangeTimeMs: { type: "float64" },
+      setRecentPublishTimeMs: { type: "float64" },
       setData: { type: "bytes" },
     }
   };
@@ -558,22 +566,30 @@ export function insertSeasonRatingStatement(
 ): Statement {
   return insertSeasonRatingInternalStatement(
     data.seasonId,
+    data.averageRating,
+    data.updatedTimeMs,
     data
   );
 }
 
 export function insertSeasonRatingInternalStatement(
   seasonId: string,
+  averageRating: number,
+  updatedTimeMs: number,
   data: SeasonRating,
 ): Statement {
   return {
-    sql: "INSERT SeasonRating (seasonId, data) VALUES (@seasonId, @data)",
+    sql: "INSERT SeasonRating (seasonId, averageRating, updatedTimeMs, data) VALUES (@seasonId, @averageRating, @updatedTimeMs, @data)",
     params: {
       seasonId: seasonId,
+      averageRating: Spanner.float(averageRating),
+      updatedTimeMs: Spanner.float(updatedTimeMs),
       data: Buffer.from(serializeMessage(data, SEASON_RATING).buffer),
     },
     types: {
       seasonId: { type: "string" },
+      averageRating: { type: "float64" },
+      updatedTimeMs: { type: "float64" },
       data: { type: "bytes" },
     }
   };
@@ -633,22 +649,30 @@ export function updateSeasonRatingStatement(
 ): Statement {
   return updateSeasonRatingInternalStatement(
     data.seasonId,
+    data.averageRating,
+    data.updatedTimeMs,
     data
   );
 }
 
 export function updateSeasonRatingInternalStatement(
   seasonRatingSeasonIdEq: string,
+  setAverageRating: number,
+  setUpdatedTimeMs: number,
   setData: SeasonRating,
 ): Statement {
   return {
-    sql: "UPDATE SeasonRating SET data = @setData WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    sql: "UPDATE SeasonRating SET averageRating = @setAverageRating, updatedTimeMs = @setUpdatedTimeMs, data = @setData WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
     params: {
       seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+      setAverageRating: Spanner.float(setAverageRating),
+      setUpdatedTimeMs: Spanner.float(setUpdatedTimeMs),
       setData: Buffer.from(serializeMessage(setData, SEASON_RATING).buffer),
     },
     types: {
       seasonRatingSeasonIdEq: { type: "string" },
+      setAverageRating: { type: "float64" },
+      setUpdatedTimeMs: { type: "float64" },
       setData: { type: "bytes" },
     }
   };
@@ -1417,50 +1441,6 @@ export async function getSeasonForPublisher(
   return resRows;
 }
 
-export interface GetPublishedSeasonAndMoreForConsumerRow {
-  sData: Season,
-  mData: SeasonMore,
-}
-
-export let GET_PUBLISHED_SEASON_AND_MORE_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndMoreForConsumerRow> = {
-  name: 'GetPublishedSeasonAndMoreForConsumerRow',
-  fields: [{
-    name: 'sData',
-    index: 1,
-    messageType: SEASON,
-  }, {
-    name: 'mData',
-    index: 2,
-    messageType: SEASON_MORE,
-  }],
-};
-
-export async function getPublishedSeasonAndMoreForConsumer(
-  runner: Database | Transaction,
-  sSeasonIdEq: string,
-  sStateEq: SeasonState,
-): Promise<Array<GetPublishedSeasonAndMoreForConsumerRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT s.data, m.data FROM Season AS s INNER JOIN SeasonMore AS m ON s.seasonId = m.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
-    params: {
-      sSeasonIdEq: sSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
-    },
-    types: {
-      sSeasonIdEq: { type: "string" },
-      sStateEq: { type: "float64" },
-    }
-  });
-  let resRows = new Array<GetPublishedSeasonAndMoreForConsumerRow>();
-  for (let row of rows) {
-    resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      mData: deserializeMessage(row.at(1).value, SEASON_MORE),
-    });
-  }
-  return resRows;
-}
-
 export interface GetSeasonAndMoreForPublisherRow {
   sData: Season,
   mData: SeasonMore,
@@ -1544,6 +1524,150 @@ export async function listSeasonsForPublisher(
   for (let row of rows) {
     resRows.push({
       seasonData: deserializeMessage(row.at(0).value, SEASON),
+    });
+  }
+  return resRows;
+}
+
+export interface ListPublishedSeasonsByPublishTimeForConsumerRow {
+  sData: Season,
+  srData: SeasonRating,
+}
+
+export let LIST_PUBLISHED_SEASONS_BY_PUBLISH_TIME_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByPublishTimeForConsumerRow> = {
+  name: 'ListPublishedSeasonsByPublishTimeForConsumerRow',
+  fields: [{
+    name: 'sData',
+    index: 1,
+    messageType: SEASON,
+  }, {
+    name: 'srData',
+    index: 2,
+    messageType: SEASON_RATING,
+  }],
+};
+
+export async function listPublishedSeasonsByPublishTimeForConsumer(
+  runner: Database | Transaction,
+  sStateEq: SeasonState,
+  sRecentPublishTimeMsLt: number,
+  limit: number,
+): Promise<Array<ListPublishedSeasonsByPublishTimeForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT s.data, sr.data FROM Season AS s INNER JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND s.recentPublishTimeMs < @sRecentPublishTimeMsLt) ORDER BY s.recentPublishTimeMs DESC LIMIT @limit",
+    params: {
+      sStateEq: Spanner.float(sStateEq),
+      sRecentPublishTimeMsLt: Spanner.float(sRecentPublishTimeMsLt),
+      limit: limit.toString(),
+    },
+    types: {
+      sStateEq: { type: "float64" },
+      sRecentPublishTimeMsLt: { type: "float64" },
+      limit: { type: "int64" },
+    }
+  });
+  let resRows = new Array<ListPublishedSeasonsByPublishTimeForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      sData: deserializeMessage(row.at(0).value, SEASON),
+      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+    });
+  }
+  return resRows;
+}
+
+export interface ListPublishedSeasonsByRatingForConsumerRow {
+  sData: Season,
+  srData: SeasonRating,
+}
+
+export let LIST_PUBLISHED_SEASONS_BY_RATING_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByRatingForConsumerRow> = {
+  name: 'ListPublishedSeasonsByRatingForConsumerRow',
+  fields: [{
+    name: 'sData',
+    index: 1,
+    messageType: SEASON,
+  }, {
+    name: 'srData',
+    index: 2,
+    messageType: SEASON_RATING,
+  }],
+};
+
+export async function listPublishedSeasonsByRatingForConsumer(
+  runner: Database | Transaction,
+  sStateEq: SeasonState,
+  srAverageRatingLt: number,
+  srAverageRatingEq: number,
+  srUpdatedTimeMsLt: number,
+  limit: number,
+): Promise<Array<ListPublishedSeasonsByRatingForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT s.data, sr.data FROM Season AS s INNER JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND (sr.averageRating < @srAverageRatingLt OR (sr.averageRating = @srAverageRatingEq AND sr.updatedTimeMs < @srUpdatedTimeMsLt))) ORDER BY sr.averageRating DESC, sr.updatedTimeMs DESC LIMIT @limit",
+    params: {
+      sStateEq: Spanner.float(sStateEq),
+      srAverageRatingLt: Spanner.float(srAverageRatingLt),
+      srAverageRatingEq: Spanner.float(srAverageRatingEq),
+      srUpdatedTimeMsLt: Spanner.float(srUpdatedTimeMsLt),
+      limit: limit.toString(),
+    },
+    types: {
+      sStateEq: { type: "float64" },
+      srAverageRatingLt: { type: "float64" },
+      srAverageRatingEq: { type: "float64" },
+      srUpdatedTimeMsLt: { type: "float64" },
+      limit: { type: "int64" },
+    }
+  });
+  let resRows = new Array<ListPublishedSeasonsByRatingForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      sData: deserializeMessage(row.at(0).value, SEASON),
+      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+    });
+  }
+  return resRows;
+}
+
+export interface GetPublishedSeasonAndMoreForConsumerRow {
+  sData: Season,
+  mData: SeasonMore,
+}
+
+export let GET_PUBLISHED_SEASON_AND_MORE_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndMoreForConsumerRow> = {
+  name: 'GetPublishedSeasonAndMoreForConsumerRow',
+  fields: [{
+    name: 'sData',
+    index: 1,
+    messageType: SEASON,
+  }, {
+    name: 'mData',
+    index: 2,
+    messageType: SEASON_MORE,
+  }],
+};
+
+export async function getPublishedSeasonAndMoreForConsumer(
+  runner: Database | Transaction,
+  sSeasonIdEq: string,
+  sStateEq: SeasonState,
+): Promise<Array<GetPublishedSeasonAndMoreForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT s.data, m.data FROM Season AS s INNER JOIN SeasonMore AS m ON s.seasonId = m.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
+    params: {
+      sSeasonIdEq: sSeasonIdEq,
+      sStateEq: Spanner.float(sStateEq),
+    },
+    types: {
+      sSeasonIdEq: { type: "string" },
+      sStateEq: { type: "float64" },
+    }
+  });
+  let resRows = new Array<GetPublishedSeasonAndMoreForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      sData: deserializeMessage(row.at(0).value, SEASON),
+      mData: deserializeMessage(row.at(1).value, SEASON_MORE),
     });
   }
   return resRows;

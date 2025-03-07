@@ -2,6 +2,7 @@ import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonMoreStatement,
+  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
   insertSeasonMoreStatement,
@@ -39,6 +40,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -102,7 +104,7 @@ TEST_RUNNER.run({
                 totalEpisodes: 3,
                 description: "",
                 grade: 9,
-                averagedRating: 0,
+                averageRating: 0,
               },
             },
             GET_SEASON_DETAILS_RESPONSE,
@@ -115,6 +117,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });
@@ -134,6 +137,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -162,8 +166,7 @@ TEST_RUNNER.run({
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
-              totalRatings: 15,
-              count: 5,
+              averageRating: 3,
               updatedTimeMs: 100,
             }),
           ]);
@@ -214,7 +217,7 @@ TEST_RUNNER.run({
                   grade: 8,
                   effectiveDate: "2020-03-01",
                 },
-                averagedRating: 3,
+                averageRating: 3,
               },
             },
             GET_SEASON_DETAILS_RESPONSE,
@@ -227,6 +230,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });
@@ -244,6 +248,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -291,6 +296,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });

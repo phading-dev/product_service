@@ -31,6 +31,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -157,6 +158,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",

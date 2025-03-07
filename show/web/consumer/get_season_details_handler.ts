@@ -95,11 +95,6 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       };
     }
     let { sData, mData } = seasonRows[0];
-    let averagedRating =
-      ratingRows.length === 0
-        ? 0
-        : ratingRows[0].seasonRatingData.totalRatings /
-          ratingRows[0].seasonRatingData.count;
     return {
       seasonDetails: {
         publisherId: sData.publisherId,
@@ -109,7 +104,10 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         description: mData.description,
         grade,
         nextGrade,
-        averagedRating,
+        averageRating:
+          ratingRows.length === 0
+            ? 0
+            : ratingRows[0].seasonRatingData.averageRating,
       },
     };
   }

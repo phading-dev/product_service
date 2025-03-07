@@ -74,6 +74,7 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
         name: body.name,
         totalEpisodes: 0,
         lastChangeTimeMs: now,
+        recentPublishTimeMs: now,
       };
       let seasonGrade: SeasonGrade = {
         seasonId,

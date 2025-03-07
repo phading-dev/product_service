@@ -77,6 +77,10 @@ export class UnrateSeasonHandler extends UnrateSeasonHandlerInterface {
         individualRows[0].individualSeasonRatingData;
       seasonRatingData.totalRatings -= individualSeasonRatingData.rating;
       seasonRatingData.count -= 1;
+      seasonRatingData.averageRating =
+        seasonRatingData.count === 0
+          ? 0
+          : seasonRatingData.totalRatings / seasonRatingData.count;
       seasonRatingData.updatedTimeMs = this.getNow();
       await transaction.batchUpdate([
         deleteIndividualSeasonRatingStatement(accountId, body.seasonId),

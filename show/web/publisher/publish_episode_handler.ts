@@ -85,6 +85,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
         sData.state = SeasonState.PUBLISHED;
       }
       sData.lastChangeTimeMs = now;
+      sData.recentPublishTimeMs = now;
       await transaction.batchUpdate([
         updateEpisodeStatement(eData),
         updateSeasonStatement(sData),

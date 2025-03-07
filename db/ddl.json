@@ -14,16 +14,19 @@
       "name": "lastChangeTimeMs",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimeMs FLOAT64 NOT NULL"
     }, {
+      "name": "recentPublishTimeMs",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN recentPublishTimeMs FLOAT64 NOT NULL"
+    }, {
       "name": "data",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN data BYTES(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, state FLOAT64 NOT NULL, lastChangeTimeMs FLOAT64 NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX) NOT NULL, state FLOAT64 NOT NULL, lastChangeTimeMs FLOAT64 NOT NULL, recentPublishTimeMs FLOAT64 NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimeMs",
-      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
+      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, lastChangeTimeMs DESC, state)"
     }, {
-      "name": "ByPublisher",
-      "createIndexDdl": "CREATE INDEX ByPublisher ON Season(publisherId)"
+      "name": "ByRecentPublishTimeMs",
+      "createIndexDdl": "CREATE INDEX ByRecentPublishTimeMs ON Season(recentPublishTimeMs DESC, state)"
     }]
   }, {
     "name": "SeasonMore",
@@ -102,11 +105,20 @@
       "name": "seasonId",
       "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN seasonId STRING(MAX) NOT NULL"
     }, {
+      "name": "averageRating",
+      "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN averageRating FLOAT64 NOT NULL"
+    }, {
+      "name": "updatedTimeMs",
+      "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN updatedTimeMs FLOAT64 NOT NULL"
+    }, {
       "name": "data",
       "addColumnDdl": "ALTER TABLE SeasonRating ADD COLUMN data BYTES(MAX) NOT NULL"
     }],
-    "createTableDdl": "CREATE TABLE SeasonRating (seasonId STRING(MAX) NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
-    "indexes": []
+    "createTableDdl": "CREATE TABLE SeasonRating (seasonId STRING(MAX) NOT NULL, averageRating FLOAT64 NOT NULL, updatedTimeMs FLOAT64 NOT NULL, data BYTES(MAX) NOT NULL) PRIMARY KEY (seasonId ASC)",
+    "indexes": [{
+      "name": "ByRating",
+      "createIndexDdl": "CREATE INDEX ByRating ON SeasonRating(averageRating DESC, updatedTimeMs)"
+    }]
   }, {
     "name": "CoverImageFile",
     "columns": [{

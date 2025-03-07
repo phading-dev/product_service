@@ -71,6 +71,83 @@ TEST_RUNNER.run({
                   seasonId: "season1",
                   totalRatings: 5,
                   count: 1,
+                  averageRating: 5,
+                  updatedTimeMs: 1000,
+                },
+              },
+              GET_SEASON_RATING_ROW,
+            ),
+          ]),
+          "SeasonRating",
+        );
+        assertThat(
+          await getIndividualSeasonRating(
+            SPANNER_DATABASE,
+            "account1",
+            "season1",
+          ),
+          isArray([]),
+          "IndividualRating",
+        );
+      },
+      async tearDown() {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonRatingStatement("season1"),
+            deleteIndividualSeasonRatingStatement("account1", "season1"),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+    {
+      name: "UnrateSeasonWithOnlyOneRating",
+      async execute() {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonRatingStatement({
+              seasonId: "season1",
+              totalRatings: 5,
+              count: 1,
+              updatedTimeMs: 100,
+            }),
+            insertIndividualSeasonRatingStatement({
+              raterId: "account1",
+              seasonId: "season1",
+              rating: 5,
+              ratedTimeMs: 100,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "account1",
+          capabilities: {
+            canConsumeShows: true,
+          },
+        } as ExchangeSessionAndCheckCapabilityResponse;
+        let handler = new UnrateSeasonHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => 1000,
+        );
+
+        // Execute
+        await handler.handle("", { seasonId: "season1" }, "authStr");
+
+        // Verify
+        assertThat(
+          await getSeasonRating(SPANNER_DATABASE, "season1"),
+          isArray([
+            eqMessage(
+              {
+                seasonRatingData: {
+                  seasonId: "season1",
+                  totalRatings: 0,
+                  count: 0,
+                  averageRating: 0,
                   updatedTimeMs: 1000,
                 },
               },

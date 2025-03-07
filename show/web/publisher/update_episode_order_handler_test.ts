@@ -34,6 +34,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 5,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -104,6 +105,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   totalEpisodes: 5,
                   lastChangeTimeMs: 1000,
+                  recentPublishTimeMs: 100,
                 },
               },
               GET_SEASON_ROW,
@@ -198,6 +200,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 5,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -268,6 +271,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   totalEpisodes: 5,
                   lastChangeTimeMs: 1000,
+                  recentPublishTimeMs: 100,
                 },
               },
               GET_SEASON_ROW,
@@ -362,6 +366,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -474,6 +479,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -586,6 +592,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 1000,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             ...Array.from({ length: 1000 }, (_, i) =>
               insertEpisodeStatement({
@@ -679,6 +686,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -757,6 +765,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
               lastChangeTimeMs: 100,
+              recentPublishTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",

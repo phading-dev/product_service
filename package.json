@@ -38,7 +38,7 @@
     "@phading/cluster": "^1.0.0",
     "@phading/constants": "^0.3.7",
     "@phading/product_meter_service_interface": "^1.0.1",
-    "@phading/product_service_interface": "^1.0.3",
+    "@phading/product_service_interface": "^1.0.4",
     "@phading/user_session_service_interface": "^1.0.4",
     "@phading/video_service_interface": "^1.0.0",
     "@selfage/http_error": "^1.1.2",
