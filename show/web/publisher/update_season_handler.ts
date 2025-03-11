@@ -1,7 +1,7 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getSeasonAndMoreForPublisher,
+  getSeasonAndMoreAndRatingForPublisher,
   updateSeasonMoreStatement,
   updateSeasonStatement,
 } from "../../../db/sql";
@@ -71,7 +71,7 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let seasonRows = await getSeasonAndMoreForPublisher(
+      let seasonRows = await getSeasonAndMoreAndRatingForPublisher(
         transaction,
         accountId,
         body.seasonId,

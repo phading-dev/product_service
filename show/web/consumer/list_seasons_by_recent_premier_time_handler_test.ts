@@ -3,12 +3,13 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonRatingStatement,
   deleteSeasonStatement,
+  insertSeasonGradeStatement,
   insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { ListSeasonsByRecentPublishTimeHandler } from "./list_seasons_by_recent_publish_time_handler";
+import { ListSeasonsByRecentPremierTimeHandler } from "./list_seasons_by_recent_premier_time_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { LIST_SEASONS_BY_RECENT_PUBLISH_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -16,7 +17,7 @@ import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "ListSeasonsByRecentPublishTimeHandlerTest",
+  name: "ListSeasonsByRecentPremierTimeHandlerTest",
   cases: [
     {
       name: "ListOneBatch_ListAgainButNoMore",
@@ -32,12 +33,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 10,
+              recentPremierTimeMs: 10,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
               averageRating: 4.5,
               updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 5,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -47,12 +55,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
               lastChangeTimeMs: 400,
-              recentPublishTimeMs: 40,
+              recentPremierTimeMs: 40,
             }),
             insertSeasonRatingStatement({
               seasonId: "season4",
               averageRating: 3.5,
               updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 10,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -62,12 +77,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
               lastChangeTimeMs: 300,
-              recentPublishTimeMs: 30,
+              recentPremierTimeMs: 30,
             }),
             insertSeasonRatingStatement({
               seasonId: "season3",
               averageRating: 3,
               updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 20,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -77,12 +99,14 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
               lastChangeTimeMs: 200,
-              recentPublishTimeMs: 20,
+              recentPremierTimeMs: 20,
             }),
-            insertSeasonRatingStatement({
+            insertSeasonGradeStatement({
               seasonId: "season2",
-              averageRating: 2.5,
-              updatedTimeMs: 1000,
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 40,
             }),
           ]);
           await transaction.commit();
@@ -94,11 +118,11 @@ TEST_RUNNER.run({
             canConsumeShows: true,
           },
         } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new ListSeasonsByRecentPublishTimeHandler(
+        let handler = new ListSeasonsByRecentPremierTimeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
-          () => 1000,
+          () => new Date(1000),
         );
 
         {
@@ -117,6 +141,7 @@ TEST_RUNNER.run({
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
                     totalEpisodes: 4,
+                    grade: 10,
                     averageRating: 3.5,
                   },
                   {
@@ -125,12 +150,13 @@ TEST_RUNNER.run({
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
                     totalEpisodes: 2,
-                    averageRating: 2.5,
+                    grade: 40,
+                    averageRating: 0,
                   },
                 ],
-                publishTimeCursor: 20,
+                premierTimeCursor: 20,
               },
-              LIST_SEASONS_BY_RECENT_PUBLISH_TIME_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE,
             ),
             "response 1",
           );
@@ -140,7 +166,7 @@ TEST_RUNNER.run({
           // Execute
           let response = await handler.handle(
             "",
-            { publishTimeCursor: 20, limit: 2 },
+            { premierTimeCursor: 20, limit: 2 },
             "authStr",
           );
 
@@ -156,11 +182,12 @@ TEST_RUNNER.run({
                     name: "name1",
                     coverImageUrl: "https://test.com/cover1",
                     totalEpisodes: 1,
+                    grade: 5,
                     averageRating: 4.5,
                   },
                 ],
               },
-              LIST_SEASONS_BY_RECENT_PUBLISH_TIME_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE,
             ),
             "response 2",
           );

@@ -37,7 +37,7 @@ TEST_RUNNER.run({
               name: "Season 1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -146,7 +146,7 @@ TEST_RUNNER.run({
               name: "Season 1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",

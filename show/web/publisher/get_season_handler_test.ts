@@ -2,9 +2,11 @@ import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonMoreStatement,
+  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
   insertSeasonMoreStatement,
+  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetSeasonHandler } from "./get_season_handler";
@@ -25,7 +27,7 @@ TEST_RUNNER.run({
   name: "GetSeasonHandlerTest",
   cases: [
     {
-      name: "GetSeasonWithoutDescriptionAndWithoutCoverImageAndWithOneEffectiveGrade",
+      name: "GetSeasonWithoutDescriptionAndWithoutCoverImageAndWithoutRatingAndWithOneEffectiveGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -36,7 +38,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertSeasonMoreStatement({
@@ -80,7 +82,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000) // 2020-02-01T08:00:00.000Z
+          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute
@@ -103,6 +105,7 @@ TEST_RUNNER.run({
                 createdTimeMs: 50,
                 lastChangeTimeMs: 100,
                 grade: 9,
+                averageRating: 0,
               },
             },
             GET_SEASON_RESPONSE,
@@ -115,13 +118,14 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });
       },
     },
     {
-      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithTwoGrades",
+      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithRatingAndWithTwoGrades",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -133,13 +137,18 @@ TEST_RUNNER.run({
               name: "Season 1",
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
               description: "something something",
               createdTimeMs: 50,
+            }),
+            insertSeasonRatingStatement({
+              seasonId: "season1",
+              averageRating: 4.5,
+              updatedTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -184,7 +193,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1582884000000) // 2020-02-28T10:00:00.000Z
+          () => new Date(1582884000000), // 2020-02-28T10:00:00.000Z
         );
 
         // Execute
@@ -212,6 +221,7 @@ TEST_RUNNER.run({
                   grade: 8,
                   effectiveDate: "2020-03-01",
                 },
+                averageRating: 4.5,
               },
             },
             GET_SEASON_RESPONSE,
@@ -224,6 +234,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });
@@ -241,7 +252,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               name: "Season 1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertSeasonMoreStatement({
@@ -271,7 +282,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000) // 2020-02-01T08:00:00.000Z
+          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute
@@ -291,6 +302,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement("season1"),
             deleteSeasonMoreStatement("season1"),
+            deleteSeasonRatingStatement("season1"),
           ]);
           await transaction.commit();
         });

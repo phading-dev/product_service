@@ -10,7 +10,7 @@ export interface Season {
   coverImageR2Filename?: string,
   totalEpisodes?: number,
   lastChangeTimeMs?: number,
-  recentPublishTimeMs?: number,
+  recentPremierTimeMs?: number,
 }
 
 export let SEASON: MessageDescriptor<Season> = {
@@ -44,7 +44,7 @@ export let SEASON: MessageDescriptor<Season> = {
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'recentPublishTimeMs',
+    name: 'recentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }],

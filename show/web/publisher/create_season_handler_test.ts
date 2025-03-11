@@ -1,12 +1,15 @@
 import "../../../local/env";
+import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_LAST_SEASON_GRADES_ROW,
-  GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,
+  GET_SEASON_MORE_ROW,
+  GET_SEASON_ROW,
   deleteSeasonMoreStatement,
   deleteSeasonStatement,
   getLastSeasonGrades,
-  getSeasonAndMoreForPublisher,
+  getSeason,
+  getSeasonMore,
 } from "../../../db/sql";
 import { CreateSeasonHandler } from "./create_season_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -60,33 +63,40 @@ TEST_RUNNER.run({
           "response",
         );
         assertThat(
-          await getSeasonAndMoreForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "uuid0",
-          ),
+          await getSeason(SPANNER_DATABASE, "uuid0"),
           isArray([
             eqMessage(
               {
-                sData: {
+                seasonData: {
                   seasonId: "uuid0",
                   publisherId: "publisher1",
                   state: SeasonState.DRAFT,
                   name: "Season 1",
                   totalEpisodes: 0,
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 1000,
+                  recentPremierTimeMs: FAR_FUTURE_TIME_MS,
                 },
-                mData: {
+              },
+              GET_SEASON_ROW,
+            ),
+          ]),
+          "GetSeason",
+        );
+        assertThat(
+          await getSeasonMore(SPANNER_DATABASE, "uuid0"),
+          isArray([
+            eqMessage(
+              {
+                seasonMoreData: {
                   seasonId: "uuid0",
                   description: "",
                   createdTimeMs: 1000,
                 },
               },
-              GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,
+              GET_SEASON_MORE_ROW,
             ),
           ]),
-          "season",
+          "GetSeasonMore",
         );
         assertThat(
           await getLastSeasonGrades(SPANNER_DATABASE, "uuid0", "2000-01-01", 2),

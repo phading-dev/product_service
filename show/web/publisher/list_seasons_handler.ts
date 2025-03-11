@@ -9,6 +9,7 @@ import {
   ListSeasonsRequestBody,
   ListSeasonsResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/publisher/season_summary";
 import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -67,19 +68,22 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
       body.limit,
     );
     return {
-      seasons: rows.map((row) => ({
-        seasonId: row.seasonData.seasonId,
-        name: row.seasonData.name,
-        coverImageUrl: row.seasonData.coverImageR2Filename
-          ? `${this.coverImagePublicAccessDomain}/${row.seasonData.coverImageR2Filename}`
-          : undefined,
-        totalEpisodes: row.seasonData.totalEpisodes,
-        lastChangeTimeMs: row.seasonData.lastChangeTimeMs,
-      })),
+      seasons: rows.map(
+        (row): SeasonSummary => ({
+          seasonId: row.sData.seasonId,
+          name: row.sData.name,
+          coverImageUrl: row.sData.coverImageR2Filename
+            ? `${this.coverImagePublicAccessDomain}/${row.sData.coverImageR2Filename}`
+            : undefined,
+          totalEpisodes: row.sData.totalEpisodes,
+          lastChangeTimeMs: row.sData.lastChangeTimeMs,
+          averageRating: row.srData ? row.srData.averageRating : 0,
+        }),
+      ),
       lastChangeTimeCursor:
         rows.length < body.limit
           ? undefined
-          : rows[rows.length - 1].seasonData.lastChangeTimeMs,
+          : rows[rows.length - 1].sData.lastChangeTimeMs,
     };
   }
 }

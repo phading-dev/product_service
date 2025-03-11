@@ -4,16 +4,15 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  listPublishedSeasonsByRatingForConsumer,
+  listPublishedSeasonsByPublishTimeForConsumer,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
-import { VALID_RATINGS } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListSeasonsByRatingHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { ListSeasonsByRecentPremierTimeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
-  ListSeasonsByRatingRequestBody,
-  ListSeasonsByRatingResponse,
+  ListSeasonsByRecentPremierTimeRequestBody,
+  ListSeasonsByRecentPremierTimeResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
 import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
@@ -24,9 +23,9 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterface {
-  public static create(): ListSeasonsByRatingHandler {
-    return new ListSeasonsByRatingHandler(
+export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPremierTimeHandlerInterface {
+  public static create(): ListSeasonsByRecentPremierTimeHandler {
+    return new ListSeasonsByRecentPremierTimeHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
@@ -45,9 +44,9 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
 
   public async handle(
     loggingPrefix: string,
-    body: ListSeasonsByRatingRequestBody,
+    body: ListSeasonsByRecentPremierTimeRequestBody,
     sessionStr: string,
-  ): Promise<ListSeasonsByRatingResponse> {
+  ): Promise<ListSeasonsByRecentPremierTimeResponse> {
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
@@ -64,25 +63,21 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
     );
     if (!capabilities.canConsumeShows) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to list seasons by rating.`,
+        `Account ${accountId} not allowed to list seasons by recent publish time.`,
       );
     }
     let nowDate = this.getNowDate();
     let now = nowDate.valueOf();
     let todayStr = toTodaISOString(nowDate);
-    let ratingCursor =
-      body.ratingCursor ?? VALID_RATINGS[VALID_RATINGS.length - 1] + 1;
-    let rows = await listPublishedSeasonsByRatingForConsumer(
+    let seasonRows = await listPublishedSeasonsByPublishTimeForConsumer(
       this.database,
       SeasonState.PUBLISHED,
-      ratingCursor,
-      ratingCursor,
-      body.updatedTimeCursor ?? now,
+      body.premierTimeCursor ?? now,
       body.limit,
     );
-    let seasons = new Array<SeasonSummary>(rows.length);
+    let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
-      rows.map(async (row, i) => {
+      seasonRows.map(async (row, i) => {
         let gradeRows = await getLastSeasonGrades(
           this.database,
           row.sData.seasonId,
@@ -94,26 +89,23 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
             `Season ${row.sData.seasonId} has no grade at today ${todayStr}.`,
           );
         }
+        let { sData, srData } = row;
         seasons[i] = {
-          seasonId: row.sData.seasonId,
-          publisherId: row.sData.publisherId,
-          name: row.sData.name,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sData.coverImageR2Filename}`,
-          totalEpisodes: row.sData.totalEpisodes,
-          averageRating: row.srData.averageRating,
+          seasonId: sData.seasonId,
+          publisherId: sData.publisherId,
+          name: sData.name,
+          coverImageUrl: `${this.coverImagePublicAccessDomain}/${sData.coverImageR2Filename}`,
+          totalEpisodes: sData.totalEpisodes,
+          averageRating: srData ? srData.averageRating : 0,
           grade: gradeRows[0].seasonGradeData.grade,
         };
       }),
     );
     return {
       seasons,
-      ratingCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].srData.averageRating
-          : undefined,
-      updatedTimeCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].srData.updatedTimeMs
+      premierTimeCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].sData.recentPremierTimeMs
           : undefined,
     };
   }

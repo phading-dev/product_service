@@ -71,7 +71,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -150,7 +150,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   coverImageR2Filename: "image2",
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 100,
+                  recentPremierTimeMs: 100,
                 },
               },
               GET_SEASON_ROW,
@@ -202,7 +202,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -250,7 +250,7 @@ TEST_RUNNER.run({
                   state: SeasonState.PUBLISHED,
                   coverImageR2Filename: "image1",
                   lastChangeTimeMs: 100,
-                  recentPublishTimeMs: 100,
+                  recentPremierTimeMs: 100,
                 },
               },
               GET_SEASON_ROW,
@@ -296,7 +296,7 @@ TEST_RUNNER.run({
               state: SeasonState.ARCHIVED,
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();

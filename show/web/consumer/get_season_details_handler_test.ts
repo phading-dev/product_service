@@ -40,7 +40,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -137,7 +137,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -248,7 +248,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",

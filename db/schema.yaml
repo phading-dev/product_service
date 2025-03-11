@@ -23,7 +23,7 @@
     - name: lastChangeTimeMs
       type: number
       index: 7
-    - name: recentPublishTimeMs
+    - name: recentPremierTimeMs
       type: number
       index: 8
 - kind: Message
@@ -128,7 +128,7 @@
         - publisherId
         - state
         - lastChangeTimeMs
-        - recentPublishTimeMs
+        - recentPremierTimeMs
       primaryKeys:
         - seasonId
       indexes:
@@ -138,9 +138,9 @@
             - name: lastChangeTimeMs
               desc: true
             - state
-        - name: ByRecentPublishTimeMs
+        - name: ByRecentPremierTimeMs
           columns:
-            - name: recentPublishTimeMs
+            - name: recentPremierTimeMs
               desc: true
             - state
       insert: InsertSeason
@@ -356,7 +356,7 @@
             leftColumn: seasonId
       getColumns:
         - data
-    - name: GetSeasonAndMoreForPublisher
+    - name: GetSeasonAndMoreAndRatingForPublisher
       table:
         name: Season
         as: s
@@ -365,6 +365,16 @@
           table:
             name: SeasonMore
             as: m
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+        - type: LEFT
+          table:
+            name: SeasonRating
+            as: sr
           on:
             op: =
             leftColumn:
@@ -387,29 +397,55 @@
           table: s
         - name: data
           table: m
+        - name: data
+          table: sr
     - name: ListSeasonsForPublisher
-      table: Season
+      table:
+        name: Season
+        as: s
+      join:
+        - type: LEFT
+          table:
+            name: SeasonRating
+            as: sr
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
       where:
         op: AND
         exps:
           - op: =
-            leftColumn: publisherId
+            leftColumn:
+              name: publisherId
+              table: s
           - op: =
-            leftColumn: state
+            leftColumn:
+              name: state
+              table: s
           - op: <
-            leftColumn: lastChangeTimeMs
+            leftColumn:
+              name: lastChangeTimeMs
+              table: s
       orderBy:
-        - column: lastChangeTimeMs
+        - column:
+            name: lastChangeTimeMs
+            table: s
           desc: true
       withLimit: true
       getColumns:
-        - data
+        - name: data
+          table: s
+        - name: data
+          table: sr
     - name: ListPublishedSeasonsByPublishTimeForConsumer
       table:
         name: Season
         as: s
       join:
-        - type: INNER
+        - type: LEFT
           table:
             name: SeasonRating
             as: sr
@@ -428,11 +464,11 @@
               table: s
           - op: <
             leftColumn:
-              name: recentPublishTimeMs
+              name: recentPremierTimeMs
               table: s
       orderBy:
         - column:
-            name: recentPublishTimeMs
+            name: recentPremierTimeMs
             table: s
           desc: true
       withLimit: true
@@ -494,7 +530,38 @@
           table: s
         - name: data
           table: sr
-    - name: GetPublishedSeasonAndMoreForConsumer
+    - name: GetPublishedSeasonAndRatingForConsumer
+      table:
+        name: Season
+        as: s
+      join:
+        - type: LEFT
+          table:
+            name: SeasonRating
+            as: sr
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+      where:
+        op: AND
+        exps:
+          - op: =
+            leftColumn:
+              name: seasonId
+              table: s
+          - op: =
+            leftColumn:
+              name: state
+              table: s
+      getColumns:
+        - name: data
+          table: s
+        - name: data
+          table: sr
+    - name: GetPublishedSeasonAndMoreAndRatingForConsumer
       table:
         name: Season
         as: s
@@ -503,6 +570,16 @@
           table:
             name: SeasonMore
             as: m
+          on:
+            op: =
+            leftColumn:
+              name: seasonId
+              table: s
+            rightColumn: seasonId
+        - type: LEFT
+          table:
+            name: SeasonRating
+            as: sr
           on:
             op: =
             leftColumn:
@@ -525,6 +602,8 @@
           table: s
         - name: data
           table: m
+        - name: data
+          table: sr
     # SeasonGrade
     - name: GetSeasonGrade
       table: SeasonGrade

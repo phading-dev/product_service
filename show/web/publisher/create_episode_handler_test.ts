@@ -39,7 +39,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               totalEpisodes: 0,
               lastChangeTimeMs: 0,
-              recentPublishTimeMs: 0,
+              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();
@@ -96,7 +96,7 @@ TEST_RUNNER.run({
                   state: SeasonState.DRAFT,
                   totalEpisodes: 1,
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 0,
+                  recentPremierTimeMs: 0,
                 },
               },
               GET_SEASON_ROW,
@@ -172,7 +172,7 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               totalEpisodes: MAX_NUM_OF_EPISODES_PER_SEASON,
               lastChangeTimeMs: 0,
-              recentPublishTimeMs: 0,
+              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();
@@ -236,7 +236,7 @@ TEST_RUNNER.run({
               state: SeasonState.ARCHIVED,
               totalEpisodes: 0,
               lastChangeTimeMs: 0,
-              recentPublishTimeMs: 0,
+              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();

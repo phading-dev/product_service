@@ -3,7 +3,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getSeasonAndMoreForPublisher,
+  getSeasonAndMoreAndRatingForPublisher,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
@@ -63,7 +63,11 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     }
     let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
-      getSeasonAndMoreForPublisher(this.database, accountId, body.seasonId),
+      getSeasonAndMoreAndRatingForPublisher(
+        this.database,
+        accountId,
+        body.seasonId,
+      ),
       getLastSeasonGrades(this.database, body.seasonId, todayStr, 2),
     ]);
     if (seasonRows.length === 0) {
@@ -80,7 +84,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         effectiveDate: seasonGradeRows[0].seasonGradeData.startDate,
       };
     }
-    let { sData, mData } = seasonRows[0];
+    let { sData, mData, srData } = seasonRows[0];
     return {
       seasonDetails: {
         name: sData.name,
@@ -94,6 +98,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         lastChangeTimeMs: sData.lastChangeTimeMs,
         grade,
         nextGrade,
+        averageRating: srData ? srData.averageRating : 0,
       },
     };
   }

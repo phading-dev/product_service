@@ -1,0 +1,308 @@
+import "../../../local/env";
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import {
+  deleteSeasonRatingStatement,
+  deleteSeasonStatement,
+  insertEpisodeStatement,
+  insertSeasonGradeStatement,
+  insertSeasonRatingStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
+import { ListContinueWatchingSeasonsHandler } from "./list_continue_watching_seasons_handler";
+import {
+  LIST_RECENTLY_WATCHED_SEASONS,
+  LIST_RECENTLY_WATCHED_SEASONS_REQUEST_BODY,
+  ListRecentlyWatchedSeasonsResponse,
+} from "@phading/play_activity_service_interface/show/node/interface";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
+import { LIST_CONTINUE_WATCHING_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import {
+  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
+  ExchangeSessionAndCheckCapabilityResponse,
+} from "@phading/user_session_service_interface/node/interface";
+import { eqMessage } from "@selfage/message/test_matcher";
+import { NodeClientOptions } from "@selfage/node_service_client";
+import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
+import { ClientRequestInterface } from "@selfage/service_descriptor/client_request_interface";
+import { assertThat } from "@selfage/test_matcher";
+import { TEST_RUNNER } from "@selfage/test_runner";
+
+TEST_RUNNER.run({
+  name: "ListContinueWatchingSeasonsHandlerTest",
+  cases: [
+    {
+      name: "ListThatOneSeasonWithRatingAndContinueWithLatestEpisode_OneWithoutRatingAndContinueWithNextEpisode_OneWithLatestEpisodeNotFound_OneWithNextEpisodeNotFound_OneWithSeasonNotFound",
+      async execute() {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
+              name: "name1",
+              coverImageR2Filename: "cover1",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 100,
+              recentPremierTimeMs: 10,
+            }),
+            insertSeasonRatingStatement({
+              seasonId: "season1",
+              averageRating: 4.5,
+              updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season1",
+              episodeId: "episode1",
+              index: 1,
+              name: "S1E1",
+              videoContainer: {
+                durationSec: 60,
+              },
+              premierTimeMs: 1000,
+              publishTimeMs: 100,
+            }),
+            insertSeasonStatement({
+              seasonId: "season2",
+              publisherId: "publisher2",
+              state: SeasonState.PUBLISHED,
+              name: "name2",
+              coverImageR2Filename: "cover2",
+              totalEpisodes: 2,
+              lastChangeTimeMs: 200,
+              recentPremierTimeMs: 20,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season2",
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 22,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season2",
+              episodeId: "episode1",
+              index: 1,
+              name: "S2E1",
+              videoContainer: {
+                durationSec: 120,
+              },
+              premierTimeMs: 2000,
+              publishTimeMs: 200,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season2",
+              episodeId: "episode2",
+              index: 2,
+              name: "S2E2",
+              videoContainer: {
+                durationSec: 180,
+              },
+              premierTimeMs: 2000,
+              publishTimeMs: 200,
+            }),
+            insertSeasonStatement({
+              seasonId: "season3",
+              publisherId: "publisher3",
+              state: SeasonState.PUBLISHED,
+              name: "name3",
+              coverImageR2Filename: "cover3",
+              totalEpisodes: 3,
+              lastChangeTimeMs: 300,
+              recentPremierTimeMs: 30,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 33,
+            }),
+            insertSeasonStatement({
+              seasonId: "season4",
+              publisherId: "publisher4",
+              state: SeasonState.PUBLISHED,
+              name: "name4",
+              coverImageR2Filename: "cover4",
+              totalEpisodes: 4,
+              lastChangeTimeMs: 400,
+              recentPremierTimeMs: 40,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 44,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season4",
+              episodeId: "episode1",
+              index: 1,
+              name: "S4E1",
+              videoContainer: {
+                durationSec: 240,
+              },
+              premierTimeMs: 4000,
+              publishTimeMs: 400,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsumeShows: true,
+                  },
+                } as ExchangeSessionAndCheckCapabilityResponse;
+              case LIST_RECENTLY_WATCHED_SEASONS:
+                this.request = request;
+                return {
+                  seasons: [
+                    {
+                      seasonId: "season1",
+                      latestEpisodeId: "episode1",
+                      latestEpisodeIndex: 1,
+                      latestWatchedTimeMs: 30,
+                    },
+                    {
+                      seasonId: "season2",
+                      latestEpisodeId: "episode1",
+                      latestEpisodeIndex: 1,
+                      latestWatchedTimeMs: 110,
+                    },
+                    {
+                      seasonId: "season3",
+                      latestEpisodeId: "episode1",
+                      latestEpisodeIndex: 1,
+                      latestWatchedTimeMs: 30,
+                    },
+                    {
+                      seasonId: "season4",
+                      latestEpisodeId: "episode1",
+                      latestEpisodeIndex: 1,
+                      latestWatchedTimeMs: 230,
+                    },
+                    {
+                      seasonId: "season5",
+                      latestEpisodeId: "episode1",
+                      latestEpisodeIndex: 1,
+                      latestWatchedTimeMs: 30,
+                    },
+                  ],
+                } as ListRecentlyWatchedSeasonsResponse;
+            }
+          }
+        })();
+        let handler = new ListContinueWatchingSeasonsHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          "https://test.com",
+          () => new Date(1000),
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          {
+            limit: 10,
+          },
+          "authStr",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continues: [
+                {
+                  season: {
+                    seasonId: "season1",
+                    publisherId: "publisher1",
+                    name: "name1",
+                    coverImageUrl: "https://test.com/cover1",
+                    totalEpisodes: 1,
+                    grade: 11,
+                    averageRating: 4.5,
+                  },
+                  episode: {
+                    episodeId: "episode1",
+                    index: 1,
+                    name: "S1E1",
+                    videoDurationSec: 60,
+                    premierTimeMs: 1000,
+                    continueTimeMs: 30,
+                  },
+                },
+                {
+                  season: {
+                    seasonId: "season2",
+                    publisherId: "publisher2",
+                    name: "name2",
+                    coverImageUrl: "https://test.com/cover2",
+                    totalEpisodes: 2,
+                    grade: 22,
+                    averageRating: 0,
+                  },
+                  episode: {
+                    episodeId: "episode2",
+                    index: 2,
+                    name: "S2E2",
+                    videoDurationSec: 180,
+                    premierTimeMs: 2000,
+                    continueTimeMs: 0,
+                  },
+                },
+              ],
+            },
+            LIST_CONTINUE_WATCHING_SEASONS_RESPONSE,
+          ),
+          "response",
+        );
+        assertThat(
+          serviceClientMock.request.body,
+          eqMessage(
+            {
+              watcherId: "account1",
+              limit: 10,
+            },
+            LIST_RECENTLY_WATCHED_SEASONS_REQUEST_BODY,
+          ),
+          "listRecentlyWatchedSeasons request",
+        );
+      },
+      async tearDown() {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement("season1"),
+            deleteSeasonStatement("season2"),
+            deleteSeasonStatement("season3"),
+            deleteSeasonStatement("season4"),
+            deleteSeasonStatement("season5"),
+            deleteSeasonRatingStatement("season1"),
+            deleteSeasonRatingStatement("season2"),
+            deleteSeasonRatingStatement("season3"),
+            deleteSeasonRatingStatement("season4"),
+            deleteSeasonRatingStatement("season5"),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+  ],
+});

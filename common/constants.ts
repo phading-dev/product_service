@@ -5,3 +5,4 @@ export let FAR_FUTURE_DATE = "9999-12-31";
 export let FAR_FUTURE_TIME_MS = new Date(FAR_FUTURE_DATE).valueOf();
 export let MAX_LIST_EPISODES_ITEMS=100;
 export let MAX_LIST_SEASONS_ITEMS=100;
+export let NEXT_EPISODE_WATCH_TIME_THRESHOLD = 0.9;

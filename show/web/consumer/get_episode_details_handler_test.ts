@@ -30,7 +30,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertEpisodeStatement({
@@ -111,7 +111,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertEpisodeStatement({
@@ -191,7 +191,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertEpisodeStatement({
@@ -264,7 +264,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 3,
             }),
             insertEpisodeStatement({

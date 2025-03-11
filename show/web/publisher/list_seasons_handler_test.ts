@@ -1,6 +1,11 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
+import {
+  deleteSeasonRatingStatement,
+  deleteSeasonStatement,
+  insertSeasonRatingStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { ListSeasonsHandler } from "./list_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
@@ -26,8 +31,13 @@ TEST_RUNNER.run({
               name: "Season 1",
               coverImageR2Filename: "season1.jpg",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
               totalEpisodes: 1,
+            }),
+            insertSeasonRatingStatement({
+              seasonId: "season1",
+              averageRating: 4.5,
+              updatedTimeMs: 100,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -36,7 +46,7 @@ TEST_RUNNER.run({
               name: "Season 2",
               coverImageR2Filename: "season2.jpg",
               lastChangeTimeMs: 200,
-              recentPublishTimeMs: 200,
+              recentPremierTimeMs: 200,
               totalEpisodes: 2,
             }),
             insertSeasonStatement({
@@ -45,8 +55,13 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 3",
               lastChangeTimeMs: 300,
-              recentPublishTimeMs: 300,
+              recentPremierTimeMs: 300,
               totalEpisodes: 3,
+            }),
+            insertSeasonRatingStatement({
+              seasonId: "season3",
+              averageRating: 4,
+              updatedTimeMs: 200,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -54,7 +69,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 4",
               lastChangeTimeMs: 400,
-              recentPublishTimeMs: 400,
+              recentPremierTimeMs: 400,
               totalEpisodes: 4,
             }),
           ]);
@@ -95,6 +110,7 @@ TEST_RUNNER.run({
                   name: "Season 3",
                   totalEpisodes: 3,
                   lastChangeTimeMs: 300,
+                  averageRating: 4,
                 },
                 {
                   seasonId: "season2",
@@ -103,6 +119,7 @@ TEST_RUNNER.run({
                     "https://cover_image_public_access_domain/season2.jpg",
                   totalEpisodes: 2,
                   lastChangeTimeMs: 200,
+                  averageRating: 0,
                 },
               ],
               lastChangeTimeCursor: 200,
@@ -136,6 +153,7 @@ TEST_RUNNER.run({
                     "https://cover_image_public_access_domain/season1.jpg",
                   totalEpisodes: 1,
                   lastChangeTimeMs: 100,
+                  averageRating: 4.5,
                 },
               ],
             },
@@ -151,6 +169,10 @@ TEST_RUNNER.run({
             deleteSeasonStatement("season2"),
             deleteSeasonStatement("season3"),
             deleteSeasonStatement("season4"),
+            deleteSeasonRatingStatement("season1"),
+            deleteSeasonRatingStatement("season2"),
+            deleteSeasonRatingStatement("season3"),
+            deleteSeasonRatingStatement("season4"),
           ]);
           await transaction.commit();
         });

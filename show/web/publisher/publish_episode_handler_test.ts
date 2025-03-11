@@ -34,7 +34,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -81,7 +81,7 @@ TEST_RUNNER.run({
                   publisherId: "publisher1",
                   state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 1000,
+                  recentPremierTimeMs: 1000,
                 },
               },
               GET_SEASON_ROW,
@@ -127,7 +127,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -175,7 +175,7 @@ TEST_RUNNER.run({
                   publisherId: "publisher1",
                   state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 1000,
+                  recentPremierTimeMs: 2000,
                 },
               },
               GET_SEASON_ROW,
@@ -221,7 +221,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -287,7 +287,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",

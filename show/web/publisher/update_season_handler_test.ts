@@ -1,10 +1,12 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,
+  GET_SEASON_MORE_ROW,
+  GET_SEASON_ROW,
   deleteSeasonMoreStatement,
   deleteSeasonStatement,
-  getSeasonAndMoreForPublisher,
+  getSeason,
+  getSeasonMore,
   insertSeasonMoreStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
@@ -31,7 +33,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "A name",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -66,32 +68,39 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonAndMoreForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-          ),
+          await getSeason(SPANNER_DATABASE, "season1"),
           isArray([
             eqMessage(
               {
-                sData: {
+                seasonData: {
                   seasonId: "season1",
                   publisherId: "publisher1",
                   state: SeasonState.PUBLISHED,
                   name: "A new name",
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 100,
+                  recentPremierTimeMs: 100,
                 },
-                mData: {
+              },
+              GET_SEASON_ROW,
+            ),
+          ]),
+          "GetSeason",
+        );
+        assertThat(
+          await getSeasonMore(SPANNER_DATABASE, "season1"),
+          isArray([
+            eqMessage(
+              {
+                seasonMoreData: {
                   seasonId: "season1",
                   description: "",
                   createdTimeMs: 50,
                 },
               },
-              GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,
+              GET_SEASON_MORE_ROW,
             ),
           ]),
-          "season",
+          "GetSeasonMore",
         );
       },
       tearDown: async () => {
@@ -116,7 +125,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Another name",
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertSeasonMoreStatement({
               seasonId: "season1",
@@ -152,32 +161,39 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonAndMoreForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-          ),
+          await getSeason(SPANNER_DATABASE, "season1"),
           isArray([
             eqMessage(
               {
-                sData: {
+                seasonData: {
                   seasonId: "season1",
                   publisherId: "publisher1",
                   state: SeasonState.PUBLISHED,
                   name: "Updated name",
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 100,
+                  recentPremierTimeMs: 100,
                 },
-                mData: {
+              },
+              GET_SEASON_ROW,
+            ),
+          ]),
+          "GetSeason",
+        );
+        assertThat(
+          await getSeasonMore(SPANNER_DATABASE, "season1"),
+          isArray([
+            eqMessage(
+              {
+                seasonMoreData: {
                   seasonId: "season1",
                   description: "Updated description",
                   createdTimeMs: 50,
                 },
               },
-              GET_SEASON_AND_MORE_FOR_PUBLISHER_ROW,
+              GET_SEASON_MORE_ROW,
             ),
           ]),
-          "season",
+          "GetSeasonMore",
         );
       },
       tearDown: async () => {

@@ -3,6 +3,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonRatingStatement,
   deleteSeasonStatement,
+  insertSeasonGradeStatement,
   insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
@@ -32,12 +33,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 10,
+              recentPremierTimeMs: 10,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
               averageRating: 5,
               updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -47,12 +55,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
               lastChangeTimeMs: 400,
-              recentPublishTimeMs: 40,
+              recentPremierTimeMs: 40,
             }),
             insertSeasonRatingStatement({
               seasonId: "season4",
               averageRating: 5,
               updatedTimeMs: 2000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 44,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -62,12 +77,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
               lastChangeTimeMs: 300,
-              recentPublishTimeMs: 30,
+              recentPremierTimeMs: 30,
             }),
             insertSeasonRatingStatement({
               seasonId: "season3",
               averageRating: 3,
               updatedTimeMs: 2000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 33,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -77,12 +99,19 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
               lastChangeTimeMs: 200,
-              recentPublishTimeMs: 20,
+              recentPremierTimeMs: 20,
             }),
             insertSeasonRatingStatement({
               seasonId: "season2",
               averageRating: 3,
               updatedTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season2",
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 22,
             }),
           ]);
           await transaction.commit();
@@ -98,7 +127,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
-          () => 1000,
+          () => new Date(1000),
         );
 
         {
@@ -123,6 +152,7 @@ TEST_RUNNER.run({
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
                     totalEpisodes: 4,
+                    grade: 44,
                     averageRating: 5,
                   },
                   {
@@ -131,6 +161,7 @@ TEST_RUNNER.run({
                     name: "name1",
                     coverImageUrl: "https://test.com/cover1",
                     totalEpisodes: 1,
+                    grade: 11,
                     averageRating: 5,
                   },
                 ],
@@ -167,6 +198,7 @@ TEST_RUNNER.run({
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
                     totalEpisodes: 2,
+                    grade: 22,
                     averageRating: 3,
                   },
                 ],

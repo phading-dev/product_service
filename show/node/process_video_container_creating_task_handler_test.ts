@@ -47,7 +47,7 @@ async function insertEpisode(episode: Episode) {
         publisherId: "publisher1",
         state: SeasonState.DRAFT,
         lastChangeTimeMs: 100,
-        recentPublishTimeMs: 100,
+        recentPremierTimeMs: 100,
       }),
       insertEpisodeStatement(episode),
       insertVideoContainerCreatingTaskStatement(

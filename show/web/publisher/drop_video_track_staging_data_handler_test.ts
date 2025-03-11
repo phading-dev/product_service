@@ -33,7 +33,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPublishTimeMs: 100,
+              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -96,7 +96,7 @@ TEST_RUNNER.run({
                   publisherId: "publisher1",
                   state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 1000,
-                  recentPublishTimeMs: 100,
+                  recentPremierTimeMs: 100,
                 },
               },
               GET_SEASON_ROW,

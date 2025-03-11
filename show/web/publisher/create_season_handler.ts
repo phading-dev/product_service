@@ -1,5 +1,5 @@
 import crypto = require("crypto");
-import { FAR_FUTURE_DATE, FAR_PAST_DATE } from "../../../common/constants";
+import { FAR_FUTURE_DATE, FAR_FUTURE_TIME_MS, FAR_PAST_DATE } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { Season, SeasonGrade } from "../../../db/schema";
@@ -74,7 +74,7 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
         name: body.name,
         totalEpisodes: 0,
         lastChangeTimeMs: now,
-        recentPublishTimeMs: now,
+        recentPremierTimeMs: FAR_FUTURE_TIME_MS,
       };
       let seasonGrade: SeasonGrade = {
         seasonId,
