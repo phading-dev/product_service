@@ -13,8 +13,7 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { RateSeasonHandler } from "./rate_season_handler";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -33,9 +32,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -44,9 +40,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new RateSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -58,17 +54,17 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, "season1"),
+          await getSeasonRating(SPANNER_DATABASE, {
+            seasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonRatingData: {
-                  seasonId: "season1",
-                  totalRatings: 5,
-                  count: 1,
-                  averageRating: 5,
-                  updatedTimeMs: 1000,
-                },
+                seasonRatingSeasonId: "season1",
+                seasonRatingTotalRatings: 5,
+                seasonRatingCount: 1,
+                seasonRatingAverageRating: 5,
+                seasonRatingUpdatedTimeMs: 1000,
               },
               GET_SEASON_RATING_ROW,
             ),
@@ -76,20 +72,17 @@ TEST_RUNNER.run({
           "SeasonRating",
         );
         assertThat(
-          await getIndividualSeasonRating(
-            SPANNER_DATABASE,
-            "account1",
-            "season1",
-          ),
+          await getIndividualSeasonRating(SPANNER_DATABASE, {
+            individualSeasonRatingRaterIdEq: "account1",
+            individualSeasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                individualSeasonRatingData: {
-                  raterId: "account1",
-                  seasonId: "season1",
-                  rating: 5,
-                  ratedTimeMs: 1000,
-                },
+                individualSeasonRatingRaterId: "account1",
+                individualSeasonRatingSeasonId: "season1",
+                individualSeasonRatingRating: 5,
+                individualSeasonRatingRatedTimeMs: 1000,
               },
               GET_INDIVIDUAL_SEASON_RATING_ROW,
             ),
@@ -100,9 +93,16 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
-            deleteIndividualSeasonRatingStatement("account1", "season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
+            deleteIndividualSeasonRatingStatement({
+              individualSeasonRatingRaterIdEq: "account1",
+              individualSeasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -116,15 +116,11 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
               totalRatings: 5,
               count: 1,
-              updatedTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -133,9 +129,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new RateSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -147,17 +143,17 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, "season1"),
+          await getSeasonRating(SPANNER_DATABASE, {
+            seasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonRatingData: {
-                  seasonId: "season1",
-                  totalRatings: 8,
-                  count: 2,
-                  averageRating: 4,
-                  updatedTimeMs: 1000,
-                },
+                seasonRatingSeasonId: "season1",
+                seasonRatingTotalRatings: 8,
+                seasonRatingCount: 2,
+                seasonRatingAverageRating: 4,
+                seasonRatingUpdatedTimeMs: 1000,
               },
               GET_SEASON_RATING_ROW,
             ),
@@ -165,20 +161,17 @@ TEST_RUNNER.run({
           "SeasonRating",
         );
         assertThat(
-          await getIndividualSeasonRating(
-            SPANNER_DATABASE,
-            "account1",
-            "season1",
-          ),
+          await getIndividualSeasonRating(SPANNER_DATABASE, {
+            individualSeasonRatingRaterIdEq: "account1",
+            individualSeasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                individualSeasonRatingData: {
-                  raterId: "account1",
-                  seasonId: "season1",
-                  rating: 3,
-                  ratedTimeMs: 1000,
-                },
+                individualSeasonRatingRaterId: "account1",
+                individualSeasonRatingSeasonId: "season1",
+                individualSeasonRatingRating: 3,
+                individualSeasonRatingRatedTimeMs: 1000,
               },
               GET_INDIVIDUAL_SEASON_RATING_ROW,
             ),
@@ -189,9 +182,16 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
-            deleteIndividualSeasonRatingStatement("account1", "season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
+            deleteIndividualSeasonRatingStatement({
+              individualSeasonRatingRaterIdEq: "account1",
+              individualSeasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -205,21 +205,16 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
               totalRatings: 8,
               count: 2,
-              updatedTimeMs: 100,
             }),
             insertIndividualSeasonRatingStatement({
               raterId: "account1",
               seasonId: "season1",
               rating: 3,
-              ratedTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -228,9 +223,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new RateSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -242,17 +237,17 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, "season1"),
+          await getSeasonRating(SPANNER_DATABASE, {
+            seasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonRatingData: {
-                  seasonId: "season1",
-                  totalRatings: 6,
-                  count: 2,
-                  averageRating: 3,
-                  updatedTimeMs: 1000,
-                },
+                seasonRatingSeasonId: "season1",
+                seasonRatingTotalRatings: 6,
+                seasonRatingCount: 2,
+                seasonRatingAverageRating: 3,
+                seasonRatingUpdatedTimeMs: 1000,
               },
               GET_SEASON_RATING_ROW,
             ),
@@ -260,20 +255,17 @@ TEST_RUNNER.run({
           "SeasonRating",
         );
         assertThat(
-          await getIndividualSeasonRating(
-            SPANNER_DATABASE,
-            "account1",
-            "season1",
-          ),
+          await getIndividualSeasonRating(SPANNER_DATABASE, {
+            individualSeasonRatingRaterIdEq: "account1",
+            individualSeasonRatingSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                individualSeasonRatingData: {
-                  raterId: "account1",
-                  seasonId: "season1",
-                  rating: 1,
-                  ratedTimeMs: 1000,
-                },
+                individualSeasonRatingRaterId: "account1",
+                individualSeasonRatingSeasonId: "season1",
+                individualSeasonRatingRating: 1,
+                individualSeasonRatingRatedTimeMs: 1000,
               },
               GET_INDIVIDUAL_SEASON_RATING_ROW,
             ),
@@ -284,9 +276,16 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
-            deleteIndividualSeasonRatingStatement("account1", "season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
+            deleteIndividualSeasonRatingStatement({
+              individualSeasonRatingRaterIdEq: "account1",
+              individualSeasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -300,9 +299,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new RateSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,

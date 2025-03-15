@@ -15,36 +15,35 @@ export async function fetchContinueEpisode(
   latestWatchedTimeMs: number,
   now: number,
 ): Promise<EpisodeSummary> {
-  let latestEpisodeRowsPromise = getPublishedEpisodeForConsumer(
-    database,
-    seasonId,
-    SeasonState.PUBLISHED,
-    episodeId,
-    now,
-  );
-  let nextEpisodeRowsPromise = listNextPublishedEpisodesForConsumer(
-    database,
-    seasonId,
-    SeasonState.PUBLISHED,
-    episodeIndex,
-    now,
-    1,
-  );
+  let latestEpisodeRowsPromise = getPublishedEpisodeForConsumer(database, {
+    eSeasonIdEq: seasonId,
+    sStateEq: SeasonState.PUBLISHED,
+    eEpisodeIdEq: episodeId,
+    ePublishTimeMsLt: now,
+  });
+  let nextEpisodeRowsPromise = listNextPublishedEpisodesForConsumer(database, {
+    eSeasonIdEq: seasonId,
+    sStateEq: SeasonState.PUBLISHED,
+    eIndexGt: episodeIndex,
+    ePublishTimeMsLt: now,
+    limit: 1,
+  });
   let latestEpisodeRows = await latestEpisodeRowsPromise;
   if (latestEpisodeRows.length === 0) {
     return undefined;
   }
-  let latestEpisode = latestEpisodeRows[0].eData;
+  let latestEpisode = latestEpisodeRows[0];
   if (
     latestWatchedTimeMs <
-    latestEpisode.videoContainer.durationSec * NEXT_EPISODE_WATCH_TIME_THRESHOLD
+    latestEpisode.eVideoContainer.durationSec *
+      NEXT_EPISODE_WATCH_TIME_THRESHOLD
   ) {
     return {
-      episodeId: latestEpisode.episodeId,
-      name: latestEpisode.name,
-      index: latestEpisode.index,
-      videoDurationSec: latestEpisode.videoContainer.durationSec,
-      premierTimeMs: latestEpisode.premierTimeMs,
+      episodeId: latestEpisode.eEpisodeId,
+      name: latestEpisode.eName,
+      index: latestEpisode.eIndex,
+      videoDurationSec: latestEpisode.eVideoContainer.durationSec,
+      premierTimeMs: latestEpisode.ePremierTimeMs,
       continueTimeMs: latestWatchedTimeMs,
     };
   }
@@ -52,13 +51,13 @@ export async function fetchContinueEpisode(
   if (nextEpisodeRows.length === 0) {
     return undefined;
   }
-  let nextEpisode = nextEpisodeRows[0].eData;
+  let nextEpisode = nextEpisodeRows[0];
   return {
-    episodeId: nextEpisode.episodeId,
-    name: nextEpisode.name,
-    index: nextEpisode.index,
-    videoDurationSec: nextEpisode.videoContainer.durationSec,
-    premierTimeMs: nextEpisode.premierTimeMs,
+    episodeId: nextEpisode.eEpisodeId,
+    name: nextEpisode.eName,
+    index: nextEpisode.eIndex,
+    videoDurationSec: nextEpisode.eVideoContainer.durationSec,
+    premierTimeMs: nextEpisode.ePremierTimeMs,
     continueTimeMs: 0,
   };
 }

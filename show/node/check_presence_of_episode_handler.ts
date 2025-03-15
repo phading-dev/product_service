@@ -20,11 +20,10 @@ export class CheckPresenceOfEpisodeHandler extends CheckPresenceOfEpisodeHandler
     loggingPrefix: string,
     body: CheckPresenceOfEpisodeRequestBody,
   ): Promise<CheckPresenceOfEpisodeResponse> {
-    let rows = await checkPresenceOfEpisode(
-      this.database,
-      body.seasonId,
-      body.episodeId,
-    );
+    let rows = await checkPresenceOfEpisode(this.database, {
+      episodeSeasonIdEq: body.seasonId,
+      episodeEpisodeIdEq: body.episodeId,
+    });
     return {
       present: rows.length > 0,
     };

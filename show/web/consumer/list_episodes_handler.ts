@@ -16,7 +16,7 @@ import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -47,14 +47,14 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
       throw newBadRequestError(`"limit" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list episodes.`,
       );
@@ -64,23 +64,21 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
       | ListPrevPublishedEpisodesForConsumerRow
     >;
     if (body.next) {
-      rows = await listNextPublishedEpisodesForConsumer(
-        this.database,
-        body.seasonId,
-        SeasonState.PUBLISHED,
-        body.indexCursor ?? 0,
-        this.getNow(),
-        body.limit,
-      );
+      rows = await listNextPublishedEpisodesForConsumer(this.database, {
+        eSeasonIdEq: body.seasonId,
+        sStateEq: SeasonState.PUBLISHED,
+        eIndexGt: body.indexCursor ?? 0,
+        ePublishTimeMsLt: this.getNow(),
+        limit: body.limit,
+      });
     } else {
-      rows = await listPrevPublishedEpisodesForConsumer(
-        this.database,
-        body.seasonId,
-        SeasonState.PUBLISHED,
-        body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
-        this.getNow(),
-        body.limit,
-      );
+      rows = await listPrevPublishedEpisodesForConsumer(this.database, {
+        eSeasonIdEq: body.seasonId,
+        sStateEq: SeasonState.PUBLISHED,
+        eIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        ePublishTimeMsLt: this.getNow(),
+        limit: body.limit,
+      });
     }
     let episodes = new Array<EpisodeSummary>();
     await Promise.all(
@@ -88,16 +86,16 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
         let response = await this.serviceClient.send(
           newGetLatestWatchedTimeOfEpisodeRequest({
             watcherId: accountId,
-            seasonId: row.eData.seasonId,
-            episodeId: row.eData.episodeId,
+            seasonId: row.eSeasonId,
+            episodeId: row.eEpisodeId,
           }),
         );
         episodes[i] = {
-          episodeId: row.eData.episodeId,
-          index: row.eData.index,
-          name: row.eData.name,
-          videoDurationSec: row.eData.videoContainer.durationSec,
-          premierTimeMs: row.eData.premierTimeMs,
+          episodeId: row.eEpisodeId,
+          index: row.eIndex,
+          name: row.eName,
+          videoDurationSec: row.eVideoContainer.durationSec,
+          premierTimeMs: row.ePremierTimeMs,
           continueTimeMs: response.watchedTimeMs,
         };
       }),
@@ -105,9 +103,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     return {
       episodes,
       indexCursor:
-        rows.length < body.limit
-          ? undefined
-          : rows[rows.length - 1].eData.index,
+        rows.length < body.limit ? undefined : rows[rows.length - 1].eIndex,
     };
   }
 }

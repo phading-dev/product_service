@@ -1,7 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getEpisodeForPublisher } from "../../../db/sql";
-import { updateSeasonLastChangeTime } from "./common/update_season_last_change_time";
+import { VideoContainerActionHandler } from "./common/video_container_action_handler";
 import { Database } from "@google-cloud/spanner";
 import { MAX_SUBTITLE_TRACK_NAME_LENGTH } from "@phading/constants/show";
 import { UpdateSubtitleTrackHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
@@ -9,13 +8,8 @@ import {
   UpdateSubtitleTrackRequestBody,
   UpdateSubtitleTrackResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newUpdateSubtitleTrackRequest } from "@phading/video_service_interface/node/client";
-import {
-  newBadRequestError,
-  newNotFoundError,
-  newUnauthorizedError,
-} from "@selfage/http_error";
+import { newBadRequestError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterface {
@@ -26,6 +20,12 @@ export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterf
       () => Date.now(),
     );
   }
+
+  private videoContainerActionHandler = new VideoContainerActionHandler(
+    this.database,
+    this.serviceClient,
+    this.getNow,
+  );
 
   public constructor(
     private database: Database,
@@ -40,12 +40,6 @@ export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterf
     body: UpdateSubtitleTrackRequestBody,
     sessionStr: string,
   ): Promise<UpdateSubtitleTrackResponse> {
-    if (!body.seasonId) {
-      throw newBadRequestError(`"seasonId" is required.`);
-    }
-    if (!body.episodeId) {
-      throw newBadRequestError(`"episodeId" is required.`);
-    }
     if (!body.r2TrackDirname) {
       throw newBadRequestError(`"r2TrackDirname" is required.`);
     }
@@ -58,49 +52,18 @@ export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterf
     if (body.isDefault == null) {
       throw newBadRequestError(`"isDefault" is required.`);
     }
-    let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
-        signedSession: sessionStr,
-        capabilitiesMask: {
-          checkCanPublishShows: true,
-        },
-      }),
-    );
-    if (!capabilities.canPublishShows) {
-      throw newUnauthorizedError(
-        `Account ${accountId} not allowed to update subtitle track.`,
-      );
-    }
-    let rows = await getEpisodeForPublisher(
-      this.database,
-      accountId,
+    await this.videoContainerActionHandler.handle(
+      loggingPrefix,
       body.seasonId,
       body.episodeId,
-    );
-    if (rows.length === 0) {
-      throw newNotFoundError(
-        `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
-      );
-    }
-    let seasonAndEpisode = rows[0];
-    if (!seasonAndEpisode.eData.videoContainerId) {
-      throw newBadRequestError(
-        `Season ${body.seasonId} episode ${body.episodeId} does not have a video container yet.`,
-      );
-    }
-    await this.serviceClient.send(
-      newUpdateSubtitleTrackRequest({
-        containerId: seasonAndEpisode.eData.videoContainerId,
-        r2TrackDirname: body.r2TrackDirname,
-        name: body.name,
-        isDefault: body.isDefault,
-      }),
-    );
-    await updateSeasonLastChangeTime(
-      this.database,
-      accountId,
-      body.seasonId,
-      this.getNow(),
+      sessionStr,
+      (containerId) =>
+        newUpdateSubtitleTrackRequest({
+          containerId,
+          r2TrackDirname: body.r2TrackDirname,
+          name: body.name,
+          isDefault: body.isDefault,
+        }),
     );
     return {};
   }

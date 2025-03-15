@@ -1,9 +1,9 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getSeasonAndEpisodeForPublisher,
-  updateEpisodeStatement,
-  updateSeasonStatement,
+  checkPresenceOfEpisodeForPublisher,
+  updateEpisodeNameStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { MAX_EPISODE_NAME_LENGTH } from "@phading/constants/show";
@@ -12,7 +12,7 @@ import {
   UpdateEpisodeRequestBody,
   UpdateEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -53,36 +53,40 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
       throw newBadRequestError(`"name" is too long.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update episode draft.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisodeForPublisher(
+      let rows = await checkPresenceOfEpisodeForPublisher(
         transaction,
-        accountId,
-        body.seasonId,
-        body.episodeId,
+        {sPublisherIdEq:accountId,
+        eSeasonIdEq:body.seasonId,
+        eEpisodeIdEq:body.episodeId,}
       );
       if (rows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
-      let { sData, eData } = rows[0];
-      eData.name = body.name;
-      sData.lastChangeTimeMs = this.getNow();
       await transaction.batchUpdate([
-        updateEpisodeStatement(eData),
-        updateSeasonStatement(sData),
+        updateEpisodeNameStatement({
+          episodeSeasonIdEq: body.seasonId,
+          episodeEpisodeIdEq: body.episodeId,
+          setName: body.name,
+        }),
+        updateSeasonLastChangeTimeStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setLastChangeTimeMs: this.getNow(),
+        }),
       ]);
       await transaction.commit();
     });

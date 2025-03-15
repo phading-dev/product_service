@@ -9,7 +9,7 @@ import {
 import { ListSeasonsHandler } from "./list_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
@@ -31,7 +31,6 @@ TEST_RUNNER.run({
               name: "Season 1",
               coverImageR2Filename: "season1.jpg",
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
               totalEpisodes: 1,
             }),
             insertSeasonRatingStatement({
@@ -46,7 +45,6 @@ TEST_RUNNER.run({
               name: "Season 2",
               coverImageR2Filename: "season2.jpg",
               lastChangeTimeMs: 200,
-              recentPremierTimeMs: 200,
               totalEpisodes: 2,
             }),
             insertSeasonStatement({
@@ -55,7 +53,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 3",
               lastChangeTimeMs: 300,
-              recentPremierTimeMs: 300,
               totalEpisodes: 3,
             }),
             insertSeasonRatingStatement({
@@ -69,7 +66,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 4",
               lastChangeTimeMs: 400,
-              recentPremierTimeMs: 400,
               totalEpisodes: 4,
             }),
           ]);
@@ -79,9 +75,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -165,14 +161,14 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonStatement("season2"),
-            deleteSeasonStatement("season3"),
-            deleteSeasonStatement("season4"),
-            deleteSeasonRatingStatement("season1"),
-            deleteSeasonRatingStatement("season2"),
-            deleteSeasonRatingStatement("season3"),
-            deleteSeasonRatingStatement("season4"),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season2" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season3" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season4" }),
+            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season1" }),
+            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season2" }),
+            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season3" }),
+            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season4" }),
           ]);
           await transaction.commit();
         });

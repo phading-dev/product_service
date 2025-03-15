@@ -20,7 +20,7 @@ import {
   ContinueSeason,
   SeasonSummary,
 } from "@phading/product_service_interface/show/web/consumer/season_summary";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -59,14 +59,14 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: authStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list continue wathcing seasons.`,
       );
@@ -85,15 +85,16 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
       response.seasons.map(async (recentSeason, i) => {
         let seasonRowsPromise = getPublishedSeasonAndRatingForConsumer(
           this.database,
-          recentSeason.seasonId,
-          SeasonState.PUBLISHED,
+          {
+            sSeasonIdEq: recentSeason.seasonId,
+            sStateEq: SeasonState.PUBLISHED,
+          },
         );
-        let seasonGradeRowsPromise = getLastSeasonGrades(
-          this.database,
-          recentSeason.seasonId,
-          todayStr,
-          1,
-        );
+        let seasonGradeRowsPromise = getLastSeasonGrades(this.database, {
+          seasonGradeSeasonIdEq: recentSeason.seasonId,
+          seasonGradeEndDateGt: todayStr,
+          limit: 1,
+        });
         let fetchContinueEpisodePromise = fetchContinueEpisode(
           this.database,
           recentSeason.seasonId,
@@ -114,17 +115,16 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
             `Season ${recentSeason.seasonId} today ${todayStr} has no grade.`,
           );
         }
-        let seasonData = seasonRows[0].sData;
-        let ratingData = seasonRows[0].srData;
-        let gradeData = seasonGradeRows[0].seasonGradeData;
+        let seasonRow = seasonRows[0];
+        let seasonGradeRow = seasonGradeRows[0];
         let seasonSummary: SeasonSummary = {
-          seasonId: seasonData.seasonId,
-          name: seasonData.name,
-          publisherId: seasonData.publisherId,
-          totalEpisodes: seasonData.totalEpisodes,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonData.coverImageR2Filename}`,
-          grade: gradeData.grade,
-          averageRating: ratingData ? ratingData.averageRating : 0,
+          seasonId: seasonRow.sSeasonId,
+          name: seasonRow.sName,
+          publisherId: seasonRow.sPublisherId,
+          totalEpisodes: seasonRow.sTotalEpisodes,
+          coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.sCoverImageR2Filename}`,
+          grade: seasonGradeRow.seasonGradeGrade,
+          averageRating: seasonRow.srAverageRating ?? 0,
         };
         let continueEpisode = await fetchContinueEpisodePromise;
         if (!continueEpisode) {

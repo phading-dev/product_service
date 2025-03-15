@@ -3,7 +3,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getPublishedSeasonAndMoreAndRatingForConsumer,
+  getPublishedSeasonAllAndRatingForConsumer,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
@@ -14,7 +14,7 @@ import {
   GetSeasonDetailsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { NextGrade } from "@phading/product_service_interface/show/web/consumer/season_details";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -51,26 +51,29 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get season details.`,
       );
     }
     let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
-      getPublishedSeasonAndMoreAndRatingForConsumer(
-        this.database,
-        body.seasonId,
-        SeasonState.PUBLISHED,
-      ),
-      getLastSeasonGrades(this.database, body.seasonId, todayStr, 2),
+      getPublishedSeasonAllAndRatingForConsumer(this.database, {
+        sSeasonIdEq: body.seasonId,
+        sStateEq: SeasonState.PUBLISHED,
+      }),
+      getLastSeasonGrades(this.database, {
+        seasonGradeSeasonIdEq: body.seasonId,
+        seasonGradeEndDateGt: todayStr,
+        limit: 2,
+      }),
     ]);
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -84,25 +87,25 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     let grade: number;
     let nextGrade: NextGrade;
     if (seasonGradeRows.length === 1) {
-      grade = seasonGradeRows[0].seasonGradeData.grade;
+      grade = seasonGradeRows[0].seasonGradeGrade;
     } else if (seasonGradeRows.length === 2) {
-      grade = seasonGradeRows[1].seasonGradeData.grade;
+      grade = seasonGradeRows[1].seasonGradeGrade;
       nextGrade = {
-        grade: seasonGradeRows[0].seasonGradeData.grade,
-        effectiveDate: seasonGradeRows[0].seasonGradeData.startDate,
+        grade: seasonGradeRows[0].seasonGradeGrade,
+        effectiveDate: seasonGradeRows[0].seasonGradeStartDate,
       };
     }
-    let { sData, mData, srData } = seasonRows[0];
+    let row = seasonRows[0];
     return {
       seasonDetails: {
-        publisherId: sData.publisherId,
-        name: sData.name,
-        coverImageUrl: `${this.coverImagePublicAccessDomain}/${sData.coverImageR2Filename}`,
-        totalEpisodes: sData.totalEpisodes,
-        description: mData.description,
+        publisherId: row.sPublisherId,
+        name: row.sName,
+        coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`,
+        totalEpisodes: row.sTotalEpisodes,
+        description: row.sDescription,
         grade,
         nextGrade,
-        averageRating: srData ? srData.averageRating : 0,
+        averageRating: row.srAverageRating ?? 0,
       },
     };
   }

@@ -17,7 +17,7 @@ import {
   RateSeasonRequestBody,
   RateSeasonResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -55,23 +55,30 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
       throw newBadRequestError(`"rating" is invalid.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: authStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} is not allowed to rate season.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let [seasonRows, individualRows, totalRows] = await Promise.all([
-        checkPresenceOfSeason(transaction, body.seasonId),
-        getIndividualSeasonRating(transaction, accountId, body.seasonId),
-        getSeasonRating(transaction, body.seasonId),
+        checkPresenceOfSeason(transaction, {
+          seasonSeasonIdEq: body.seasonId,
+        }),
+        getIndividualSeasonRating(transaction, {
+          individualSeasonRatingRaterIdEq: accountId,
+          individualSeasonRatingSeasonIdEq: body.seasonId,
+        }),
+        getSeasonRating(transaction, {
+          seasonRatingSeasonIdEq: body.seasonId,
+        }),
       ]);
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
@@ -94,12 +101,9 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
           }),
         );
       } else if (individualRows.length === 0) {
-        let seasonRatingData = totalRows[0].seasonRatingData;
-        seasonRatingData.totalRatings += body.rating;
-        seasonRatingData.count += 1;
-        seasonRatingData.averageRating =
-          seasonRatingData.totalRatings / seasonRatingData.count;
-        seasonRatingData.updatedTimeMs = this.getNow();
+        let totalRow = totalRows[0];
+        let totalRating = totalRow.seasonRatingTotalRatings + body.rating;
+        let totalCount = totalRow.seasonRatingCount + 1;
         statements.push(
           insertIndividualSeasonRatingStatement({
             seasonId: body.seasonId,
@@ -107,22 +111,35 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
             rating: body.rating,
             ratedTimeMs: this.getNow(),
           }),
-          updateSeasonRatingStatement(seasonRatingData),
+          updateSeasonRatingStatement({
+            seasonRatingSeasonIdEq: body.seasonId,
+            setTotalRatings: totalRating,
+            setCount: totalCount,
+            setAverageRating: totalRating / totalCount,
+            setUpdatedTimeMs: this.getNow(),
+          }),
         );
       } else {
-        let seasonRatingData = totalRows[0].seasonRatingData;
-        let individualSeasonRatingData =
-          individualRows[0].individualSeasonRatingData;
-        seasonRatingData.totalRatings +=
-          body.rating - individualSeasonRatingData.rating;
-        seasonRatingData.averageRating =
-          seasonRatingData.totalRatings / seasonRatingData.count;
-        seasonRatingData.updatedTimeMs = this.getNow();
-        individualSeasonRatingData.rating = body.rating;
-        individualSeasonRatingData.ratedTimeMs = this.getNow();
+        let totalRow = totalRows[0];
+        let individualRow = individualRows[0];
+        let totalRating =
+          totalRow.seasonRatingTotalRatings +
+          body.rating -
+          individualRow.individualSeasonRatingRating;
         statements.push(
-          updateIndividualSeasonRatingStatement(individualSeasonRatingData),
-          updateSeasonRatingStatement(seasonRatingData),
+          updateIndividualSeasonRatingStatement({
+            individualSeasonRatingSeasonIdEq: body.seasonId,
+            individualSeasonRatingRaterIdEq: accountId,
+            setRating: body.rating,
+            setRatedTimeMs: this.getNow(),
+          }),
+          updateSeasonRatingStatement({
+            seasonRatingSeasonIdEq: body.seasonId,
+            setTotalRatings: totalRating,
+            setCount: totalRow.seasonRatingCount,
+            setAverageRating: totalRating / totalRow.seasonRatingCount,
+            setUpdatedTimeMs: this.getNow(),
+          }),
         );
       }
       await transaction.batchUpdate(statements);

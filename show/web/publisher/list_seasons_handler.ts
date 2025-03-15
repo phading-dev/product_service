@@ -10,7 +10,7 @@ import {
   ListSeasonsResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/publisher/season_summary";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -48,42 +48,41 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list seasons.`,
       );
     }
-    let rows = await listSeasonsForPublisher(
-      this.database,
-      accountId,
-      body.state,
-      body.lastChangeTimeCursor ?? this.getNow(),
-      body.limit,
-    );
+    let rows = await listSeasonsForPublisher(this.database, {
+      sPublisherIdEq: accountId,
+      sStateEq: body.state,
+      sLastChangeTimeMsLt: body.lastChangeTimeCursor ?? this.getNow(),
+      limit: body.limit,
+    });
     return {
       seasons: rows.map(
         (row): SeasonSummary => ({
-          seasonId: row.sData.seasonId,
-          name: row.sData.name,
-          coverImageUrl: row.sData.coverImageR2Filename
-            ? `${this.coverImagePublicAccessDomain}/${row.sData.coverImageR2Filename}`
+          seasonId: row.sSeasonId,
+          name: row.sName,
+          coverImageUrl: row.sCoverImageR2Filename
+            ? `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`
             : undefined,
-          totalEpisodes: row.sData.totalEpisodes,
-          lastChangeTimeMs: row.sData.lastChangeTimeMs,
-          averageRating: row.srData ? row.srData.averageRating : 0,
+          totalEpisodes: row.sTotalEpisodes,
+          lastChangeTimeMs: row.sLastChangeTimeMs,
+          averageRating: row.srAverageRating ?? 0,
         }),
       ),
       lastChangeTimeCursor:
         rows.length < body.limit
           ? undefined
-          : rows[rows.length - 1].sData.lastChangeTimeMs,
+          : rows[rows.length - 1].sLastChangeTimeMs,
     };
   }
 }

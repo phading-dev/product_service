@@ -2,12 +2,11 @@ import crypto = require("crypto");
 import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { Episode } from "../../../db/schema";
 import {
   getSeasonForPublisher,
   insertEpisodeStatement,
   insertVideoContainerCreatingTaskStatement,
-  updateSeasonStatement,
+  updateSeasonTotalEpisodesStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import {
@@ -20,7 +19,7 @@ import {
   CreateEpisodeRequestBody,
   CreateEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -62,14 +61,14 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
       throw newBadRequestError(`"episodeName" is too long.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to create episode draft.`,
       );
@@ -77,49 +76,49 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
     let episodeId: string;
     let index: number;
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-      );
+      let rows = await getSeasonForPublisher(transaction, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: body.seasonId,
+      });
       if (rows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      let { seasonData } = rows[0];
-      if (seasonData.state === SeasonState.ARCHIVED) {
+      let season = rows[0];
+      if (season.seasonState === SeasonState.ARCHIVED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is archived and cannot create new episode.`,
         );
       }
-      if (seasonData.totalEpisodes >= MAX_NUM_OF_EPISODES_PER_SEASON) {
+      if (season.seasonTotalEpisodes >= MAX_NUM_OF_EPISODES_PER_SEASON) {
         throw newBadRequestError(
           `Season ${body.seasonId} already has maximum number of episodes.`,
         );
       }
       let now = this.getNow();
-      seasonData.totalEpisodes++;
-      seasonData.lastChangeTimeMs = now;
-
       episodeId = this.generateUuid();
-      index = seasonData.totalEpisodes;
-      let episode: Episode = {
-        seasonId: seasonData.seasonId,
-        episodeId,
-        index,
-        name: body.episodeName,
-        premierTimeMs: FAR_FUTURE_TIME_MS,
-        publishTimeMs: FAR_FUTURE_TIME_MS,
-      };
+      let totalEpisodes = season.seasonTotalEpisodes + 1;
+      index = totalEpisodes;
       await transaction.batchUpdate([
-        updateSeasonStatement(seasonData),
-        insertEpisodeStatement(episode),
-        insertVideoContainerCreatingTaskStatement(
-          seasonData.seasonId,
+        updateSeasonTotalEpisodesStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setTotalEpisodes: totalEpisodes,
+          setLastChangeTimeMs: now,
+        }),
+        insertEpisodeStatement({
+          seasonId: body.seasonId,
           episodeId,
-          0,
-          now,
-          now,
-        ),
+          index,
+          name: body.episodeName,
+          premierTimeMs: FAR_FUTURE_TIME_MS,
+          publishTimeMs: FAR_FUTURE_TIME_MS,
+        }),
+        insertVideoContainerCreatingTaskStatement({
+          seasonId: body.seasonId,
+          episodeId,
+          retryCount: 0,
+          executionTimeMs: now,
+          createdTimeMs: now,
+        }),
       ]);
       await transaction.commit();
     });

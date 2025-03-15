@@ -1,11 +1,13 @@
 import crypto = require("crypto");
-import { FAR_FUTURE_DATE, FAR_FUTURE_TIME_MS, FAR_PAST_DATE } from "../../../common/constants";
+import {
+  FAR_FUTURE_DATE,
+  FAR_FUTURE_TIME_MS,
+  FAR_PAST_DATE,
+} from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { Season, SeasonGrade } from "../../../db/schema";
 import {
   insertSeasonGradeStatement,
-  insertSeasonMoreStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
@@ -16,7 +18,7 @@ import {
   CreateSeasonRequestBody,
   CreateSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -51,14 +53,14 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
       throw newBadRequestError(`"name" is too long.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to create season.`,
       );
@@ -67,30 +69,25 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
     await this.database.runTransactionAsync(async (transaction) => {
       let now = this.getNow();
       seasonId = this.generateUuid();
-      let season: Season = {
-        seasonId,
-        publisherId: accountId,
-        state: SeasonState.DRAFT,
-        name: body.name,
-        totalEpisodes: 0,
-        lastChangeTimeMs: now,
-        recentPremierTimeMs: FAR_FUTURE_TIME_MS,
-      };
-      let seasonGrade: SeasonGrade = {
-        seasonId,
-        gradeId: this.generateUuid(),
-        startDate: FAR_PAST_DATE,
-        endDate: FAR_FUTURE_DATE,
-        grade: 1,
-      };
       await transaction.batchUpdate([
-        insertSeasonStatement(season),
-        insertSeasonMoreStatement({
+        insertSeasonStatement({
           seasonId,
+          publisherId: accountId,
+          state: SeasonState.DRAFT,
+          name: body.name,
+          totalEpisodes: 0,
+          lastChangeTimeMs: now,
+          recentPremierTimeMs: FAR_FUTURE_TIME_MS,
           description: "",
           createdTimeMs: now,
         }),
-        insertSeasonGradeStatement(seasonGrade),
+        insertSeasonGradeStatement({
+          seasonId,
+          gradeId: this.generateUuid(),
+          startDate: FAR_PAST_DATE,
+          endDate: FAR_FUTURE_DATE,
+          grade: 1,
+        }),
       ]);
       await transaction.commit();
     });

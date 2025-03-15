@@ -19,7 +19,7 @@ import {
 } from "../../../db/sql";
 import { ArchiveSeasonHandler } from "./archive_season_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -30,16 +30,40 @@ import { TEST_RUNNER } from "@selfage/test_runner";
 async function cleanUpAll() {
   await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
     await transaction.batchUpdate([
-      deleteSeasonStatement("season1"),
-      deleteCoverImageDeletingTaskStatement("cover1"),
-      deleteVideoContainerCreatingTaskStatement("season1", "episode1"),
-      deleteVideoContainerCreatingTaskStatement("season1", "episode2"),
-      deleteVideoContainerCreatingTaskStatement("season1", "episode3"),
-      deleteVideoContainerCreatingTaskStatement("season1", "episode4"),
-      deleteVideoContainerDeletingTaskStatement("videoContainer1"),
-      deleteVideoContainerDeletingTaskStatement("videoContainer2"),
-      deleteVideoContainerDeletingTaskStatement("videoContainer3"),
-      deleteVideoContainerDeletingTaskStatement("videoContainer4"),
+      deleteSeasonStatement({
+        seasonSeasonIdEq: "season1",
+      }),
+      deleteCoverImageDeletingTaskStatement({
+        coverImageDeletingTaskR2FilenameEq: "cover1",
+      }),
+      deleteVideoContainerCreatingTaskStatement({
+        videoContainerCreatingTaskSeasonIdEq: "season1",
+        videoContainerCreatingTaskEpisodeIdEq: "episode1",
+      }),
+      deleteVideoContainerCreatingTaskStatement({
+        videoContainerCreatingTaskSeasonIdEq: "season1",
+        videoContainerCreatingTaskEpisodeIdEq: "episode2",
+      }),
+      deleteVideoContainerCreatingTaskStatement({
+        videoContainerCreatingTaskSeasonIdEq: "season1",
+        videoContainerCreatingTaskEpisodeIdEq: "episode3",
+      }),
+      deleteVideoContainerCreatingTaskStatement({
+        videoContainerCreatingTaskSeasonIdEq: "season1",
+        videoContainerCreatingTaskEpisodeIdEq: "episode4",
+      }),
+      deleteVideoContainerDeletingTaskStatement({
+        videoContainerDeletingTaskVideoContainerIdEq: "videoContainer1",
+      }),
+      deleteVideoContainerDeletingTaskStatement({
+        videoContainerDeletingTaskVideoContainerIdEq: "videoContainer2",
+      }),
+      deleteVideoContainerDeletingTaskStatement({
+        videoContainerDeletingTaskVideoContainerIdEq: "videoContainer3",
+      }),
+      deleteVideoContainerDeletingTaskStatement({
+        videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
+      }),
     ]);
     await transaction.commit();
   });
@@ -58,8 +82,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
               coverImageR2Filename: "cover1",
             }),
             insertEpisodeStatement({
@@ -67,7 +89,6 @@ TEST_RUNNER.run({
               episodeId: "episode1",
               name: "Ep 1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -75,14 +96,12 @@ TEST_RUNNER.run({
               name: "Ep 2",
               index: 2,
               videoContainerId: "videoContainer2",
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               name: "Ep 3",
               index: 3,
-              publishTimeMs: 400,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -90,22 +109,15 @@ TEST_RUNNER.run({
               name: "Ep 4",
               index: 4,
               videoContainerId: "videoContainer4",
-              publishTimeMs: 500,
             }),
-            insertVideoContainerCreatingTaskStatement(
-              "season1",
-              "episode1",
-              0,
-              0,
-              0,
-            ),
-            insertVideoContainerCreatingTaskStatement(
-              "season1",
-              "episode3",
-              0,
-              0,
-              0,
-            ),
+            insertVideoContainerCreatingTaskStatement({
+              seasonId: "season1",
+              episodeId: "episode1",
+            }),
+            insertVideoContainerCreatingTaskStatement({
+              seasonId: "season1",
+              episodeId: "episode3",
+            }),
           ]);
           await transaction.commit();
         });
@@ -113,9 +125,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -127,17 +139,16 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.ARCHIVED,
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.ARCHIVED,
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -145,7 +156,9 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await getCoverImageDeletingTask(SPANNER_DATABASE, "cover1"),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, {
+            coverImageDeletingTaskR2FilenameEq: "cover1",
+          }),
           isArray([
             eqMessage(
               {
@@ -160,29 +173,26 @@ TEST_RUNNER.run({
           "r2FileDeletingTasks",
         );
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            10,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 10,
+          }),
           isArray([]),
           "episodes",
         );
         assertThat(
-          await listPendingVideoContainerCreatingTasks(
-            SPANNER_DATABASE,
-            1000000,
-          ),
+          await listPendingVideoContainerCreatingTasks(SPANNER_DATABASE, {
+            videoContainerCreatingTaskExecutionTimeMsLe: 1000000,
+          }),
           isArray([]),
           "videoContainerCreatingTasks",
         );
         assertThat(
-          await getVideoContainerDeletingTask(
-            SPANNER_DATABASE,
-            "videoContainer2",
-          ),
+          await getVideoContainerDeletingTask(SPANNER_DATABASE, {
+            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer2",
+          }),
           isArray([
             eqMessage(
               {
@@ -197,10 +207,9 @@ TEST_RUNNER.run({
           "videoContainerDeletingTasks for videoContainer2",
         );
         assertThat(
-          await getVideoContainerDeletingTask(
-            SPANNER_DATABASE,
-            "videoContainer4",
-          ),
+          await getVideoContainerDeletingTask(SPANNER_DATABASE, {
+            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
+          }),
           isArray([
             eqMessage(
               {
@@ -240,9 +249,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -277,9 +286,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,

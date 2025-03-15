@@ -9,7 +9,7 @@ import {
   GetEpisodeDetailsRequestBody,
   GetEpisodeDetailsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -48,42 +48,41 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
       throw newBadRequestError(`"episodeId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get episode details.`,
       );
     }
     let now = this.getNow();
-    let rows = await getPublishedEpisodeForConsumer(
-      this.database,
-      body.seasonId,
-      SeasonState.PUBLISHED,
-      body.episodeId,
-      now,
-    );
+    let rows = await getPublishedEpisodeForConsumer(this.database, {
+      eSeasonIdEq: body.seasonId,
+      sStateEq: SeasonState.PUBLISHED,
+      eEpisodeIdEq: body.episodeId,
+      ePublishTimeMsLt: now,
+    });
     if (rows.length === 0) {
       throw newNotFoundError(
         `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
       );
     }
-    let { eData } = rows[0];
+    let row = rows[0];
     return {
       episodeDetails: {
-        name: eData.name,
-        index: eData.index,
-        resolution: eData.videoContainer.resolution,
-        videoDurationSec: eData.videoContainer.durationSec,
-        premierTimeMs: eData.premierTimeMs,
+        name: row.eName,
+        index: row.eIndex,
+        resolution: row.eVideoContainer.resolution,
+        videoDurationSec: row.eVideoContainer.durationSec,
+        premierTimeMs: row.ePremierTimeMs,
         videoUrl:
-          eData.premierTimeMs <= now
-            ? `${this.videoPublicAccessDomain}/${eData.videoContainer.r2RootDirname}/${eData.videoContainer.r2MasterPlaylistFilename}`
+          row.ePremierTimeMs <= now
+            ? `${this.videoPublicAccessDomain}/${row.eVideoContainer.r2RootDirname}/${row.eVideoContainer.r2MasterPlaylistFilename}`
             : undefined,
       },
     };

@@ -6,8 +6,8 @@ import {
   getSeasonAndEpisodeForPublisher,
   insertVideoContainerDeletingTaskStatement,
   listNextEpisodesForPublisher,
-  updateEpisodeStatement,
-  updateSeasonStatement,
+  updateEpisodeIndexStatement,
+  updateSeasonTotalEpisodesStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
@@ -17,7 +17,7 @@ import {
   DeleteEpisodeRequestBody,
   DeleteEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -52,66 +52,74 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
       throw newBadRequestError(`"episodeId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to delete episode.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisodeForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-        body.episodeId,
-      );
+      let rows = await getSeasonAndEpisodeForPublisher(transaction, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
-      let { sData, eData } = rows[0];
+      let seasonAndEpisode = rows[0];
       let now = this.getNow();
-      sData.totalEpisodes -= 1;
-      sData.lastChangeTimeMs = now;
       let statements: Array<Statement> = [
-        updateSeasonStatement(sData),
-        deleteEpisodeStatement(eData.seasonId, eData.episodeId),
+        updateSeasonTotalEpisodesStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setTotalEpisodes: seasonAndEpisode.sTotalEpisodes - 1,
+          setLastChangeTimeMs: now,
+        }),
+        deleteEpisodeStatement({
+          episodeSeasonIdEq: body.seasonId,
+          episodeEpisodeIdEq: body.episodeId,
+        }),
       ];
-      if (eData.videoContainerId) {
+      if (seasonAndEpisode.eVideoContainerId) {
         statements.push(
-          insertVideoContainerDeletingTaskStatement(
-            eData.videoContainerId,
-            0,
-            now,
-            now,
-          ),
+          insertVideoContainerDeletingTaskStatement({
+            videoContainerId: seasonAndEpisode.eVideoContainerId,
+            retryCount: 0,
+            executionTimeMs: now,
+            createdTimeMs: now,
+          }),
         );
       } else {
         statements.push(
-          deleteVideoContainerCreatingTaskStatement(
-            eData.seasonId,
-            eData.episodeId,
-          ),
+          deleteVideoContainerCreatingTaskStatement({
+            videoContainerCreatingTaskSeasonIdEq: body.seasonId,
+            videoContainerCreatingTaskEpisodeIdEq: body.episodeId,
+          }),
         );
       }
 
-      let nextEpisodes = await listNextEpisodesForPublisher(
-        transaction,
-        accountId,
-        eData.seasonId,
-        eData.index,
-        MAX_NUM_OF_EPISODES_PER_SEASON,
-      );
+      let nextEpisodes = await listNextEpisodesForPublisher(transaction, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eIndexGt: seasonAndEpisode.eIndex,
+        limit: MAX_NUM_OF_EPISODES_PER_SEASON,
+      });
       for (let episode of nextEpisodes) {
-        episode.eData.index -= 1;
-        statements.push(updateEpisodeStatement(episode.eData));
+        statements.push(
+          updateEpisodeIndexStatement({
+            episodeSeasonIdEq: episode.eSeasonId,
+            episodeEpisodeIdEq: episode.eEpisodeId,
+            setIndex: episode.eIndex - 1,
+          }),
+        );
       }
       await transaction.batchUpdate(statements);
       await transaction.commit();

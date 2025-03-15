@@ -9,12 +9,13 @@ import {
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { EpisodeSummary } from "@phading/product_service_interface/show/web/publisher/episode_summary";
 import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -45,14 +46,14 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get more episodes.`,
       );
@@ -61,35 +62,33 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
       ListNextEpisodesForPublisherRow | ListPrevEpisodesForPublisherRow
     >;
     if (body.next) {
-      rows = await listNextEpisodesForPublisher(
-        this.database,
-        accountId,
-        body.seasonId,
-        body.indexCursor ?? 0,
-        body.limit,
-      );
+      rows = await listNextEpisodesForPublisher(this.database, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eIndexGt: body.indexCursor ?? 0,
+        limit: body.limit,
+      });
     } else {
-      rows = await listPrevEpisodesForPublisher(
-        this.database,
-        accountId,
-        body.seasonId,
-        body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
-        body.limit,
-      );
+      rows = await listPrevEpisodesForPublisher(this.database, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        limit: body.limit,
+      });
     }
     return {
-      episodes: rows.map((row) => ({
-        episodeId: row.eData.episodeId,
-        name: row.eData.name,
-        index: row.eData.index,
-        videoContainer: row.eData.videoContainer,
-        premierTimeMs: row.eData.premierTimeMs,
-        publishTimeMs: row.eData.publishTimeMs,
-      })),
+      episodes: rows.map(
+        (row): EpisodeSummary => ({
+          episodeId: row.eEpisodeId,
+          name: row.eName,
+          index: row.eIndex,
+          videoContainer: row.eVideoContainer,
+          premierTimeMs: row.ePremierTimeMs,
+          publishTimeMs: row.ePublishTimeMs,
+        }),
+      ),
       indexCursor:
-        rows.length < body.limit
-          ? undefined
-          : rows[rows.length - 1].eData.index,
+        rows.length < body.limit ? undefined : rows[rows.length - 1].eIndex,
     };
   }
 }

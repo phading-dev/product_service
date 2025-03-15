@@ -1,18 +1,17 @@
-import "../../../local/env";
-import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import "../../../../local/env";
+import { SPANNER_DATABASE } from "../../../../common/spanner_database";
 import {
   GET_SEASON_ROW,
   deleteSeasonStatement,
   getSeason,
   insertEpisodeStatement,
   insertSeasonStatement,
-} from "../../../db/sql";
-import { CancelSubtitleFormattingHandler } from "./cancel_subtitle_formatting_handler";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+} from "../../../../db/sql";
+import { CancelMediaFormattingHandler } from "../cancel_media_formatting_handler";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import {
-  CANCEL_SUBTITLE_FORMATTING,
-  CANCEL_SUBTITLE_FORMATTING_REQUEST_BODY,
+  CANCEL_MEDIA_FORMATTING,
+  CANCEL_MEDIA_FORMATTING_REQUEST_BODY,
 } from "@phading/video_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -20,10 +19,10 @@ import { assertThat, eq, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "CancelSubtitleFormattingHandlerTest",
+  name: "VideoContainerActionHandlerTest",
   cases: [
     {
-      name: "Success",
+      name: "CancelMediaFormatting",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -31,16 +30,11 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              index: 1,
               videoContainerId: "videoContainer1",
-              publishTimeMs: 200,
             }),
           ]);
           await transaction.commit();
@@ -49,10 +43,10 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
-        let handler = new CancelSubtitleFormattingHandler(
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new CancelMediaFormattingHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
@@ -71,29 +65,27 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           serviceClientMock.request.descriptor,
-          eq(CANCEL_SUBTITLE_FORMATTING),
+          eq(CANCEL_MEDIA_FORMATTING),
           "RC",
         );
         assertThat(
           serviceClientMock.request.body,
           eqMessage(
             { containerId: "videoContainer1" },
-            CANCEL_SUBTITLE_FORMATTING_REQUEST_BODY,
+            CANCEL_MEDIA_FORMATTING_REQUEST_BODY,
           ),
           "RC body",
         );
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -103,7 +95,11 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+          ]);
           await transaction.commit();
         });
       },

@@ -60,23 +60,23 @@ export class ProcessCoverImageDeletingTaskHandler extends ProcessCoverImageDelet
     body: ProcessCoverImageDeletingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getCoverImageDeletingTaskMetadata(
-        transaction,
-        body.r2Filename,
-      );
+      let rows = await getCoverImageDeletingTaskMetadata(transaction, {
+        coverImageDeletingTaskR2FilenameEq: body.r2Filename,
+      });
       if (rows.length === 0) {
         throw newBadRequestError("Task is not found.");
       }
       let task = rows[0];
       await transaction.batchUpdate([
-        updateCoverImageDeletingTaskMetadataStatement(
-          body.r2Filename,
-          task.coverImageDeletingTaskRetryCount + 1,
-          this.getNow() +
+        updateCoverImageDeletingTaskMetadataStatement({
+          coverImageDeletingTaskR2FilenameEq: body.r2Filename,
+          setRetryCount: task.coverImageDeletingTaskRetryCount + 1,
+          setExecutionTimeMs:
+            this.getNow() +
             this.taskHandler.getBackoffTime(
               task.coverImageDeletingTaskRetryCount,
             ),
-        ),
+        }),
       ]);
       await transaction.commit();
     });
@@ -94,8 +94,12 @@ export class ProcessCoverImageDeletingTaskHandler extends ProcessCoverImageDelet
     );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([
-        deleteCoverImageFileStatement(body.r2Filename),
-        deleteCoverImageDeletingTaskStatement(body.r2Filename),
+        deleteCoverImageFileStatement({
+          coverImageFileR2FilenameEq: body.r2Filename,
+        }),
+        deleteCoverImageDeletingTaskStatement({
+          coverImageDeletingTaskR2FilenameEq: body.r2Filename,
+        }),
       ]);
       await transaction.commit();
     });

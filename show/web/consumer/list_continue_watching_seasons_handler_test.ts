@@ -17,8 +17,8 @@ import {
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_CONTINUE_WATCHING_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
-  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
-  ExchangeSessionAndCheckCapabilityResponse,
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
 } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeClientOptions } from "@selfage/node_service_client";
@@ -43,13 +43,10 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 10,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
               averageRating: 4.5,
-              updatedTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -76,8 +73,6 @@ TEST_RUNNER.run({
               name: "name2",
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
-              lastChangeTimeMs: 200,
-              recentPremierTimeMs: 20,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -115,8 +110,6 @@ TEST_RUNNER.run({
               name: "name3",
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
-              lastChangeTimeMs: 300,
-              recentPremierTimeMs: 30,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -132,8 +125,6 @@ TEST_RUNNER.run({
               name: "name4",
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
-              lastChangeTimeMs: 400,
-              recentPremierTimeMs: 40,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -162,13 +153,13 @@ TEST_RUNNER.run({
             options?: NodeClientOptions,
           ): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               case LIST_RECENTLY_WATCHED_SEASONS:
                 this.request = request;
                 return {
@@ -289,16 +280,36 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonStatement("season2"),
-            deleteSeasonStatement("season3"),
-            deleteSeasonStatement("season4"),
-            deleteSeasonStatement("season5"),
-            deleteSeasonRatingStatement("season1"),
-            deleteSeasonRatingStatement("season2"),
-            deleteSeasonRatingStatement("season3"),
-            deleteSeasonRatingStatement("season4"),
-            deleteSeasonRatingStatement("season5"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season2",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season3",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season4",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season5",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season2",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season3",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season4",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season5",
+            }),
           ]);
           await transaction.commit();
         });

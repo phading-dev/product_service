@@ -24,14 +24,15 @@ export class GetSeasonGradeHandler extends GetSeasonGradeHandlerInterface {
     loggingPrefix: string,
     body: GetSeasonGradeRequestBody,
   ): Promise<GetSeasonGradeResponse> {
-    let gradeRows = await getSeasonGrade(
-      this.database,
-      body.seasonId,
-      body.date,
-      body.date,
-    );
+    let gradeRows = await getSeasonGrade(this.database, {
+      seasonGradeSeasonIdEq: body.seasonId,
+      seasonGradeStartDateLe: body.date,
+      seasonGradeEndDateGt: body.date,
+    });
     if (gradeRows.length === 0) {
-      throw newNotFoundError(`Grade of season ${body.seasonId} for date ${body.date} is not found.`);
+      throw newNotFoundError(
+        `Grade of season ${body.seasonId} for date ${body.date} is not found.`,
+      );
     }
     if (gradeRows.length > 1) {
       throw newInternalServerErrorError(
@@ -39,7 +40,7 @@ export class GetSeasonGradeHandler extends GetSeasonGradeHandlerInterface {
       );
     }
     return {
-      grade: gradeRows[0].seasonGradeData.grade,
+      grade: gradeRows[0].seasonGradeGrade,
     };
   }
 }

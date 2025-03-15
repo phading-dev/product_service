@@ -3,10 +3,10 @@ import { S3_CLIENT, initS3Client } from "../../common/s3_client";
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
   GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW,
-  checkPresenceOfCoverImageFile,
   deleteCoverImageDeletingTaskStatement,
   deleteCoverImageFileStatement,
   getCoverImageDeletingTaskMetadata,
+  getCoverImageFile,
   insertCoverImageDeletingTaskStatement,
   insertCoverImageFileStatement,
   listPendingCoverImageDeletingTasks,
@@ -44,8 +44,14 @@ TEST_RUNNER.run({
         );
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertCoverImageFileStatement("image1"),
-            insertCoverImageDeletingTaskStatement("image1", 0, 100, 0),
+            insertCoverImageFileStatement({
+              r2Filename: "image1",
+            }),
+            insertCoverImageDeletingTaskStatement({
+              r2Filename: "image1",
+              retryCount: 0,
+              executionTimeMs: 100,
+            }),
           ]);
           await transaction.commit();
         });
@@ -62,13 +68,18 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          (await checkPresenceOfCoverImageFile(SPANNER_DATABASE, "image1"))
-            .length,
+          (
+            await getCoverImageFile(SPANNER_DATABASE, {
+              coverImageFileR2FilenameEq: "image1",
+            })
+          ).length,
           eq(0),
           "coverImageFile",
         );
         assertThat(
-          await listPendingCoverImageDeletingTasks(SPANNER_DATABASE, 1000000),
+          await listPendingCoverImageDeletingTasks(SPANNER_DATABASE, {
+            coverImageDeletingTaskExecutionTimeMsLe: 1000000,
+          }),
           isArray([]),
           "listCoverImageDeletingTasks",
         );
@@ -88,8 +99,12 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteCoverImageFileStatement("image1"),
-            deleteCoverImageDeletingTaskStatement("image1"),
+            deleteCoverImageFileStatement({
+              coverImageFileR2FilenameEq: "image1",
+            }),
+            deleteCoverImageDeletingTaskStatement({
+              coverImageDeletingTaskR2FilenameEq: "image1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -107,7 +122,11 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertCoverImageDeletingTaskStatement("image1", 0, 100, 0),
+            insertCoverImageDeletingTaskStatement({
+              r2Filename: "image1",
+              retryCount: 0,
+              executionTimeMs: 100,
+            }),
           ]);
           await transaction.commit();
         });
@@ -124,7 +143,9 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getCoverImageDeletingTaskMetadata(SPANNER_DATABASE, "image1"),
+          await getCoverImageDeletingTaskMetadata(SPANNER_DATABASE, {
+            coverImageDeletingTaskR2FilenameEq: "image1",
+          }),
           isArray([
             eqMessage(
               {
@@ -140,7 +161,9 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteCoverImageDeletingTaskStatement("image1"),
+            deleteCoverImageDeletingTaskStatement({
+              coverImageDeletingTaskR2FilenameEq: "image1",
+            }),
           ]);
           await transaction.commit();
         });

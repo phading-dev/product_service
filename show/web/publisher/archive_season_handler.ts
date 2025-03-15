@@ -1,13 +1,13 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  archiveSeasonStatement,
   deleteAllEpisodesStatement,
   deleteVideoContainerCreatingTaskStatement,
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
   insertVideoContainerDeletingTaskStatement,
   listPrevEpisodesForPublisher,
-  updateSeasonStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
@@ -18,7 +18,7 @@ import {
   ArchiveSeasonRequestBody,
   ArchiveSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -50,66 +50,74 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to archive season.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-      );
-      if (rows.length === 0) {
+      let [seasonRows, episodeRows] = await Promise.all([
+        getSeasonForPublisher(transaction, {
+          seasonPublisherIdEq: accountId,
+          seasonSeasonIdEq: body.seasonId,
+        }),
+        listPrevEpisodesForPublisher(transaction, {
+          sPublisherIdEq: accountId,
+          eSeasonIdEq: body.seasonId,
+          eIndexLt: MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+          limit: MAX_NUM_OF_EPISODES_PER_SEASON,
+        }),
+      ]);
+      if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      let { seasonData } = rows[0];
-      if (seasonData.state !== SeasonState.PUBLISHED) {
+      let season = seasonRows[0];
+      if (season.seasonState !== SeasonState.PUBLISHED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is not in PUBLISHED state and cannot be archived.`,
         );
       }
       let now = this.getNow();
-      let coverImageToDelete = seasonData.coverImageR2Filename;
-      seasonData.state = SeasonState.ARCHIVED;
-      seasonData.coverImageR2Filename = undefined;
-      seasonData.lastChangeTimeMs = now;
       let statements: Array<Statement> = [
-        updateSeasonStatement(seasonData),
-        insertCoverImageDeletingTaskStatement(coverImageToDelete, 0, now, now),
-        deleteAllEpisodesStatement(body.seasonId),
+        archiveSeasonStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setState: SeasonState.ARCHIVED,
+          setCoverImageR2Filename: undefined,
+          setLastChangeTimeMs: now,
+        }),
+        insertCoverImageDeletingTaskStatement({
+          r2Filename: season.seasonCoverImageR2Filename,
+          retryCount: 0,
+          executionTimeMs: now,
+          createdTimeMs: now,
+        }),
+        deleteAllEpisodesStatement({
+          episodeSeasonIdEq: body.seasonId,
+        }),
       ];
-      let episodes = await listPrevEpisodesForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-        MAX_NUM_OF_EPISODES_PER_SEASON + 1,
-        MAX_NUM_OF_EPISODES_PER_SEASON,
-      );
-      for (let episode of episodes) {
-        if (episode.eData.videoContainerId) {
+      for (let episode of episodeRows) {
+        if (episode.eVideoContainerId) {
           statements.push(
-            insertVideoContainerDeletingTaskStatement(
-              episode.eData.videoContainerId,
-              0,
-              now,
-              now,
-            ),
+            insertVideoContainerDeletingTaskStatement({
+              videoContainerId: episode.eVideoContainerId,
+              retryCount: 0,
+              executionTimeMs: now,
+              createdTimeMs: now,
+            }),
           );
         } else {
           statements.push(
-            deleteVideoContainerCreatingTaskStatement(
-              episode.eData.seasonId,
-              episode.eData.episodeId,
-            ),
+            deleteVideoContainerCreatingTaskStatement({
+              videoContainerCreatingTaskSeasonIdEq: episode.eSeasonId,
+              videoContainerCreatingTaskEpisodeIdEq: episode.eEpisodeId,
+            }),
           );
         }
       }

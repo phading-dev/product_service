@@ -13,7 +13,7 @@ import {
   insertCoverImageDeletingTaskStatement,
   insertCoverImageFileStatement,
   updateCoverImageDeletingTaskMetadataStatement,
-  updateSeasonStatement,
+  updateSeasonCoverImageStatement,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -26,7 +26,7 @@ import {
   UploadCoverImageRequestMetadata,
   UploadCoverImageResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newConflictError,
@@ -73,30 +73,29 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to upload cover image.`,
       );
     }
     let coverImageR2Filename: string;
     await this.database.runTransactionAsync(async (transaction) => {
-      let seasonRows = await getSeasonForPublisher(
-        this.database,
-        accountId,
-        metadata.seasonId,
-      );
+      let seasonRows = await getSeasonForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: metadata.seasonId,
+      });
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${metadata.seasonId} is not found.`);
       }
-      let { seasonData } = seasonRows[0];
-      if (seasonData.state === SeasonState.ARCHIVED) {
+      let season = seasonRows[0];
+      if (season.seasonState === SeasonState.ARCHIVED) {
         throw newBadRequestError(
           `Season ${metadata.seasonId} is archived and cannot be updated anymore.`,
         );
@@ -105,13 +104,13 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
       let now = this.getNow();
       coverImageR2Filename = this.generateUuid();
       await transaction.batchUpdate([
-        insertCoverImageFileStatement(coverImageR2Filename),
-        insertCoverImageDeletingTaskStatement(
-          coverImageR2Filename,
-          0,
-          now + UploadCoverImageHandler.ONE_YEAR_MS,
-          now,
-        ),
+        insertCoverImageFileStatement({ r2Filename: coverImageR2Filename }),
+        insertCoverImageDeletingTaskStatement({
+          r2Filename: coverImageR2Filename,
+          retryCount: 0,
+          executionTimeMs: now + UploadCoverImageHandler.ONE_YEAR_MS,
+          createdTimeMs: now,
+        }),
       ]);
       await transaction.commit();
     });
@@ -126,12 +125,13 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     } catch (e) {
       await this.database.runTransactionAsync(async (transaction) => {
         await transaction.batchUpdate([
-          updateCoverImageDeletingTaskMetadataStatement(
-            coverImageR2Filename,
-            0,
-            this.getNow() +
+          updateCoverImageDeletingTaskMetadataStatement({
+            coverImageDeletingTaskR2FilenameEq: coverImageR2Filename,
+            setRetryCount: 0,
+            setExecutionTimeMs:
+              this.getNow() +
               UploadCoverImageHandler.DELAY_TO_CLEAN_UP_ON_ERROR_MS,
-          ),
+          }),
         ]);
         await transaction.commit();
       });
@@ -171,30 +171,33 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     );
     await upload.done();
     await this.database.runTransactionAsync(async (transaction) => {
-      let seasonRows = await getSeasonForPublisher(
-        this.database,
-        accountId,
-        seasonId,
-      );
+      let seasonRows = await getSeasonForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: seasonId,
+      });
       if (seasonRows.length === 0) {
         throw newConflictError(`Season ${seasonId} is not found.`);
       }
-      let { seasonData } = seasonRows[0];
+      let season = seasonRows[0];
       let now = this.getNow();
-      let oldCoverImageR2Filename = seasonData.coverImageR2Filename;
-      seasonData.coverImageR2Filename = coverImageR2Filename;
-      seasonData.lastChangeTimeMs = now;
+      let oldCoverImageR2Filename = season.seasonCoverImageR2Filename;
       await transaction.batchUpdate([
-        updateSeasonStatement(seasonData),
-        deleteCoverImageDeletingTaskStatement(coverImageR2Filename),
+        updateSeasonCoverImageStatement({
+          seasonSeasonIdEq: seasonId,
+          setCoverImageR2Filename: coverImageR2Filename,
+          setLastChangeTimeMs: now,
+        }),
+        deleteCoverImageDeletingTaskStatement({
+          coverImageDeletingTaskR2FilenameEq: coverImageR2Filename,
+        }),
         ...(oldCoverImageR2Filename
           ? [
-              insertCoverImageDeletingTaskStatement(
-                oldCoverImageR2Filename,
-                0,
-                now,
-                now,
-              ),
+              insertCoverImageDeletingTaskStatement({
+                r2Filename: oldCoverImageR2Filename,
+                retryCount: 0,
+                executionTimeMs: now,
+                createdTimeMs: now,
+              }),
             ]
           : []),
       ]);

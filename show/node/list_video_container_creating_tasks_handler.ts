@@ -25,10 +25,9 @@ export class ListVideoContainerCreatingTasksHandler extends ListVideoContainerCr
     loggingPrefix: string,
     body: ListVideoContainerCreatingTasksRequestBody,
   ): Promise<ListVideoContainerCreatingTasksResponse> {
-    let tasks = await listPendingVideoContainerCreatingTasks(
-      this.database,
-      this.getNow(),
-    );
+    let tasks = await listPendingVideoContainerCreatingTasks(this.database, {
+      videoContainerCreatingTaskExecutionTimeMsLe: this.getNow(),
+    });
     return {
       tasks: tasks.map((task) => ({
         seasonId: task.videoContainerCreatingTaskSeasonId,

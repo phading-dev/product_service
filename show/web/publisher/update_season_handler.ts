@@ -1,9 +1,8 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getSeasonAndMoreAndRatingForPublisher,
-  updateSeasonMoreStatement,
-  updateSeasonStatement,
+  getSeasonForPublisher,
+  updateSeasonNameAndDescriptionStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import {
@@ -16,7 +15,7 @@ import {
   UpdateSeasonRequestBody,
   UpdateSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -58,39 +57,39 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
       throw newBadRequestError(`"description" is too long.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update season.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let seasonRows = await getSeasonAndMoreAndRatingForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-      );
+      let seasonRows = await getSeasonForPublisher(transaction, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: body.seasonId,
+      });
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      let { sData, mData } = seasonRows[0];
-      if (sData.state === SeasonState.ARCHIVED) {
+      let season = seasonRows[0];
+      if (season.seasonState === SeasonState.ARCHIVED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is archived and cannot be updated anymore.`,
         );
       }
-      sData.name = body.name;
-      mData.description = body.description;
-      sData.lastChangeTimeMs = this.getNow();
       await transaction.batchUpdate([
-        updateSeasonStatement(sData),
-        updateSeasonMoreStatement(mData),
+        updateSeasonNameAndDescriptionStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setName: body.name,
+          setDescription: body.description,
+          setLastChangeTimeMs: this.getNow(),
+        }),
       ]);
       await transaction.commit();
     });

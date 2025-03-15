@@ -8,7 +8,7 @@ import {
   getVideoContainerCreatingTaskMetadata,
   insertVideoContainerDeletingTaskStatement,
   insertVideoContainerKeyStatement,
-  updateEpisodeStatement,
+  updateEpisodeVideoContainerIdStatement,
   updateVideoContainerCreatingTaskMetadataStatement,
   updateVideoContainerDeletingTaskMetadataStatement,
 } from "../../db/sql";
@@ -69,25 +69,25 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     body: ProcessVideoContainerCreatingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getVideoContainerCreatingTaskMetadata(
-        transaction,
-        body.seasonId,
-        body.episodeId,
-      );
+      let rows = await getVideoContainerCreatingTaskMetadata(transaction, {
+        videoContainerCreatingTaskSeasonIdEq: body.seasonId,
+        videoContainerCreatingTaskEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newBadRequestError(`Task is not found.`);
       }
       let task = rows[0];
       await transaction.batchUpdate([
-        updateVideoContainerCreatingTaskMetadataStatement(
-          body.seasonId,
-          body.episodeId,
-          task.videoContainerCreatingTaskRetryCount + 1,
-          this.getNow() +
+        updateVideoContainerCreatingTaskMetadataStatement({
+          videoContainerCreatingTaskSeasonIdEq: body.seasonId,
+          videoContainerCreatingTaskEpisodeIdEq: body.episodeId,
+          setRetryCount: task.videoContainerCreatingTaskRetryCount + 1,
+          setExecutionTimeMs:
+            this.getNow() +
             this.taskHandler.getBackoffTime(
               task.videoContainerCreatingTaskRetryCount,
             ),
-        ),
+        }),
       ]);
       await transaction.commit();
     });
@@ -100,27 +100,35 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     let videoContainerId = `show${this.generateUuid()}`;
     let accountId: string;
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisode(
-        transaction,
-        body.seasonId,
-        body.episodeId,
-      );
+      let rows = await getSeasonAndEpisode(transaction, {
+        eSeasonIdEq: body.seasonId,
+        eEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newBadRequestError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
-      accountId = rows[0].sData.publisherId;
+      let row = rows[0];
+      if (row.eVideoContainerId) {
+        throw newConflictError(
+          `Video container for season ${body.seasonId} episode ${body.episodeId} is already created.`,
+        );
+      }
+      accountId = row.sPublisherId;
 
       let now = this.getNow();
       await transaction.batchUpdate([
-        insertVideoContainerKeyStatement(videoContainerId),
-        insertVideoContainerDeletingTaskStatement(
+        insertVideoContainerKeyStatement({
+          key: videoContainerId,
+        }),
+        insertVideoContainerDeletingTaskStatement({
           videoContainerId,
-          0,
-          now + ProcessVideoContainerCreatingTaskHandler.ONE_YEAR_MS,
-          now,
-        ),
+          retryCount: 0,
+          executionTimeMs:
+            now + ProcessVideoContainerCreatingTaskHandler.ONE_YEAR_MS,
+          createdTimeMs: now,
+        }),
       ]);
       await transaction.commit();
     });
@@ -135,33 +143,48 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
         }),
       );
       await this.database.runTransactionAsync(async (transaction) => {
-        let rows = await getEpisode(transaction, body.seasonId, body.episodeId);
+        let rows = await getEpisode(transaction, {
+          episodeSeasonIdEq: body.seasonId,
+          episodeEpisodeIdEq: body.episodeId,
+        });
         if (rows.length === 0) {
-          throw newConflictError(
-            `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
+          throw newBadRequestError(
+            `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
           );
         }
-        let { episodeData } = rows[0];
-        episodeData.videoContainerId = videoContainerId;
+        let row = rows[0];
+        if (row.episodeVideoContainerId) {
+          throw newConflictError(
+            `Video container for season ${body.seasonId} episode ${body.episodeId} is already created.`,
+          );
+        }
+
         await transaction.batchUpdate([
-          updateEpisodeStatement(episodeData),
-          deleteVideoContainerDeletingTaskStatement(videoContainerId),
-          deleteVideoContainerCreatingTaskStatement(
-            body.seasonId,
-            body.episodeId,
-          ),
+          updateEpisodeVideoContainerIdStatement({
+            episodeSeasonIdEq: body.seasonId,
+            episodeEpisodeIdEq: body.episodeId,
+            setVideoContainerId: videoContainerId,
+          }),
+          deleteVideoContainerDeletingTaskStatement({
+            videoContainerDeletingTaskVideoContainerIdEq: videoContainerId,
+          }),
+          deleteVideoContainerCreatingTaskStatement({
+            videoContainerCreatingTaskSeasonIdEq: body.seasonId,
+            videoContainerCreatingTaskEpisodeIdEq: body.episodeId,
+          }),
         ]);
         await transaction.commit();
       });
     } catch (e) {
       await this.database.runTransactionAsync(async (transaction) => {
         await transaction.batchUpdate([
-          updateVideoContainerDeletingTaskMetadataStatement(
-            videoContainerId,
-            0,
-            this.getNow() +
+          updateVideoContainerDeletingTaskMetadataStatement({
+            videoContainerDeletingTaskVideoContainerIdEq: videoContainerId,
+            setRetryCount: 0,
+            setExecutionTimeMs:
+              this.getNow() +
               ProcessVideoContainerCreatingTaskHandler.CLEAN_UP_ON_ERROR_DELAY_MS,
-          ),
+          }),
         ]);
         await transaction.commit();
       });

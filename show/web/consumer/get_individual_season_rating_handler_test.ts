@@ -6,7 +6,7 @@ import {
 } from "../../../db/sql";
 import { GetIndividualSeasonRatingHandler } from "./get_individual_season_rating_handler";
 import { GET_INDIVIDUAL_SEASON_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
@@ -23,9 +23,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetIndividualSeasonRatingHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -62,7 +62,6 @@ TEST_RUNNER.run({
               raterId: "account1",
               seasonId: "season1",
               rating: 3,
-              ratedTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -71,9 +70,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetIndividualSeasonRatingHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -101,7 +100,10 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteIndividualSeasonRatingStatement("account1", "season1"),
+            deleteIndividualSeasonRatingStatement({
+              individualSeasonRatingRaterIdEq: "account1",
+              individualSeasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });

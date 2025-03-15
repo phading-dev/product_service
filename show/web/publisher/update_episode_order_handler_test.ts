@@ -10,8 +10,7 @@ import {
   listNextEpisodesForPublisher,
 } from "../../../db/sql";
 import { UpdateEpisodeOrderHandler } from "./update_episode_order_handler";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -31,40 +30,32 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 5,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode4",
               index: 4,
-              publishTimeMs: 500,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode5",
               index: 5,
-              publishTimeMs: 600,
             }),
           ]);
           await transaction.commit();
@@ -73,9 +64,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -95,18 +86,14 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  totalEpisodes: 5,
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonTotalEpisodes: 5,
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -114,66 +101,50 @@ TEST_RUNNER.run({
           "Season",
         );
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            10,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 10,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode4",
-                  index: 1,
-                  publishTimeMs: 500,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode4",
+                eIndex: 1,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1",
-                  index: 2,
-                  publishTimeMs: 200,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1",
+                eIndex: 2,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode2",
-                  index: 3,
-                  publishTimeMs: 300,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode2",
+                eIndex: 3,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode3",
-                  index: 4,
-                  publishTimeMs: 400,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode3",
+                eIndex: 4,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode5",
-                  index: 5,
-                  publishTimeMs: 600,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode5",
+                eIndex: 5,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -183,7 +154,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -197,40 +170,32 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 5,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode4",
               index: 4,
-              publishTimeMs: 500,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode5",
               index: 5,
-              publishTimeMs: 600,
             }),
           ]);
           await transaction.commit();
@@ -239,9 +204,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -261,18 +226,14 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  totalEpisodes: 5,
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonTotalEpisodes: 5,
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -280,66 +241,50 @@ TEST_RUNNER.run({
           "Season",
         );
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            10,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 10,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1",
-                  index: 1,
-                  publishTimeMs: 200,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1",
+                eIndex: 1,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode2",
-                  index: 2,
-                  publishTimeMs: 300,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode2",
+                eIndex: 2,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode4",
-                  index: 3,
-                  publishTimeMs: 500,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode4",
+                eIndex: 3,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode5",
-                  index: 4,
-                  publishTimeMs: 600,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode5",
+                eIndex: 4,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode3",
-                  index: 5,
-                  publishTimeMs: 400,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode3",
+                eIndex: 5,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -349,7 +294,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -363,28 +310,22 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
           ]);
           await transaction.commit();
@@ -393,9 +334,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -415,44 +356,34 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            10,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 10,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1",
-                  index: 1,
-                  publishTimeMs: 200,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1",
+                eIndex: 1,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode3",
-                  index: 2,
-                  publishTimeMs: 400,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode3",
+                eIndex: 2,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode2",
-                  index: 3,
-                  publishTimeMs: 300,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode2",
+                eIndex: 3,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -462,7 +393,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -476,28 +409,22 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
           ]);
           await transaction.commit();
@@ -506,9 +433,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -528,44 +455,34 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            10,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 10,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode2",
-                  index: 1,
-                  publishTimeMs: 300,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode2",
+                eIndex: 1,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1",
-                  index: 2,
-                  publishTimeMs: 200,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1",
+                eIndex: 2,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode3",
-                  index: 3,
-                  publishTimeMs: 400,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode3",
+                eIndex: 3,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -575,7 +492,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -589,17 +508,13 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 1000,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             ...Array.from({ length: 1000 }, (_, i) =>
               insertEpisodeStatement({
                 seasonId: "season1",
                 episodeId: `episode${i + 1}`,
                 index: i + 1,
-                publishTimeMs: 200,
               }),
             ),
           ]);
@@ -609,9 +524,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -631,34 +546,27 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            2000,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 2000,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1000",
-                  index: 1,
-                  publishTimeMs: 200,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1000",
+                eIndex: 1,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             ...Array.from({ length: 999 }, (_, i) =>
               eqMessage(
                 {
-                  eData: {
-                    seasonId: "season1",
-                    episodeId: `episode${i + 1}`,
-                    index: i + 2,
-                    publishTimeMs: 200,
-                  },
+                  eSeasonId: "season1",
+                  eEpisodeId: `episode${i + 1}`,
+                  eIndex: i + 2,
                 },
                 LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
               ),
@@ -669,7 +577,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -683,28 +593,22 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
           ]);
           await transaction.commit();
@@ -713,9 +617,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -748,7 +652,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -762,28 +668,22 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
               totalEpisodes: 3,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               index: 2,
-              publishTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               index: 3,
-              publishTimeMs: 400,
             }),
           ]);
           await transaction.commit();
@@ -792,9 +692,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UpdateEpisodeOrderHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -827,7 +727,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },

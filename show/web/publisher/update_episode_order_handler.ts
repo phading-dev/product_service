@@ -4,8 +4,8 @@ import {
   getSeasonAndEpisodeForPublisher,
   listNextEpisodesForPublisher,
   listPrevEpisodesForPublisher,
-  updateEpisodeStatement,
-  updateSeasonStatement,
+  updateEpisodeIndexStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
@@ -14,7 +14,7 @@ import {
   UpdateEpisodeOrderRequestBody,
   UpdateEpisodeOrderResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -55,72 +55,84 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
       throw newBadRequestError(`"toIndex" must be positive.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update episode order.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisodeForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-        body.episodeId,
-      );
+      let rows = await getSeasonAndEpisodeForPublisher(transaction, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
-      let { sData, eData } = rows[0];
-      if (body.toIndex > sData.totalEpisodes) {
+      let row = rows[0];
+      if (body.toIndex > row.sTotalEpisodes) {
         throw newBadRequestError(
-          `Season ${body.seasonId} episode ${body.episodeId}'s target index ${body.toIndex} is larger than the total number of episodes which is ${sData.totalEpisodes}.`,
+          `Season ${body.seasonId} episode ${body.episodeId}'s target index ${body.toIndex} is larger than the total number of episodes which is ${row.sTotalEpisodes}.`,
         );
       }
-      let currentIndex = eData.index;
+      let currentIndex = row.eIndex;
       if (body.toIndex === currentIndex) {
         throw newBadRequestError(
           `Season ${body.seasonId} episode ${body.episodeId} is already at index ${body.toIndex}.`,
         );
       }
-      eData.index = body.toIndex;
-      sData.lastChangeTimeMs = this.getNow();
       let statements: Array<Statement> = [
-        updateEpisodeStatement(eData),
-        updateSeasonStatement(sData),
+        updateEpisodeIndexStatement({
+          episodeSeasonIdEq: body.seasonId,
+          episodeEpisodeIdEq: body.episodeId,
+          setIndex: body.toIndex,
+        }),
+        updateSeasonLastChangeTimeStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setLastChangeTimeMs: this.getNow(),
+        }),
       ];
       if (body.toIndex < currentIndex) {
-        let episodes = await listPrevEpisodesForPublisher(
-          transaction,
-          accountId,
-          body.seasonId,
-          currentIndex,
-          currentIndex - body.toIndex,
-        );
+        let episodes = await listPrevEpisodesForPublisher(transaction, {
+          sPublisherIdEq: accountId,
+          eSeasonIdEq: body.seasonId,
+          eIndexLt: currentIndex,
+          limit: currentIndex - body.toIndex,
+        });
         for (let episode of episodes) {
-          episode.eData.index += 1;
-          statements.push(updateEpisodeStatement(episode.eData));
+          statements.push(
+            updateEpisodeIndexStatement({
+              episodeSeasonIdEq: episode.eSeasonId,
+              episodeEpisodeIdEq: episode.eEpisodeId,
+              setIndex: episode.eIndex + 1,
+            }),
+          );
         }
       } else {
         // toIndex > currentIndex
-        let episodes = await listNextEpisodesForPublisher(
-          transaction,
-          accountId,
-          body.seasonId,
-          currentIndex,
-          body.toIndex - currentIndex,
-        );
+        let episodes = await listNextEpisodesForPublisher(transaction, {
+          sPublisherIdEq: accountId,
+          eSeasonIdEq: body.seasonId,
+          eIndexGt: currentIndex,
+          limit: body.toIndex - currentIndex,
+        });
         for (let episode of episodes) {
-          episode.eData.index -= 1;
-          statements.push(updateEpisodeStatement(episode.eData));
+          statements.push(
+            updateEpisodeIndexStatement({
+              episodeSeasonIdEq: episode.eSeasonId,
+              episodeEpisodeIdEq: episode.eEpisodeId,
+              setIndex: episode.eIndex - 1,
+            }),
+          );
         }
       }
       await transaction.batchUpdate(statements);

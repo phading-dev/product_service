@@ -25,10 +25,9 @@ export class ListVideoContainerDeletingTasksHandler extends ListVideoContainerDe
     loggingPrefix: string,
     body: ListVideoContainerDeletingTasksRequestBody,
   ): Promise<ListVideoContainerDeletingTasksResponse> {
-    let tasks = await listPendingVideoContainerDeletingTasks(
-      this.database,
-      this.getNow(),
-    );
+    let tasks = await listPendingVideoContainerDeletingTasks(this.database, {
+      videoContainerDeletingTaskExecutionTimeMsLe: this.getNow(),
+    });
     return {
       tasks: tasks.map((task) => ({
         videoContainerId: task.videoContainerDeletingTaskVideoContainerId,

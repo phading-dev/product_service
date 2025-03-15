@@ -2,13 +2,14 @@ import { FAR_FUTURE_DATE } from "../../../common/constants";
 import { toDateUtc, toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { SeasonGrade } from "../../../db/schema";
 import {
   getLastSeasonGrades,
   getSeasonForPublisher,
   insertSeasonGradeStatement,
+  updateSeasonGradeEndDateStatement,
+  updateSeasonGradeStartDateAndGradeStatement,
   updateSeasonGradeStatement,
-  updateSeasonStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import {
@@ -21,7 +22,7 @@ import {
   UpdateSeasonGradeRequestBody,
   UpdateSeasonGradeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -64,14 +65,14 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
       throw newBadRequestError(`"grade" is too large or too small.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to update season grade.`,
       );
@@ -79,19 +80,26 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     await this.database.runTransactionAsync(async (transaction) => {
       let todayStr = toTodaISOString(this.getNowDate());
       let [seasonRows, seasonGradeRows] = await Promise.all([
-        getSeasonForPublisher(transaction, accountId, body.seasonId),
-        getLastSeasonGrades(transaction, body.seasonId, todayStr, 2),
+        getSeasonForPublisher(transaction, {
+          seasonPublisherIdEq: accountId,
+          seasonSeasonIdEq: body.seasonId,
+        }),
+        getLastSeasonGrades(transaction, {
+          seasonGradeSeasonIdEq: body.seasonId,
+          seasonGradeEndDateGt: todayStr,
+          limit: 2,
+        }),
       ]);
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
-      let { seasonData } = seasonRows[0];
-      if (seasonData.state === SeasonState.ARCHIVED) {
+      let season = seasonRows[0];
+      if (season.seasonState === SeasonState.ARCHIVED) {
         throw newBadRequestError(
           `Season ${body.seasonId} is archived and cannot be updated anymore.`,
         );
       }
-      if (seasonData.state === SeasonState.DRAFT) {
+      if (season.seasonState === SeasonState.DRAFT) {
         if (seasonGradeRows.length === 0) {
           throw newInternalServerErrorError(
             `Season ${body.seasonId} doesn't have any valid grade.`,
@@ -102,12 +110,17 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             `Season ${body.seasonId} has ${seasonGradeRows.length} grade(s) while in draft state.`,
           );
         }
-        let { seasonGradeData } = seasonGradeRows[0];
-        seasonGradeData.grade = body.grade;
-        seasonData.lastChangeTimeMs = this.getNowDate().valueOf();
+        let seasonGrade = seasonGradeRows[0];
         await transaction.batchUpdate([
-          updateSeasonGradeStatement(seasonGradeData),
-          updateSeasonStatement(seasonData),
+          updateSeasonGradeStatement({
+            seasonGradeSeasonIdEq: seasonGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: seasonGrade.seasonGradeGradeId,
+            setGrade: body.grade,
+          }),
+          updateSeasonLastChangeTimeStatement({
+            seasonSeasonIdEq: body.seasonId,
+            setLastChangeTimeMs: this.getNowDate().valueOf(),
+          }),
         ]);
       } else {
         if (!body.effectiveDate) {
@@ -134,46 +147,58 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             `Season ${body.seasonId} doesn't have any valid grade.`,
           );
         } else if (seasonGradeRows.length === 1) {
-          let { seasonGradeData } = seasonGradeRows[0];
-          if (seasonGradeData.startDate > todayStr) {
+          let seasonGrade = seasonGradeRows[0];
+          if (seasonGrade.seasonGradeStartDate > todayStr) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${seasonGradeData.gradeId}'s start date ${seasonGradeData.startDate} should be smaller than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${seasonGrade.seasonGradeGradeId}'s start date ${seasonGrade.seasonGradeStartDate} should be smaller than today ${todayStr}.`,
             );
           }
-          seasonGradeData.endDate = body.effectiveDate;
-          let newGradeData: SeasonGrade = {
-            seasonId: seasonData.seasonId,
-            gradeId: this.generateUuid(),
-            startDate: body.effectiveDate,
-            endDate: FAR_FUTURE_DATE,
-            grade: body.grade,
-          };
-          seasonData.lastChangeTimeMs = this.getNowDate().valueOf();
           await transaction.batchUpdate([
-            updateSeasonGradeStatement(seasonGradeData),
-            insertSeasonGradeStatement(newGradeData),
-            updateSeasonStatement(seasonData),
+            updateSeasonGradeEndDateStatement({
+              seasonGradeSeasonIdEq: seasonGrade.seasonGradeSeasonId,
+              seasonGradeGradeIdEq: seasonGrade.seasonGradeGradeId,
+              setEndDate: body.effectiveDate,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: body.seasonId,
+              gradeId: this.generateUuid(),
+              startDate: body.effectiveDate,
+              endDate: FAR_FUTURE_DATE,
+              grade: body.grade,
+            }),
+            updateSeasonLastChangeTimeStatement({
+              seasonSeasonIdEq: body.seasonId,
+              setLastChangeTimeMs: this.getNowDate().valueOf(),
+            }),
           ]);
         } else {
           let [laterGrade, currentGrade] = seasonGradeRows;
-          if (currentGrade.seasonGradeData.startDate > todayStr) {
+          if (currentGrade.seasonGradeStartDate > todayStr) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${currentGrade.seasonGradeData.gradeId}'s start timestamp ${currentGrade.seasonGradeData.startDate} should be smaller than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${currentGrade.seasonGradeGradeId}'s start date ${currentGrade.seasonGradeStartDate} should be smaller than today ${todayStr}.`,
             );
           }
-          if (laterGrade.seasonGradeData.startDate <= todayStr) {
+          if (laterGrade.seasonGradeStartDate <= todayStr) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${laterGrade.seasonGradeData.gradeId}'s start timestamp ${laterGrade.seasonGradeData.startDate} should be larger than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${laterGrade.seasonGradeGradeId}'s start date ${laterGrade.seasonGradeStartDate} should be larger than today ${todayStr}.`,
             );
           }
-          currentGrade.seasonGradeData.endDate = body.effectiveDate;
-          laterGrade.seasonGradeData.grade = body.grade;
-          laterGrade.seasonGradeData.startDate = body.effectiveDate;
-          seasonData.lastChangeTimeMs = this.getNowDate().valueOf();
           await transaction.batchUpdate([
-            updateSeasonGradeStatement(currentGrade.seasonGradeData),
-            updateSeasonGradeStatement(laterGrade.seasonGradeData),
-            updateSeasonStatement(seasonData),
+            updateSeasonGradeEndDateStatement({
+              seasonGradeSeasonIdEq: currentGrade.seasonGradeSeasonId,
+              seasonGradeGradeIdEq: currentGrade.seasonGradeGradeId,
+              setEndDate: body.effectiveDate,
+            }),
+            updateSeasonGradeStartDateAndGradeStatement({
+              seasonGradeSeasonIdEq: laterGrade.seasonGradeSeasonId,
+              seasonGradeGradeIdEq: laterGrade.seasonGradeGradeId,
+              setGrade: body.grade,
+              setStartDate: body.effectiveDate,
+            }),
+            updateSeasonLastChangeTimeStatement({
+              seasonSeasonIdEq: body.seasonId,
+              setLastChangeTimeMs: this.getNowDate().valueOf(),
+            }),
           ]);
         }
       }

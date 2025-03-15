@@ -1,11 +1,9 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonMoreStatement,
   deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
-  insertSeasonMoreStatement,
   insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
@@ -13,8 +11,8 @@ import { GetSeasonDetailsHandler } from "./get_season_details_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
-  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
-  ExchangeSessionAndCheckCapabilityResponse,
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
 } from "@phading/user_session_service_interface/node/interface";
 import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
@@ -41,9 +39,6 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
-            }),
-            insertSeasonMoreStatement({
-              seasonId: "season1",
               description: "",
             }),
             insertSeasonGradeStatement({
@@ -66,13 +61,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -115,9 +110,12 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonMoreStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -138,9 +136,6 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
-            }),
-            insertSeasonMoreStatement({
-              seasonId: "season1",
               description: "something something",
             }),
             insertSeasonGradeStatement({
@@ -175,13 +170,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -228,9 +223,12 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonMoreStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -249,9 +247,6 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
-            }),
-            insertSeasonMoreStatement({
-              seasonId: "season1",
               description: "something something",
             }),
           ]);
@@ -260,13 +255,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected.`);
             }
@@ -294,9 +289,12 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonMoreStatement("season1"),
-            deleteSeasonRatingStatement("season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -309,13 +307,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected.`);
             }

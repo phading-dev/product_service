@@ -21,7 +21,9 @@ export class GetSeasonPublisherHandler extends GetSeasonPublisherHandlerInterfac
     loggingPrefix: string,
     body: GetSeasonPublisherRequestBody,
   ): Promise<GetSeasonPublisherResponse> {
-    let seasonRows = await getSeasonPublisher(this.database, body.seasonId);
+    let seasonRows = await getSeasonPublisher(this.database, {
+      seasonSeasonIdEq: body.seasonId,
+    });
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} not found.`);
     }

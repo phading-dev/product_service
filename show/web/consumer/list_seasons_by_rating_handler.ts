@@ -16,7 +16,7 @@ import {
   ListSeasonsByRatingResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -55,14 +55,14 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list seasons by rating.`,
       );
@@ -72,36 +72,34 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
     let todayStr = toTodaISOString(nowDate);
     let ratingCursor =
       body.ratingCursor ?? VALID_RATINGS[VALID_RATINGS.length - 1] + 1;
-    let rows = await listPublishedSeasonsByRatingForConsumer(
-      this.database,
-      SeasonState.PUBLISHED,
-      ratingCursor,
-      ratingCursor,
-      body.updatedTimeCursor ?? now,
-      body.limit,
-    );
+    let rows = await listPublishedSeasonsByRatingForConsumer(this.database, {
+      sStateEq: SeasonState.PUBLISHED,
+      srAverageRatingLt: ratingCursor,
+      srAverageRatingEq: ratingCursor,
+      srUpdatedTimeMsLt: body.updatedTimeCursor ?? now,
+      limit: body.limit,
+    });
     let seasons = new Array<SeasonSummary>(rows.length);
     await Promise.all(
       rows.map(async (row, i) => {
-        let gradeRows = await getLastSeasonGrades(
-          this.database,
-          row.sData.seasonId,
-          todayStr,
-          1,
-        );
+        let gradeRows = await getLastSeasonGrades(this.database, {
+          seasonGradeSeasonIdEq: row.sSeasonId,
+          seasonGradeEndDateGt: todayStr,
+          limit: 1,
+        });
         if (gradeRows.length === 0) {
           throw newInternalServerErrorError(
-            `Season ${row.sData.seasonId} has no grade at today ${todayStr}.`,
+            `Season ${row.sSeasonId} has no grade at today ${todayStr}.`,
           );
         }
         seasons[i] = {
-          seasonId: row.sData.seasonId,
-          publisherId: row.sData.publisherId,
-          name: row.sData.name,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sData.coverImageR2Filename}`,
-          totalEpisodes: row.sData.totalEpisodes,
-          averageRating: row.srData.averageRating,
-          grade: gradeRows[0].seasonGradeData.grade,
+          seasonId: row.sSeasonId,
+          publisherId: row.sPublisherId,
+          name: row.sName,
+          coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`,
+          totalEpisodes: row.sTotalEpisodes,
+          averageRating: row.srAverageRating,
+          grade: gradeRows[0].seasonGradeGrade,
         };
       }),
     );
@@ -109,11 +107,11 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
       seasons,
       ratingCursor:
         rows.length === body.limit
-          ? rows[rows.length - 1].srData.averageRating
+          ? rows[rows.length - 1].srAverageRating
           : undefined,
       updatedTimeCursor:
         rows.length === body.limit
-          ? rows[rows.length - 1].srData.updatedTimeMs
+          ? rows[rows.length - 1].srUpdatedTimeMs
           : undefined,
     };
   }

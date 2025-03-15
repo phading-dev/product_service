@@ -20,7 +20,9 @@ export class CheckPresenceOfSeasonHandler extends CheckPresenceOfSeasonHandlerIn
     loggingPrefix: string,
     body: CheckPresenceOfSeasonRequestBody,
   ): Promise<CheckPresenceOfSeasonResponse> {
-    let rows = await checkPresenceOfSeason(this.database, body.seasonId);
+    let rows = await checkPresenceOfSeason(this.database, {
+      seasonSeasonIdEq: body.seasonId,
+    });
     return {
       present: rows.length > 0,
     };

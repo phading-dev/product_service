@@ -12,7 +12,7 @@ import {
   UnrateSeasonRequestBody,
   UnrateSeasonResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -45,22 +45,25 @@ export class UnrateSeasonHandler extends UnrateSeasonHandlerInterface {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: authStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} is not allowed to unrate season.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let [individualRows, totalRows] = await Promise.all([
-        getIndividualSeasonRating(transaction, accountId, body.seasonId),
-        getSeasonRating(transaction, body.seasonId),
+        getIndividualSeasonRating(transaction, {
+          individualSeasonRatingRaterIdEq: accountId,
+          individualSeasonRatingSeasonIdEq: body.seasonId,
+        }),
+        getSeasonRating(transaction, { seasonRatingSeasonIdEq: body.seasonId }),
       ]);
       if (individualRows.length === 0) {
         throw newNotFoundError(
@@ -72,19 +75,24 @@ export class UnrateSeasonHandler extends UnrateSeasonHandlerInterface {
           `Season rating ${body.seasonId} is not found.`,
         );
       }
-      let seasonRatingData = totalRows[0].seasonRatingData;
-      let individualSeasonRatingData =
-        individualRows[0].individualSeasonRatingData;
-      seasonRatingData.totalRatings -= individualSeasonRatingData.rating;
-      seasonRatingData.count -= 1;
-      seasonRatingData.averageRating =
-        seasonRatingData.count === 0
-          ? 0
-          : seasonRatingData.totalRatings / seasonRatingData.count;
-      seasonRatingData.updatedTimeMs = this.getNow();
+      let totalRow = totalRows[0];
+      let individualRow = individualRows[0];
+      let totalRating =
+        totalRow.seasonRatingTotalRatings -
+        individualRow.individualSeasonRatingRating;
+      let totalCount = totalRow.seasonRatingCount - 1;
       await transaction.batchUpdate([
-        deleteIndividualSeasonRatingStatement(accountId, body.seasonId),
-        updateSeasonRatingStatement(seasonRatingData),
+        deleteIndividualSeasonRatingStatement({
+          individualSeasonRatingRaterIdEq: accountId,
+          individualSeasonRatingSeasonIdEq: body.seasonId,
+        }),
+        updateSeasonRatingStatement({
+          seasonRatingSeasonIdEq: body.seasonId,
+          setTotalRatings: totalRating,
+          setCount: totalCount,
+          setAverageRating: totalCount === 0 ? 0 : totalRating / totalCount,
+          setUpdatedTimeMs: this.getNow(),
+        }),
       ]);
       await transaction.commit();
     });

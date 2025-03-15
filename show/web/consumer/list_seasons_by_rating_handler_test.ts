@@ -10,7 +10,7 @@ import {
 import { ListSeasonsByRatingHandler } from "./list_seasons_by_rating_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
@@ -32,8 +32,6 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 10,
             }),
             insertSeasonRatingStatement({
               seasonId: "season1",
@@ -54,8 +52,6 @@ TEST_RUNNER.run({
               name: "name4",
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
-              lastChangeTimeMs: 400,
-              recentPremierTimeMs: 40,
             }),
             insertSeasonRatingStatement({
               seasonId: "season4",
@@ -76,8 +72,6 @@ TEST_RUNNER.run({
               name: "name3",
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
-              lastChangeTimeMs: 300,
-              recentPremierTimeMs: 30,
             }),
             insertSeasonRatingStatement({
               seasonId: "season3",
@@ -98,8 +92,6 @@ TEST_RUNNER.run({
               name: "name2",
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
-              lastChangeTimeMs: 200,
-              recentPremierTimeMs: 20,
             }),
             insertSeasonRatingStatement({
               seasonId: "season2",
@@ -120,9 +112,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "account1",
           capabilities: {
-            canConsumeShows: true,
+            canConsume: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsByRatingHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -212,14 +204,30 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteSeasonStatement("season2"),
-            deleteSeasonStatement("season3"),
-            deleteSeasonStatement("season4"),
-            deleteSeasonRatingStatement("season1"),
-            deleteSeasonRatingStatement("season2"),
-            deleteSeasonRatingStatement("season3"),
-            deleteSeasonRatingStatement("season4"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season2",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season3",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season4",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season1",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season2",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season3",
+            }),
+            deleteSeasonRatingStatement({
+              seasonRatingSeasonIdEq: "season4",
+            }),
           ]);
           await transaction.commit();
         });

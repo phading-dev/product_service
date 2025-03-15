@@ -7,7 +7,7 @@ import {
   GetEpisodeRequestBody,
   GetEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newGetVideoContainerRequest } from "@phading/video_service_interface/node/client";
 import { VideoContainer } from "@phading/video_service_interface/node/video_container";
 import {
@@ -41,46 +41,45 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
       throw newBadRequestError(`"episodeId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to get episode details.`,
       );
     }
-    let rows = await getSeasonAndEpisodeForPublisher(
-      this.database,
-      accountId,
-      body.seasonId,
-      body.episodeId,
-    );
+    let rows = await getSeasonAndEpisodeForPublisher(this.database, {
+      sPublisherIdEq: accountId,
+      eSeasonIdEq: body.seasonId,
+      eEpisodeIdEq: body.episodeId,
+    });
     if (rows.length === 0) {
       throw newNotFoundError(
         `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
       );
     }
-    let { sData, eData } = rows[0];
+    let row = rows[0];
     let videoContainer: VideoContainer;
-    if (eData.videoContainerId) {
+    if (row.eVideoContainerId) {
       ({ videoContainer } = await this.serviceClient.send(
         newGetVideoContainerRequest({
-          containerId: eData.videoContainerId,
+          containerId: row.eVideoContainerId,
         }),
       ));
     }
     return {
       episode: {
-        seasonName: sData.name,
-        episodeName: eData.name,
-        episodeIndex: eData.index,
+        seasonName: row.sName,
+        episodeName: row.eName,
+        episodeIndex: row.eIndex,
         videoContainer,
-        publishTimeMs: eData.publishTimeMs,
-        premierTimeMs: eData.premierTimeMs,
+        publishTimeMs: row.ePublishTimeMs,
+        premierTimeMs: row.ePremierTimeMs,
       },
     };
   }

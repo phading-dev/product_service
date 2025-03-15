@@ -12,8 +12,8 @@ import {
 import { UpdateSeasonGradeHandler } from "./update_season_grade_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import {
-  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
-  ExchangeSessionAndCheckCapabilityResponse,
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
 } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
@@ -35,8 +35,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -51,13 +49,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
                   capabilities: {
-                    canPublishShows: true,
+                    canPublish: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -83,17 +81,14 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.DRAFT,
-                  lastChangeTimeMs: 1577908800000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.DRAFT,
+                seasonLastChangeTimeMs: 1577908800000,
               },
               GET_SEASON_ROW,
             ),
@@ -101,22 +96,19 @@ TEST_RUNNER.run({
           "Season",
         );
         assertThat(
-          await getLastSeasonGrades(
-            SPANNER_DATABASE,
-            "season1",
-            "2020-01-01",
-            2,
-          ),
+          await getLastSeasonGrades(SPANNER_DATABASE, {
+            seasonGradeSeasonIdEq: "season1",
+            seasonGradeEndDateGt: "2020-01-01",
+            limit: 2,
+          }),
           isArray([
             eqMessage(
               {
-                seasonGradeData: {
-                  seasonId: "season1",
-                  gradeId: "grade1",
-                  startDate: "1900-01-01",
-                  endDate: "9999-12-31",
-                  grade: 5,
-                },
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade1",
+                seasonGradeStartDate: "1900-01-01",
+                seasonGradeEndDate: "9999-12-31",
+                seasonGradeGrade: 5,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
@@ -126,7 +118,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -141,8 +135,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -157,13 +149,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
                   capabilities: {
-                    canPublishShows: true,
+                    canPublish: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -214,17 +206,14 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  lastChangeTimeMs: 1577908800000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonLastChangeTimeMs: 1577908800000,
               },
               GET_SEASON_ROW,
             ),
@@ -232,34 +221,29 @@ TEST_RUNNER.run({
           "Season",
         );
         assertThat(
-          await getLastSeasonGrades(
-            SPANNER_DATABASE,
-            "season1",
-            "2020-01-01",
-            2,
-          ),
+          await getLastSeasonGrades(SPANNER_DATABASE, {
+            seasonGradeSeasonIdEq: "season1",
+            seasonGradeEndDateGt: "2020-01-01",
+            limit: 2,
+          }),
           isArray([
             eqMessage(
               {
-                seasonGradeData: {
-                  seasonId: "season1",
-                  gradeId: "uuid0",
-                  startDate: "2020-01-03",
-                  endDate: "9999-12-31",
-                  grade: 5,
-                },
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "uuid0",
+                seasonGradeStartDate: "2020-01-03",
+                seasonGradeEndDate: "9999-12-31",
+                seasonGradeGrade: 5,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
             eqMessage(
               {
-                seasonGradeData: {
-                  seasonId: "season1",
-                  gradeId: "grade1",
-                  startDate: "1900-01-01",
-                  endDate: "2020-01-03",
-                  grade: 3,
-                },
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade1",
+                seasonGradeStartDate: "1900-01-01",
+                seasonGradeEndDate: "2020-01-03",
+                seasonGradeGrade: 3,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
@@ -269,7 +253,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -284,8 +270,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -307,13 +291,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
                   capabilities: {
-                    canPublishShows: true,
+                    canPublish: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -364,17 +348,14 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  lastChangeTimeMs: 1577840400000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonLastChangeTimeMs: 1577840400000,
               },
               GET_SEASON_ROW,
             ),
@@ -382,34 +363,29 @@ TEST_RUNNER.run({
           "Season",
         );
         assertThat(
-          await getLastSeasonGrades(
-            SPANNER_DATABASE,
-            "season1",
-            "2020-01-01",
-            2,
-          ),
+          await getLastSeasonGrades(SPANNER_DATABASE, {
+            seasonGradeSeasonIdEq: "season1",
+            seasonGradeEndDateGt: "2020-01-01",
+            limit: 2,
+          }),
           isArray([
             eqMessage(
               {
-                seasonGradeData: {
-                  seasonId: "season1",
-                  gradeId: "grade2",
-                  startDate: "2020-01-02",
-                  endDate: "9999-12-31",
-                  grade: 4,
-                },
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade2",
+                seasonGradeStartDate: "2020-01-02",
+                seasonGradeEndDate: "9999-12-31",
+                seasonGradeGrade: 4,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
             eqMessage(
               {
-                seasonGradeData: {
-                  seasonId: "season1",
-                  gradeId: "grade1",
-                  startDate: "1900-01-01",
-                  endDate: "2020-01-02",
-                  grade: 3,
-                },
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade1",
+                seasonGradeStartDate: "1900-01-01",
+                seasonGradeEndDate: "2020-01-02",
+                seasonGradeGrade: 3,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
@@ -419,7 +395,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
@@ -434,8 +412,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -450,13 +426,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
                   capabilities: {
-                    canPublishShows: true,
+                    canPublish: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               default:
                 throw new Error(`Unexpected`);
             }
@@ -495,7 +471,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },

@@ -7,7 +7,6 @@ import {
 } from "../../db/sql";
 import { GetSeasonGradeHandler } from "./get_season_grade_handler";
 import { GET_SEASON_GRADE_RESPONSE } from "@phading/product_service_interface/show/node/interface";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import {
   newInternalServerErrorError,
   newNotFoundError,
@@ -28,10 +27,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -142,7 +137,11 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+          ]);
           await transaction.commit();
         });
       },
@@ -155,10 +154,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -200,7 +195,11 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+          ]);
           await transaction.commit();
         });
       },

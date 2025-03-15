@@ -15,7 +15,7 @@ import {
   ListSeasonsByRecentPremierTimeResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
@@ -54,14 +54,14 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
       throw newBadRequestError(`"limit" is too large.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to list seasons by recent publish time.`,
       );
@@ -71,33 +71,33 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
     let todayStr = toTodaISOString(nowDate);
     let seasonRows = await listPublishedSeasonsByPublishTimeForConsumer(
       this.database,
-      SeasonState.PUBLISHED,
-      body.premierTimeCursor ?? now,
-      body.limit,
+      {
+        sStateEq: SeasonState.PUBLISHED,
+        sRecentPremierTimeMsLt: body.premierTimeCursor ?? now,
+        limit: body.limit,
+      },
     );
     let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
       seasonRows.map(async (row, i) => {
-        let gradeRows = await getLastSeasonGrades(
-          this.database,
-          row.sData.seasonId,
-          todayStr,
-          1,
-        );
+        let gradeRows = await getLastSeasonGrades(this.database, {
+          seasonGradeSeasonIdEq: row.sSeasonId,
+          seasonGradeEndDateGt: todayStr,
+          limit: 1,
+        });
         if (gradeRows.length === 0) {
           throw newInternalServerErrorError(
-            `Season ${row.sData.seasonId} has no grade at today ${todayStr}.`,
+            `Season ${row.sSeasonId} has no grade at today ${todayStr}.`,
           );
         }
-        let { sData, srData } = row;
         seasons[i] = {
-          seasonId: sData.seasonId,
-          publisherId: sData.publisherId,
-          name: sData.name,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${sData.coverImageR2Filename}`,
-          totalEpisodes: sData.totalEpisodes,
-          averageRating: srData ? srData.averageRating : 0,
-          grade: gradeRows[0].seasonGradeData.grade,
+          seasonId: row.sSeasonId,
+          publisherId: row.sPublisherId,
+          name: row.sName,
+          coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`,
+          totalEpisodes: row.sTotalEpisodes,
+          averageRating: row.srAverageRating ?? 0,
+          grade: gradeRows[0].seasonGradeGrade,
         };
       }),
     );
@@ -105,7 +105,7 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
       seasons,
       premierTimeCursor:
         seasonRows.length === body.limit
-          ? seasonRows[seasonRows.length - 1].sData.recentPremierTimeMs
+          ? seasonRows[seasonRows.length - 1].sRecentPremierTimeMs
           : undefined,
     };
   }

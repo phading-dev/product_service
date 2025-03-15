@@ -1,6 +1,10 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { deleteSeasonStatement, insertEpisodeStatement, insertSeasonStatement } from "../../../db/sql";
+import {
+  deleteSeasonStatement,
+  insertEpisodeStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { GetContinueEpisodeHandler } from "./get_continue_episode_handler";
 import {
   GET_LATEST_WATCHED_EPISODE,
@@ -9,8 +13,8 @@ import {
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_CONTINUE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
-  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
-  ExchangeSessionAndCheckCapabilityResponse,
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
 } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeClientOptions } from "@selfage/node_service_client";
@@ -30,10 +34,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 10,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -55,13 +56,13 @@ TEST_RUNNER.run({
             options?: NodeClientOptions,
           ): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "account1",
                   capabilities: {
-                    canConsumeShows: true,
+                    canConsume: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               case GET_LATEST_WATCHED_EPISODE:
                 this.request = request;
                 return {
@@ -107,7 +108,9 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
           ]);
           await transaction.commit();
         });

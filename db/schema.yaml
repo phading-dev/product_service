@@ -1,134 +1,50 @@
-- kind: Message
-  name: Season
-  fields:
-    - name: seasonId
-      type: string
-      index: 1
-    - name: publisherId
-      type: string
-      index: 2
-    - name: state
-      type: SeasonState
-      import: "@phading/product_service_interface/show/season_state"
-      index: 3
-    - name: name
-      type: string
-      index: 4
-    - name: coverImageR2Filename
-      type: string
-      index: 5
-    - name: totalEpisodes
-      type: number
-      index: 6
-    - name: lastChangeTimeMs
-      type: number
-      index: 7
-    - name: recentPremierTimeMs
-      type: number
-      index: 8
-- kind: Message
-  name: SeasonMore
-  fields:
-    - name: seasonId
-      type: string
-      index: 1
-    - name: description
-      type: string
-      index: 2
-    - name: createdTimeMs
-      type: number
-      index: 3
-- kind: Message
-  name: SeasonGrade
-  fields:
-    - name: seasonId
-      type: string
-      index: 1
-    - name: gradeId
-      type: string
-      index: 2
-    - name: startDate # ISO string. Inclusive.
-      type: string
-      index: 3
-    - name: endDate # ISO string. Exclusive.
-      type: string
-      index: 4
-    - name: grade # From 1 to 99. A multiplier on the base price.
-      type: number
-      index: 5
-- kind: Message
-  name: Episode
-  fields:
-    - name: seasonId
-      type: string
-      index: 1
-    - name: episodeId
-      type: string
-      index: 2
-    - name: index
-      type: number
-      index: 3
-    - name: name
-      type: string
-      index: 4
-    - name: videoContainerId
-      type: string
-      index: 5
-    - name: videoContainer
-      type: VideoContainer
-      import: "@phading/product_service_interface/show/video_container"
-      index: 6
-    - name: premierTimeMs
-      type: number
-      index: 7
-    - name: publishTimeMs
-      type: number
-      index: 8
-- kind: Message
-  name: IndividualSeasonRating
-  fields:
-    - name: raterId
-      type: string
-      index: 1
-    - name: seasonId
-      type: string
-      index: 2
-    - name: rating
-      type: number
-      index: 3
-    - name: ratedTimeMs
-      type: number
-      index: 4
-- kind: Message
-  name: SeasonRating
-  fields:
-    - name: seasonId
-      type: string
-      index: 1
-    - name: totalRatings
-      type: number
-      index: 2
-    - name: count
-      type: number
-      index: 3
-    - name: averageRating
-      type: number
-      index: 4
-    - name: updatedTimeMs
-      type: number
-      index: 5
 - kind: SpannerDatabase
   name: ProductDatabase
   tables:
-    - kind: MessageTable
+    - kind: Table
       name: Season
-      storedInColumn: data
       columns:
-        - seasonId
-        - publisherId
-        - state
-        - lastChangeTimeMs
-        - recentPremierTimeMs
+        - name: seasonId
+          type: string
+        - name: publisherId
+          type: string
+          nullable: true
+        - name: state
+          type: SeasonState
+          import: "@phading/product_service_interface/show/season_state"
+          nullable: true
+        - name: name
+          type: string
+          nullable: true
+        - name: coverImageR2Filename
+          type: string
+          nullable: true
+        - name: totalEpisodes
+          type: float64
+          nullable: true
+        - name: lastChangeTimeMs
+          type: float64
+          nullable: true
+        - name: recentPremierTimeMs
+          type: float64
+          nullable: true
+        - name: description
+          type: string
+          nullable: true
+        - name: createdTimeMs
+          type: float64
+          nullable: true
+      columnGroups:
+        - name: main
+          columns:
+            - seasonId
+            - publisherId
+            - state
+            - name
+            - coverImageR2Filename
+            - totalEpisodes
+            - lastChangeTimeMs
+            - recentPremierTimeMs
       primaryKeys:
         - seasonId
       indexes:
@@ -146,26 +62,22 @@
       insert: InsertSeason
       delete: DeleteSeason
       get: GetSeason
-      update: UpdateSeason
-    - kind: MessageTable
-      name: SeasonMore
-      storedInColumn: data
-      columns:
-        - seasonId
-      primaryKeys:
-        - seasonId
-      insert: InsertSeasonMore
-      delete: DeleteSeasonMore
-      get: GetSeasonMore
-      update: UpdateSeasonMore
-    - kind: MessageTable
+    - kind: Table
       name: SeasonGrade
-      storedInColumn: data
       columns:
-        - seasonId
-        - gradeId
-        - startDate
-        - endDate
+        - name: seasonId
+          type: string
+        - name: gradeId
+          type: string
+        - name: startDate # ISO string. Inclusive.
+          type: string
+          nullable: true
+        - name: endDate # ISO string. Exclusive.
+          type: string
+          nullable: true
+        - name: grade # From 1 to 99. A multiplier on the base price.
+          type: float64
+          nullable: true
       primaryKeys:
         - seasonId
         - gradeId
@@ -179,15 +91,32 @@
               desc: true
             - startDate
       insert: InsertSeasonGrade
-      update: UpdateSeasonGrade
-    - kind: MessageTable
+    - kind: Table
       name: Episode
-      storedInColumn: data
       columns:
-        - seasonId
-        - episodeId
-        - index
-        - publishTimeMs
+        - name: seasonId
+          type: string
+        - name: episodeId
+          type: string
+        - name: index
+          type: float64
+          nullable: true
+        - name: name
+          type: string
+          nullable: true
+        - name: videoContainerId
+          type: string
+          nullable: true
+        - name: videoContainer
+          type: VideoContainer
+          import: "@phading/product_service_interface/show/video_container"
+          nullable: true
+        - name: premierTimeMs
+          type: float64
+          nullable: true
+        - name: publishTimeMs
+          type: float64
+          nullable: true
       primaryKeys:
         - seasonId
         - episodeId
@@ -202,13 +131,19 @@
       insert: InsertEpisode
       delete: DeleteEpisode
       get: GetEpisode
-      update: UpdateEpisode
-    - kind: MessageTable
+    - kind: Table
       name: IndividualSeasonRating
-      storedInColumn: data
       columns:
-        - raterId
-        - seasonId
+        - name: raterId
+          type: string
+        - name: seasonId
+          type: string
+        - name: rating
+          type: float64
+          nullable: true
+        - name: ratedTimeMs
+          type: float64
+          nullable: true
       primaryKeys:
         - raterId
         - seasonId
@@ -216,13 +151,23 @@
       delete: DeleteIndividualSeasonRating
       get: GetIndividualSeasonRating
       update: UpdateIndividualSeasonRating
-    - kind: MessageTable
+    - kind: Table
       name: SeasonRating
-      storedInColumn: data
       columns:
-        - seasonId
-        - averageRating
-        - updatedTimeMs
+        - name: seasonId
+          type: string
+        - name: totalRatings
+          type: float64
+          nullable: true
+        - name: count
+          type: float64
+          nullable: true
+        - name: averageRating
+          type: float64
+          nullable: true
+        - name: updatedTimeMs
+          type: float64
+          nullable: true
       primaryKeys:
         - seasonId
       indexes:
@@ -243,6 +188,9 @@
           type: string
       primaryKeys:
         - r2Filename
+      insert: InsertCoverImageFile
+      delete: DeleteCoverImageFile
+      get: GetCoverImageFile
     - kind: Table
       name: VideoContainerKey
       columns:
@@ -250,6 +198,9 @@
           type: string
       primaryKeys:
         - key
+      insert: InsertVideoContainerKey
+      delete: DeleteVideoContainerKey
+      get: GetVideoContainerKey
     - kind: TaskTable
       name: VideoContainerCreatingTask
       columns:
@@ -304,660 +255,685 @@
       listPendingTasks: ListPendingCoverImageDeletingTasks
       getMetadata: GetCoverImageDeletingTaskMetadata
       updateMetadata: UpdateCoverImageDeletingTaskMetadata
-  inserts:
-    - name: InsertCoverImageFile
-      table: CoverImageFile
-      setColumns:
-        - r2Filename
-    - name: InsertVideoContainerKey
-      table: VideoContainerKey
-      setColumns:
-        - key
   deletes:
     - name: DeleteAllEpisodes
       table: Episode
       where:
         op: =
-        leftColumn: seasonId
-    - name: DeleteCoverImageFile
-      table: CoverImageFile
+        lColumn: seasonId
+  updates:
+    - name: UpdateSeasonLastChangeTime
+      table: Season
       where:
         op: =
-        leftColumn: r2Filename
-    - name: DeleteVideoContainerKey
-      table: VideoContainerKey
+        lColumn: seasonId
+      set:
+        - lastChangeTimeMs
+    - name: ArchiveSeason
+      table: Season
       where:
         op: =
-        leftColumn: key
+        lColumn: seasonId
+      set:
+        - state
+        - coverImageR2Filename
+        - lastChangeTimeMs
+    - name: UpdateSeasonTotalEpisodes
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - totalEpisodes
+        - lastChangeTimeMs
+    - name: PublishSeason
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - state
+        - recentPremierTimeMs
+        - lastChangeTimeMs
+    - name: UpdateSeasonPremierTime
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - recentPremierTimeMs
+        - lastChangeTimeMs
+    - name: UpdateSeasonNameAndDescription
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - name
+        - description
+        - lastChangeTimeMs
+    - name: UpdateSeasonCoverImage
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - coverImageR2Filename
+        - lastChangeTimeMs
+    - name: UpdateSeasonGrade
+      table: SeasonGrade
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: gradeId
+      set:
+        - grade
+    - name: UpdateSeasonGradeEndDate
+      table: SeasonGrade
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: gradeId
+      set:
+        - endDate
+    - name: UpdateSeasonGradeStartDateAndGrade
+      table: SeasonGrade
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: gradeId
+      set:
+        - startDate
+        - grade
+    - name: UpdateEpisodeVideoContainerId
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - videoContainerId
+    - name: UpdateEpisodeVideoContainer
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - videoContainer
+    - name: UpdateEpisodeIndex
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - index
+    - name: PublishEpisode # Unpublish as well
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - publishTimeMs
+        - premierTimeMs
+    - name: UpdateEpisodeName
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - name
   selects:
     # Season
     - name: CheckPresenceOfSeason
-      table: Season
+      from: Season
       where:
         op: =
-        leftColumn: seasonId
-      getColumns:
+        lColumn: seasonId
+      get:
         - lastChangeTimeMs
     - name: GetSeasonPublisher
-      table: Season
+      from: Season
       where:
         op: =
-        leftColumn: seasonId
-      getColumns:
+        lColumn: seasonId
+      get:
         - publisherId
     - name: GetSeasonForPublisher
-      table: Season
+      from: Season
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn: publisherId
+            lColumn: publisherId
           - op: =
-            leftColumn: seasonId
-      getColumns:
-        - data
-    - name: GetSeasonAndMoreAndRatingForPublisher
-      table:
-        name: Season
-        as: s
+            lColumn: seasonId
+      get:
+        - columnGroup: main
+    - name: GetSeasonAllAndRatingForPublisher
+      from: Season
+      as: s
       join:
-        - type: INNER
-          table:
-            name: SeasonMore
-            as: m
-          on:
-            op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
         - type: LEFT
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: seasonId
-              table: s
-      getColumns:
-        - name: data
+            lColumn: seasonId
+            lTable: s
+      get:
+        - all: true
           table: s
-        - name: data
-          table: m
-        - name: data
+        - all: true
           table: sr
     - name: ListSeasonsForPublisher
-      table:
-        name: Season
-        as: s
+      from: Season
+      as: s
       join:
         - type: LEFT
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: <
-            leftColumn:
-              name: lastChangeTimeMs
-              table: s
+            lColumn: lastChangeTimeMs
+            lTable: s
       orderBy:
-        - column:
-            name: lastChangeTimeMs
-            table: s
+        - column: lastChangeTimeMs
+          table: s
           desc: true
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: sr
     - name: ListPublishedSeasonsByPublishTimeForConsumer
-      table:
-        name: Season
-        as: s
+      from: Season
+      as: s
       join:
         - type: LEFT
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: <
-            leftColumn:
-              name: recentPremierTimeMs
-              table: s
+            lColumn: recentPremierTimeMs
+            lTable: s
       orderBy:
-        - column:
-            name: recentPremierTimeMs
-            table: s
+        - column: recentPremierTimeMs
+          table: s
           desc: true
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: sr
     - name: ListPublishedSeasonsByRatingForConsumer
-      table:
-        name: Season
-        as: s
+      from: Season
+      as: s
       join:
         - type: INNER
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: OR
-            exps:
+            exprs:
               - op: <
-                leftColumn:
-                  name: averageRating
-                  table: sr
+                lColumn: averageRating
+                lTable: sr
               - op: AND
-                exps:
+                exprs:
                   - op: =
-                    leftColumn:
-                      name: averageRating
-                      table: sr
+                    lColumn: averageRating
+                    lTable: sr
                   - op: <
-                    leftColumn:
-                      name: updatedTimeMs
-                      table: sr
+                    lColumn: updatedTimeMs
+                    lTable: sr
       orderBy:
-        - column:
-            name: averageRating
-            table: sr
+        - column: averageRating
+          table: sr
           desc: true
-        - column:
-            name: updatedTimeMs
-            table: sr
+        - column: updatedTimeMs
+          table: sr
           desc: true
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: sr
     - name: GetPublishedSeasonAndRatingForConsumer
-      table:
-        name: Season
-        as: s
+      from: Season
+      as: s
       join:
         - type: LEFT
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: s
+            lColumn: seasonId
+            lTable: s
           - op: =
-            leftColumn:
-              name: state
-              table: s
-      getColumns:
-        - name: data
+            lColumn: state
+            lTable: s
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: sr
-    - name: GetPublishedSeasonAndMoreAndRatingForConsumer
-      table:
-        name: Season
-        as: s
+    - name: GetPublishedSeasonAllAndRatingForConsumer
+      from: Season
+      as: s
       join:
-        - type: INNER
-          table:
-            name: SeasonMore
-            as: m
-          on:
-            op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
         - type: LEFT
-          table:
-            name: SeasonRating
-            as: sr
+          with: SeasonRating
+          as: sr
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: s
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: s
+            lColumn: seasonId
+            lTable: s
           - op: =
-            leftColumn:
-              name: state
-              table: s
-      getColumns:
-        - name: data
+            lColumn: state
+            lTable: s
+      get:
+        - all: true
           table: s
-        - name: data
-          table: m
-        - name: data
+        - all: true
           table: sr
     # SeasonGrade
     - name: GetSeasonGrade
-      table: SeasonGrade
+      from: SeasonGrade
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn: seasonId
+            lColumn: seasonId
           - op: "<="
-            leftColumn: startDate
+            lColumn: startDate
           - op: ">"
-            leftColumn: endDate
-      getColumns:
-        - data
+            lColumn: endDate
+      get:
+        - all: true
     - name: GetLastSeasonGrades
-      table: SeasonGrade
+      from: SeasonGrade
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn: seasonId
+            lColumn: seasonId
           - op: ">"
-            leftColumn: endDate
+            lColumn: endDate
       orderBy:
         - column: endDate
           desc: true
       withLimit: true
-      getColumns:
-        - data
+      get:
+        - all: true
     # Episode
     - name: CheckPresenceOfEpisode
-      table: Episode
+      from: Episode
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn: seasonId
+            lColumn: seasonId
           - op: =
-            leftColumn: episodeId
-      getColumns:
+            lColumn: episodeId
+      get:
         - publishTimeMs
     - name: GetPublishedEpisodeForConsumer
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: =
-            leftColumn:
-              name: episodeId
-              table: e
+            lColumn: episodeId
+            lTable: e
           - op: <
-            leftColumn:
-              name: publishTimeMs
-              table: e
-      getColumns:
-        - name: data
+            lColumn: publishTimeMs
+            lTable: e
+      get:
+        - all: true
           table: e
     - name: ListNextPublishedEpisodesForConsumer
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: ">"
-            leftColumn:
-              name: index
-              table: e
+            lColumn: index
+            lTable: e
           - op: <
-            leftColumn:
-              name: publishTimeMs
-              table: e
+            lColumn: publishTimeMs
+            lTable: e
       orderBy:
-        - column:
-            name: index
-            table: e
+        - column: index
+          table: e
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - all: true
           table: e
     - name: ListPrevPublishedEpisodesForConsumer
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: =
-            leftColumn:
-              name: state
-              table: s
+            lColumn: state
+            lTable: s
           - op: "<"
-            leftColumn:
-              name: index
-              table: e
+            lColumn: index
+            lTable: e
           - op: <
-            leftColumn:
-              name: publishTimeMs
-              table: e
+            lColumn: publishTimeMs
+            lTable: e
       orderBy:
-        - column:
-            name: index
-            table: e
+        - column: index
+          table: e
           desc: true
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - all: true
           table: e
     - name: ListPrevEpisodesForPublisher
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: "<"
-            leftColumn:
-              name: index
-              table: e
+            lColumn: index
+            lTable: e
       orderBy:
-        - column:
-            name: index
-            table: e
+        - column: index
+          table: e
           desc: true
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - all: true
           table: e
     - name: ListNextEpisodesForPublisher
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: ">"
-            leftColumn:
-              name: index
-              table: e
+            lColumn: index
+            lTable: e
       orderBy:
-        - column:
-            name: index
-            table: e
+        - column: index
+          table: e
       withLimit: true
-      getColumns:
-        - name: data
+      get:
+        - all: true
           table: e
     - name: GetEpisodeForPublisher
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: =
-            leftColumn:
-              name: episodeId
-              table: e
-      getColumns:
-        - name: data
+            lColumn: episodeId
+            lTable: e
+      get:
+        - all: true
           table: e
-    - name: GetSeasonAndEpisode
-      table:
-        name: Episode
-        as: e
+    - name: CheckPresenceOfEpisodeForPublisher
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: episodeId
-              table: e
-      getColumns:
-        - name: data
+            lColumn: seasonId
+            lTable: e
+          - op: =
+            lColumn: episodeId
+            lTable: e
+      get:
+        - publishTimeMs
+    - name: GetSeasonAndEpisode
+      from: Episode
+      as: e
+      join:
+        - type: INNER
+          with: Season
+          as: s
+          on:
+            op: =
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+            lTable: e
+          - op: =
+            lColumn: episodeId
+            lTable: e
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: e
     - name: GetSeasonAndEpisodeForPublisher
-      table:
-        name: Episode
-        as: e
+      from: Episode
+      as: e
       join:
         - type: INNER
-          table:
-            name: Season
-            as: s
+          with: Season
+          as: s
           on:
             op: =
-            leftColumn:
-              name: seasonId
-              table: e
-            rightColumn: seasonId
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
       where:
         op: AND
-        exps:
+        exprs:
           - op: =
-            leftColumn:
-              name: publisherId
-              table: s
+            lColumn: publisherId
+            lTable: s
           - op: =
-            leftColumn:
-              name: seasonId
-              table: e
+            lColumn: seasonId
+            lTable: e
           - op: =
-            leftColumn:
-              name: episodeId
-              table: e
-      getColumns:
-        - name: data
+            lColumn: episodeId
+            lTable: e
+      get:
+        - columnGroup: main
           table: s
-        - name: data
+        - all: true
           table: e
-    # CoverImageFile
-    - name: CheckPresenceOfCoverImageFile
-      table: CoverImageFile
-      where:
-        op: =
-        leftColumn: r2Filename
-      getColumns:
-        - r2Filename
-    # VideoContainerKey
-    - name: CheckPresenceOfVideoContainerKey
-      table: VideoContainerKey
-      where:
-        op: =
-        leftColumn: key
-      getColumns:
-        - key
   outputDdl: ./db/ddl
   outputSql: ./db/sql

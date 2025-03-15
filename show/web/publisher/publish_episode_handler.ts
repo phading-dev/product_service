@@ -2,8 +2,9 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonAndEpisodeForPublisher,
-  updateEpisodeStatement,
-  updateSeasonStatement,
+  publishEpisodeStatement,
+  publishSeasonStatement,
+  updateSeasonPremierTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -12,7 +13,7 @@ import {
   PublishEpisodeRequestBody,
   PublishEpisodeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newNotFoundError,
@@ -47,48 +48,57 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
       throw newBadRequestError(`"episodeId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
         capabilitiesMask: {
-          checkCanPublishShows: true,
+          checkCanPublish: true,
         },
       }),
     );
-    if (!capabilities.canPublishShows) {
+    if (!capabilities.canPublish) {
       throw newUnauthorizedError(
         `Account ${accountId} not allowed to publish episode.`,
       );
     }
 
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisodeForPublisher(
-        transaction,
-        accountId,
-        body.seasonId,
-        body.episodeId,
-      );
+      let rows = await getSeasonAndEpisodeForPublisher(transaction, {
+        sPublisherIdEq: accountId,
+        eSeasonIdEq: body.seasonId,
+        eEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
-      let { sData, eData } = rows[0];
-      if (!eData.videoContainer) {
+      let row = rows[0];
+      if (!row.eVideoContainer) {
         throw newBadRequestError(
           `Video container is not committed yet for season ${body.seasonId} episode ${body.episodeId}.`,
         );
       }
       let now = this.getNow();
-      eData.publishTimeMs = now;
-      eData.premierTimeMs = body.premierTimeMs ?? now;
-      if (sData.state === SeasonState.DRAFT) {
-        sData.state = SeasonState.PUBLISHED;
-      }
-      sData.lastChangeTimeMs = now;
-      sData.recentPremierTimeMs = eData.premierTimeMs;
+      let premierTimeMs = body.premierTimeMs ?? now;
       await transaction.batchUpdate([
-        updateEpisodeStatement(eData),
-        updateSeasonStatement(sData),
+        publishEpisodeStatement({
+          episodeSeasonIdEq: body.seasonId,
+          episodeEpisodeIdEq: body.episodeId,
+          setPublishTimeMs: now,
+          setPremierTimeMs: premierTimeMs,
+        }),
+        row.sState === SeasonState.DRAFT
+          ? publishSeasonStatement({
+              seasonSeasonIdEq: body.seasonId,
+              setState: SeasonState.PUBLISHED,
+              setRecentPremierTimeMs: premierTimeMs,
+              setLastChangeTimeMs: now,
+            })
+          : updateSeasonPremierTimeStatement({
+              seasonSeasonIdEq: body.seasonId,
+              setRecentPremierTimeMs: premierTimeMs,
+              setLastChangeTimeMs: now,
+            }),
       ]);
       await transaction.commit();
     });

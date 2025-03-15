@@ -2,10 +2,10 @@ import "../../local/env";
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
   GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW,
-  checkPresenceOfVideoContainerKey,
   deleteVideoContainerDeletingTaskStatement,
   deleteVideoContainerKeyStatement,
   getVideoContainerDeletingTaskMetadata,
+  getVideoContainerKey,
   insertVideoContainerDeletingTaskStatement,
   insertVideoContainerKeyStatement,
   listPendingVideoContainerDeletingTasks,
@@ -29,13 +29,14 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertVideoContainerKeyStatement("showcontainer1"),
-            insertVideoContainerDeletingTaskStatement(
-              "showcontainer1",
-              0,
-              100,
-              0,
-            ),
+            insertVideoContainerKeyStatement({
+              key: "showcontainer1",
+            }),
+            insertVideoContainerDeletingTaskStatement({
+              videoContainerId: "showcontainer1",
+              retryCount: 0,
+              executionTimeMs: 100,
+            }),
           ]);
           await transaction.commit();
         });
@@ -68,18 +69,16 @@ TEST_RUNNER.run({
           "RC body",
         );
         assertThat(
-          await checkPresenceOfVideoContainerKey(
-            SPANNER_DATABASE,
-            "showcontainer1",
-          ),
+          await getVideoContainerKey(SPANNER_DATABASE, {
+            videoContainerKeyKeyEq: "showcontainer1",
+          }),
           isArray([]),
           "checkPresenceOfVideoContainerKey",
         );
         assertThat(
-          await listPendingVideoContainerDeletingTasks(
-            SPANNER_DATABASE,
-            1000000,
-          ),
+          await listPendingVideoContainerDeletingTasks(SPANNER_DATABASE, {
+            videoContainerDeletingTaskExecutionTimeMsLe: 1000000,
+          }),
           isArray([]),
           "listVideoContainerDeletingTasks",
         );
@@ -87,8 +86,12 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteVideoContainerKeyStatement("showcontainer1"),
-            deleteVideoContainerDeletingTaskStatement("showcontainer1"),
+            deleteVideoContainerKeyStatement({
+              videoContainerKeyKeyEq: "showcontainer1",
+            }),
+            deleteVideoContainerDeletingTaskStatement({
+              videoContainerDeletingTaskVideoContainerIdEq: "showcontainer1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -100,12 +103,11 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertVideoContainerDeletingTaskStatement(
-              "showcontainer1",
-              0,
-              100,
-              0,
-            ),
+            insertVideoContainerDeletingTaskStatement({
+              videoContainerId: "showcontainer1",
+              retryCount: 0,
+              executionTimeMs: 100,
+            }),
           ]);
           await transaction.commit();
         });
@@ -122,10 +124,9 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getVideoContainerDeletingTaskMetadata(
-            SPANNER_DATABASE,
-            "showcontainer1",
-          ),
+          await getVideoContainerDeletingTaskMetadata(SPANNER_DATABASE, {
+            videoContainerDeletingTaskVideoContainerIdEq: "showcontainer1",
+          }),
           isArray([
             eqMessage(
               {
@@ -141,7 +142,9 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteVideoContainerDeletingTaskStatement("showcontainer1"),
+            deleteVideoContainerDeletingTaskStatement({
+              videoContainerDeletingTaskVideoContainerIdEq: "showcontainer1",
+            }),
           ]);
           await transaction.commit();
         });

@@ -25,7 +25,9 @@ export class ListCoverImageDeletingTasksHandler extends ListCoverImageDeletingTa
     loggingPrefix: string,
     body: ListCoverImageDeletingTasksRequestBody,
   ): Promise<ListCoverImageDeletingTasksResponse> {
-    let tasks = await listPendingCoverImageDeletingTasks(this.database, this.getNow());
+    let tasks = await listPendingCoverImageDeletingTasks(this.database, {
+      coverImageDeletingTaskExecutionTimeMsLe: this.getNow()
+  });
     return {
       tasks: tasks.map((task) => ({
         r2Filename: task.coverImageDeletingTaskR2Filename,

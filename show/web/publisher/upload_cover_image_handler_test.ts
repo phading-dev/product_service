@@ -4,11 +4,11 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_COVER_IMAGE_DELETING_TASK_ROW,
   GET_SEASON_ROW,
-  checkPresenceOfCoverImageFile,
   deleteCoverImageDeletingTaskStatement,
   deleteCoverImageFileStatement,
   deleteSeasonStatement,
   getCoverImageDeletingTask,
+  getCoverImageFile,
   getSeason,
   insertSeasonStatement,
 } from "../../../db/sql";
@@ -16,7 +16,7 @@ import { ENV_VARS } from "../../../env_vars";
 import { UploadCoverImageHandler } from "./upload_cover_image_handler";
 import { DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -35,11 +35,15 @@ let ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 async function cleanUpAll() {
   await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
     await transaction.batchUpdate([
-      deleteSeasonStatement("season1"),
-      deleteCoverImageFileStatement("image1"),
-      deleteCoverImageFileStatement("image2"),
-      deleteCoverImageDeletingTaskStatement("image1"),
-      deleteCoverImageDeletingTaskStatement("image2"),
+      deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+      deleteCoverImageFileStatement({ coverImageFileR2FilenameEq: "image1" }),
+      deleteCoverImageFileStatement({ coverImageFileR2FilenameEq: "image2" }),
+      deleteCoverImageDeletingTaskStatement({
+        coverImageDeletingTaskR2FilenameEq: "image1",
+      }),
+      deleteCoverImageDeletingTaskStatement({
+        coverImageDeletingTaskR2FilenameEq: "image2",
+      }),
     ]);
     await transaction.commit();
   });
@@ -70,8 +74,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               coverImageR2Filename: "image1",
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -80,9 +82,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
           S3_CLIENT,
@@ -113,13 +115,18 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          (await checkPresenceOfCoverImageFile(SPANNER_DATABASE, "image2"))
-            .length,
+          (
+            await getCoverImageFile(SPANNER_DATABASE, {
+              coverImageFileR2FilenameEq: "image2",
+            })
+          ).length,
           eq(1),
           "coverImageFile",
         );
         assertThat(
-          await getCoverImageDeletingTask(SPANNER_DATABASE, "image2"),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, {
+            coverImageDeletingTaskR2FilenameEq: "image2",
+          }),
           isArray([
             eqMessage(
               {
@@ -140,18 +147,15 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  coverImageR2Filename: "image2",
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonCoverImageR2Filename: "image2",
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -159,7 +163,9 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await getCoverImageDeletingTask(SPANNER_DATABASE, "image1"),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, {
+            coverImageDeletingTaskR2FilenameEq: "image1",
+          }),
           isArray([
             eqMessage(
               {
@@ -202,7 +208,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               coverImageR2Filename: "image1",
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -211,9 +216,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
           S3_CLIENT,
@@ -240,18 +245,15 @@ TEST_RUNNER.run({
         // Verify
         assertThat(error, eqError(new Error("Fake error")), "error");
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.PUBLISHED,
-                  coverImageR2Filename: "image1",
-                  lastChangeTimeMs: 100,
-                  recentPremierTimeMs: 100,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonCoverImageR2Filename: "image1",
+                seasonLastChangeTimeMs: 100,
               },
               GET_SEASON_ROW,
             ),
@@ -259,13 +261,18 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          (await checkPresenceOfCoverImageFile(SPANNER_DATABASE, "image2"))
-            .length,
+          (
+            await getCoverImageFile(SPANNER_DATABASE, {
+              coverImageFileR2FilenameEq: "image2",
+            })
+          ).length,
           eq(1),
           "coverImageFile",
         );
         assertThat(
-          await getCoverImageDeletingTask(SPANNER_DATABASE, "image2"),
+          await getCoverImageDeletingTask(SPANNER_DATABASE, {
+            coverImageDeletingTaskR2FilenameEq: "image2",
+          }),
           isArray([
             eqMessage(
               {
@@ -295,8 +302,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
               coverImageR2Filename: "image1",
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -305,9 +310,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new UploadCoverImageHandler(
           SPANNER_DATABASE,
           S3_CLIENT,

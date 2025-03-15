@@ -7,7 +7,7 @@ import {
   GetIndividualSeasonRatingRequestBody,
   GetIndividualSeasonRatingResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newExchangeSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
@@ -35,30 +35,29 @@ export class GetIndividualSeasonRatingHandler extends GetIndividualSeasonRatingH
       throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
-      newExchangeSessionAndCheckCapabilityRequest({
+      newFetchSessionAndCheckCapabilityRequest({
         signedSession: authStr,
         capabilitiesMask: {
-          checkCanConsumeShows: true,
+          checkCanConsume: true,
         },
       }),
     );
-    if (!capabilities.canConsumeShows) {
+    if (!capabilities.canConsume) {
       throw newUnauthorizedError(
         `Account ${accountId} is not allowed to get season rating.`,
       );
     }
-    let ratingRows = await getIndividualSeasonRating(
-      this.database,
-      accountId,
-      body.seasonId,
-    );
+    let ratingRows = await getIndividualSeasonRating(this.database, {
+      individualSeasonRatingRaterIdEq: accountId,
+      individualSeasonRatingSeasonIdEq: body.seasonId,
+    });
     if (ratingRows.length === 0) {
       return {
         rating: 0,
       };
     } else {
       return {
-        rating: ratingRows[0].individualSeasonRatingData.rating,
+        rating: ratingRows[0].individualSeasonRatingRating,
       };
     }
   }

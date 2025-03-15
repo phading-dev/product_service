@@ -59,23 +59,23 @@ export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContai
     body: ProcessVideoContainerDeletingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getVideoContainerDeletingTaskMetadata(
-        transaction,
-        body.videoContainerId,
-      );
+      let rows = await getVideoContainerDeletingTaskMetadata(transaction, {
+        videoContainerDeletingTaskVideoContainerIdEq: body.videoContainerId,
+      });
       if (rows.length === 0) {
         throw newBadRequestError("Task is not found.");
       }
       let task = rows[0];
       await transaction.batchUpdate([
-        updateVideoContainerDeletingTaskMetadataStatement(
-          body.videoContainerId,
-          task.videoContainerDeletingTaskRetryCount + 1,
-          this.getNow() +
+        updateVideoContainerDeletingTaskMetadataStatement({
+          videoContainerDeletingTaskVideoContainerIdEq: body.videoContainerId,
+          setRetryCount: task.videoContainerDeletingTaskRetryCount + 1,
+          setExecutionTimeMs:
+            this.getNow() +
             this.taskHandler.getBackoffTime(
               task.videoContainerDeletingTaskRetryCount,
             ),
-        ),
+        }),
       ]);
       await transaction.commit();
     });
@@ -92,8 +92,12 @@ export class ProcessVideoContainerDeletingTaskHandler extends ProcessVideoContai
     );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([
-        deleteVideoContainerDeletingTaskStatement(body.videoContainerId),
-        deleteVideoContainerKeyStatement(body.videoContainerId),
+        deleteVideoContainerDeletingTaskStatement({
+          videoContainerDeletingTaskVideoContainerIdEq: body.videoContainerId,
+        }),
+        deleteVideoContainerKeyStatement({
+          videoContainerKeyKeyEq: body.videoContainerId,
+        }),
       ]);
       await transaction.commit();
     });

@@ -16,7 +16,7 @@ import { CreateEpisodeHandler } from "./create_episode_handler";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CREATE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
-import { ExchangeSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -38,8 +38,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               totalEpisodes: 0,
-              lastChangeTimeMs: 0,
-              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();
@@ -48,9 +46,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new CreateEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -86,18 +84,17 @@ TEST_RUNNER.run({
           "response",
         );
         assertThat(
-          await getSeason(SPANNER_DATABASE, "season1"),
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
+          }),
           isArray([
             eqMessage(
               {
-                seasonData: {
-                  seasonId: "season1",
-                  publisherId: "publisher1",
-                  state: SeasonState.DRAFT,
-                  totalEpisodes: 1,
-                  lastChangeTimeMs: 1000,
-                  recentPremierTimeMs: 0,
-                },
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.DRAFT,
+                seasonTotalEpisodes: 1,
+                seasonLastChangeTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -105,24 +102,21 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listNextEpisodesForPublisher(
-            SPANNER_DATABASE,
-            "publisher1",
-            "season1",
-            0,
-            2,
-          ),
+          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
+            sPublisherIdEq: "publisher1",
+            eSeasonIdEq: "season1",
+            eIndexGt: 0,
+            limit: 2,
+          }),
           isArray([
             eqMessage(
               {
-                eData: {
-                  seasonId: "season1",
-                  episodeId: "episode1",
-                  index: 1,
-                  name: "Ep 1",
-                  publishTimeMs: FAR_FUTURE_TIME_MS,
-                  premierTimeMs: FAR_FUTURE_TIME_MS,
-                },
+                eSeasonId: "season1",
+                eEpisodeId: "episode1",
+                eIndex: 1,
+                eName: "Ep 1",
+                ePublishTimeMs: FAR_FUTURE_TIME_MS,
+                ePremierTimeMs: FAR_FUTURE_TIME_MS,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -130,11 +124,10 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await getVideoContainerCreatingTask(
-            SPANNER_DATABASE,
-            "season1",
-            "episode1",
-          ),
+          await getVideoContainerCreatingTask(SPANNER_DATABASE, {
+            videoContainerCreatingTaskSeasonIdEq: "season1",
+            videoContainerCreatingTaskEpisodeIdEq: "episode1",
+          }),
           isArray([
             eqMessage(
               {
@@ -153,8 +146,11 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteVideoContainerCreatingTaskStatement("season1", "episode1"),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteVideoContainerCreatingTaskStatement({
+              videoContainerCreatingTaskSeasonIdEq: "season1",
+              videoContainerCreatingTaskEpisodeIdEq: "episode1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -171,8 +167,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               totalEpisodes: MAX_NUM_OF_EPISODES_PER_SEASON,
-              lastChangeTimeMs: 0,
-              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();
@@ -181,9 +175,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new CreateEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -217,8 +211,11 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteVideoContainerCreatingTaskStatement("season1", "episode1"),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteVideoContainerCreatingTaskStatement({
+              videoContainerCreatingTaskSeasonIdEq: "season1",
+              videoContainerCreatingTaskEpisodeIdEq: "episode1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -235,8 +232,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
               totalEpisodes: 0,
-              lastChangeTimeMs: 0,
-              recentPremierTimeMs: 0,
             }),
           ]);
           await transaction.commit();
@@ -245,9 +240,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new CreateEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -281,8 +276,11 @@ TEST_RUNNER.run({
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement("season1"),
-            deleteVideoContainerCreatingTaskStatement("season1", "episode1"),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteVideoContainerCreatingTaskStatement({
+              videoContainerCreatingTaskSeasonIdEq: "season1",
+              videoContainerCreatingTaskEpisodeIdEq: "episode1",
+            }),
           ]);
           await transaction.commit();
         });

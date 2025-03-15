@@ -1,59 +1,62 @@
-import { Statement } from '@google-cloud/spanner/build/src/transaction';
-import { SeasonState } from '@phading/product_service_interface/show/season_state';
+import { SeasonState, SEASON_STATE } from '@phading/product_service_interface/show/season_state';
 import { Spanner, Database, Transaction } from '@google-cloud/spanner';
-import { Season, SEASON, SeasonMore, SEASON_MORE, SeasonGrade, SEASON_GRADE, Episode, EPISODE, IndividualSeasonRating, INDIVIDUAL_SEASON_RATING, SeasonRating, SEASON_RATING } from './schema';
-import { serializeMessage, deserializeMessage } from '@selfage/message/serializer';
-import { MessageDescriptor, PrimitiveType } from '@selfage/message/descriptor';
+import { Statement } from '@google-cloud/spanner/build/src/transaction';
+import { PrimitiveType, MessageDescriptor } from '@selfage/message/descriptor';
+import { toEnumFromNumber, serializeMessage, deserializeMessage } from '@selfage/message/serializer';
+import { VideoContainer, VIDEO_CONTAINER } from '@phading/product_service_interface/show/video_container';
 
 export function insertSeasonStatement(
-  data: Season,
-): Statement {
-  return insertSeasonInternalStatement(
-    data.seasonId,
-    data.publisherId,
-    data.state,
-    data.lastChangeTimeMs,
-    data.recentPremierTimeMs,
-    data
-  );
-}
-
-export function insertSeasonInternalStatement(
-  seasonId: string,
-  publisherId: string,
-  state: SeasonState,
-  lastChangeTimeMs: number,
-  recentPremierTimeMs: number,
-  data: Season,
+  args: {
+    seasonId: string,
+    publisherId?: string,
+    state?: SeasonState,
+    name?: string,
+    coverImageR2Filename?: string,
+    totalEpisodes?: number,
+    lastChangeTimeMs?: number,
+    recentPremierTimeMs?: number,
+    description?: string,
+    createdTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT Season (seasonId, publisherId, state, lastChangeTimeMs, recentPremierTimeMs, data) VALUES (@seasonId, @publisherId, @state, @lastChangeTimeMs, @recentPremierTimeMs, @data)",
+    sql: "INSERT Season (seasonId, publisherId, state, name, coverImageR2Filename, totalEpisodes, lastChangeTimeMs, recentPremierTimeMs, description, createdTimeMs) VALUES (@seasonId, @publisherId, @state, @name, @coverImageR2Filename, @totalEpisodes, @lastChangeTimeMs, @recentPremierTimeMs, @description, @createdTimeMs)",
     params: {
-      seasonId: seasonId,
-      publisherId: publisherId,
-      state: Spanner.float(state),
-      lastChangeTimeMs: Spanner.float(lastChangeTimeMs),
-      recentPremierTimeMs: Spanner.float(recentPremierTimeMs),
-      data: Buffer.from(serializeMessage(data, SEASON).buffer),
+      seasonId: args.seasonId,
+      publisherId: args.publisherId == null ? null : args.publisherId,
+      state: args.state == null ? null : Spanner.float(args.state),
+      name: args.name == null ? null : args.name,
+      coverImageR2Filename: args.coverImageR2Filename == null ? null : args.coverImageR2Filename,
+      totalEpisodes: args.totalEpisodes == null ? null : Spanner.float(args.totalEpisodes),
+      lastChangeTimeMs: args.lastChangeTimeMs == null ? null : Spanner.float(args.lastChangeTimeMs),
+      recentPremierTimeMs: args.recentPremierTimeMs == null ? null : Spanner.float(args.recentPremierTimeMs),
+      description: args.description == null ? null : args.description,
+      createdTimeMs: args.createdTimeMs == null ? null : Spanner.float(args.createdTimeMs),
     },
     types: {
       seasonId: { type: "string" },
       publisherId: { type: "string" },
       state: { type: "float64" },
+      name: { type: "string" },
+      coverImageR2Filename: { type: "string" },
+      totalEpisodes: { type: "float64" },
       lastChangeTimeMs: { type: "float64" },
       recentPremierTimeMs: { type: "float64" },
-      data: { type: "bytes" },
+      description: { type: "string" },
+      createdTimeMs: { type: "float64" },
     }
   };
 }
 
 export function deleteSeasonStatement(
-  seasonSeasonIdEq: string,
+  args: {
+    seasonSeasonIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
     params: {
-      seasonSeasonIdEq: seasonSeasonIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
@@ -62,26 +65,73 @@ export function deleteSeasonStatement(
 }
 
 export interface GetSeasonRow {
-  seasonData: Season,
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonDescription?: string,
+  seasonCreatedTimeMs?: number,
 }
 
 export let GET_SEASON_ROW: MessageDescriptor<GetSeasonRow> = {
   name: 'GetSeasonRow',
   fields: [{
-    name: 'seasonData',
+    name: 'seasonSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonDescription',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCreatedTimeMs',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeason(
   runner: Database | Transaction,
-  seasonSeasonIdEq: string,
+  args: {
+    seasonSeasonIdEq: string,
+  }
 ): Promise<Array<GetSeasonRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.data FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.description, Season.createdTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
     params: {
-      seasonSeasonIdEq: seasonSeasonIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
@@ -90,278 +140,97 @@ export async function getSeason(
   let resRows = new Array<GetSeasonRow>();
   for (let row of rows) {
     resRows.push({
-      seasonData: deserializeMessage(row.at(0).value, SEASON),
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
+      seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
-}
-
-export function updateSeasonStatement(
-  data: Season,
-): Statement {
-  return updateSeasonInternalStatement(
-    data.seasonId,
-    data.publisherId,
-    data.state,
-    data.lastChangeTimeMs,
-    data.recentPremierTimeMs,
-    data
-  );
-}
-
-export function updateSeasonInternalStatement(
-  seasonSeasonIdEq: string,
-  setPublisherId: string,
-  setState: SeasonState,
-  setLastChangeTimeMs: number,
-  setRecentPremierTimeMs: number,
-  setData: Season,
-): Statement {
-  return {
-    sql: "UPDATE Season SET publisherId = @setPublisherId, state = @setState, lastChangeTimeMs = @setLastChangeTimeMs, recentPremierTimeMs = @setRecentPremierTimeMs, data = @setData WHERE (Season.seasonId = @seasonSeasonIdEq)",
-    params: {
-      seasonSeasonIdEq: seasonSeasonIdEq,
-      setPublisherId: setPublisherId,
-      setState: Spanner.float(setState),
-      setLastChangeTimeMs: Spanner.float(setLastChangeTimeMs),
-      setRecentPremierTimeMs: Spanner.float(setRecentPremierTimeMs),
-      setData: Buffer.from(serializeMessage(setData, SEASON).buffer),
-    },
-    types: {
-      seasonSeasonIdEq: { type: "string" },
-      setPublisherId: { type: "string" },
-      setState: { type: "float64" },
-      setLastChangeTimeMs: { type: "float64" },
-      setRecentPremierTimeMs: { type: "float64" },
-      setData: { type: "bytes" },
-    }
-  };
-}
-
-export function insertSeasonMoreStatement(
-  data: SeasonMore,
-): Statement {
-  return insertSeasonMoreInternalStatement(
-    data.seasonId,
-    data
-  );
-}
-
-export function insertSeasonMoreInternalStatement(
-  seasonId: string,
-  data: SeasonMore,
-): Statement {
-  return {
-    sql: "INSERT SeasonMore (seasonId, data) VALUES (@seasonId, @data)",
-    params: {
-      seasonId: seasonId,
-      data: Buffer.from(serializeMessage(data, SEASON_MORE).buffer),
-    },
-    types: {
-      seasonId: { type: "string" },
-      data: { type: "bytes" },
-    }
-  };
-}
-
-export function deleteSeasonMoreStatement(
-  seasonMoreSeasonIdEq: string,
-): Statement {
-  return {
-    sql: "DELETE SeasonMore WHERE (SeasonMore.seasonId = @seasonMoreSeasonIdEq)",
-    params: {
-      seasonMoreSeasonIdEq: seasonMoreSeasonIdEq,
-    },
-    types: {
-      seasonMoreSeasonIdEq: { type: "string" },
-    }
-  };
-}
-
-export interface GetSeasonMoreRow {
-  seasonMoreData: SeasonMore,
-}
-
-export let GET_SEASON_MORE_ROW: MessageDescriptor<GetSeasonMoreRow> = {
-  name: 'GetSeasonMoreRow',
-  fields: [{
-    name: 'seasonMoreData',
-    index: 1,
-    messageType: SEASON_MORE,
-  }],
-};
-
-export async function getSeasonMore(
-  runner: Database | Transaction,
-  seasonMoreSeasonIdEq: string,
-): Promise<Array<GetSeasonMoreRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT SeasonMore.data FROM SeasonMore WHERE (SeasonMore.seasonId = @seasonMoreSeasonIdEq)",
-    params: {
-      seasonMoreSeasonIdEq: seasonMoreSeasonIdEq,
-    },
-    types: {
-      seasonMoreSeasonIdEq: { type: "string" },
-    }
-  });
-  let resRows = new Array<GetSeasonMoreRow>();
-  for (let row of rows) {
-    resRows.push({
-      seasonMoreData: deserializeMessage(row.at(0).value, SEASON_MORE),
-    });
-  }
-  return resRows;
-}
-
-export function updateSeasonMoreStatement(
-  data: SeasonMore,
-): Statement {
-  return updateSeasonMoreInternalStatement(
-    data.seasonId,
-    data
-  );
-}
-
-export function updateSeasonMoreInternalStatement(
-  seasonMoreSeasonIdEq: string,
-  setData: SeasonMore,
-): Statement {
-  return {
-    sql: "UPDATE SeasonMore SET data = @setData WHERE (SeasonMore.seasonId = @seasonMoreSeasonIdEq)",
-    params: {
-      seasonMoreSeasonIdEq: seasonMoreSeasonIdEq,
-      setData: Buffer.from(serializeMessage(setData, SEASON_MORE).buffer),
-    },
-    types: {
-      seasonMoreSeasonIdEq: { type: "string" },
-      setData: { type: "bytes" },
-    }
-  };
 }
 
 export function insertSeasonGradeStatement(
-  data: SeasonGrade,
-): Statement {
-  return insertSeasonGradeInternalStatement(
-    data.seasonId,
-    data.gradeId,
-    data.startDate,
-    data.endDate,
-    data
-  );
-}
-
-export function insertSeasonGradeInternalStatement(
-  seasonId: string,
-  gradeId: string,
-  startDate: string,
-  endDate: string,
-  data: SeasonGrade,
+  args: {
+    seasonId: string,
+    gradeId: string,
+    startDate?: string,
+    endDate?: string,
+    grade?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT SeasonGrade (seasonId, gradeId, startDate, endDate, data) VALUES (@seasonId, @gradeId, @startDate, @endDate, @data)",
+    sql: "INSERT SeasonGrade (seasonId, gradeId, startDate, endDate, grade) VALUES (@seasonId, @gradeId, @startDate, @endDate, @grade)",
     params: {
-      seasonId: seasonId,
-      gradeId: gradeId,
-      startDate: startDate,
-      endDate: endDate,
-      data: Buffer.from(serializeMessage(data, SEASON_GRADE).buffer),
+      seasonId: args.seasonId,
+      gradeId: args.gradeId,
+      startDate: args.startDate == null ? null : args.startDate,
+      endDate: args.endDate == null ? null : args.endDate,
+      grade: args.grade == null ? null : Spanner.float(args.grade),
     },
     types: {
       seasonId: { type: "string" },
       gradeId: { type: "string" },
       startDate: { type: "string" },
       endDate: { type: "string" },
-      data: { type: "bytes" },
-    }
-  };
-}
-
-export function updateSeasonGradeStatement(
-  data: SeasonGrade,
-): Statement {
-  return updateSeasonGradeInternalStatement(
-    data.seasonId,
-    data.gradeId,
-    data.startDate,
-    data.endDate,
-    data
-  );
-}
-
-export function updateSeasonGradeInternalStatement(
-  seasonGradeSeasonIdEq: string,
-  seasonGradeGradeIdEq: string,
-  setStartDate: string,
-  setEndDate: string,
-  setData: SeasonGrade,
-): Statement {
-  return {
-    sql: "UPDATE SeasonGrade SET startDate = @setStartDate, endDate = @setEndDate, data = @setData WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.gradeId = @seasonGradeGradeIdEq)",
-    params: {
-      seasonGradeSeasonIdEq: seasonGradeSeasonIdEq,
-      seasonGradeGradeIdEq: seasonGradeGradeIdEq,
-      setStartDate: setStartDate,
-      setEndDate: setEndDate,
-      setData: Buffer.from(serializeMessage(setData, SEASON_GRADE).buffer),
-    },
-    types: {
-      seasonGradeSeasonIdEq: { type: "string" },
-      seasonGradeGradeIdEq: { type: "string" },
-      setStartDate: { type: "string" },
-      setEndDate: { type: "string" },
-      setData: { type: "bytes" },
+      grade: { type: "float64" },
     }
   };
 }
 
 export function insertEpisodeStatement(
-  data: Episode,
-): Statement {
-  return insertEpisodeInternalStatement(
-    data.seasonId,
-    data.episodeId,
-    data.index,
-    data.publishTimeMs,
-    data
-  );
-}
-
-export function insertEpisodeInternalStatement(
-  seasonId: string,
-  episodeId: string,
-  index: number,
-  publishTimeMs: number,
-  data: Episode,
+  args: {
+    seasonId: string,
+    episodeId: string,
+    index?: number,
+    name?: string,
+    videoContainerId?: string,
+    videoContainer?: VideoContainer,
+    premierTimeMs?: number,
+    publishTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT Episode (seasonId, episodeId, index, publishTimeMs, data) VALUES (@seasonId, @episodeId, @index, @publishTimeMs, @data)",
+    sql: "INSERT Episode (seasonId, episodeId, index, name, videoContainerId, videoContainer, premierTimeMs, publishTimeMs) VALUES (@seasonId, @episodeId, @index, @name, @videoContainerId, @videoContainer, @premierTimeMs, @publishTimeMs)",
     params: {
-      seasonId: seasonId,
-      episodeId: episodeId,
-      index: Spanner.float(index),
-      publishTimeMs: Spanner.float(publishTimeMs),
-      data: Buffer.from(serializeMessage(data, EPISODE).buffer),
+      seasonId: args.seasonId,
+      episodeId: args.episodeId,
+      index: args.index == null ? null : Spanner.float(args.index),
+      name: args.name == null ? null : args.name,
+      videoContainerId: args.videoContainerId == null ? null : args.videoContainerId,
+      videoContainer: args.videoContainer == null ? null : Buffer.from(serializeMessage(args.videoContainer, VIDEO_CONTAINER).buffer),
+      premierTimeMs: args.premierTimeMs == null ? null : Spanner.float(args.premierTimeMs),
+      publishTimeMs: args.publishTimeMs == null ? null : Spanner.float(args.publishTimeMs),
     },
     types: {
       seasonId: { type: "string" },
       episodeId: { type: "string" },
       index: { type: "float64" },
+      name: { type: "string" },
+      videoContainerId: { type: "string" },
+      videoContainer: { type: "bytes" },
+      premierTimeMs: { type: "float64" },
       publishTimeMs: { type: "float64" },
-      data: { type: "bytes" },
     }
   };
 }
 
 export function deleteEpisodeStatement(
-  episodeSeasonIdEq: string,
-  episodeEpisodeIdEq: string,
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
-      episodeSeasonIdEq: episodeSeasonIdEq,
-      episodeEpisodeIdEq: episodeEpisodeIdEq,
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
     },
     types: {
       episodeSeasonIdEq: { type: "string" },
@@ -371,28 +240,65 @@ export function deleteEpisodeStatement(
 }
 
 export interface GetEpisodeRow {
-  episodeData: Episode,
+  episodeSeasonId?: string,
+  episodeEpisodeId?: string,
+  episodeIndex?: number,
+  episodeName?: string,
+  episodeVideoContainerId?: string,
+  episodeVideoContainer?: VideoContainer,
+  episodePremierTimeMs?: number,
+  episodePublishTimeMs?: number,
 }
 
 export let GET_EPISODE_ROW: MessageDescriptor<GetEpisodeRow> = {
   name: 'GetEpisodeRow',
   fields: [{
-    name: 'episodeData',
+    name: 'episodeSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'episodeName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'episodePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'episodePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getEpisode(
   runner: Database | Transaction,
-  episodeSeasonIdEq: string,
-  episodeEpisodeIdEq: string,
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+  }
 ): Promise<Array<GetEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.data FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT Episode.seasonId, Episode.episodeId, Episode.index, Episode.name, Episode.videoContainerId, Episode.videoContainer, Episode.premierTimeMs, Episode.publishTimeMs FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
-      episodeSeasonIdEq: episodeSeasonIdEq,
-      episodeEpisodeIdEq: episodeEpisodeIdEq,
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
     },
     types: {
       episodeSeasonIdEq: { type: "string" },
@@ -402,89 +308,55 @@ export async function getEpisode(
   let resRows = new Array<GetEpisodeRow>();
   for (let row of rows) {
     resRows.push({
-      episodeData: deserializeMessage(row.at(0).value, EPISODE),
+      episodeSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      episodeEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      episodeName: row.at(3).value == null ? undefined : row.at(3).value,
+      episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      episodePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
-export function updateEpisodeStatement(
-  data: Episode,
-): Statement {
-  return updateEpisodeInternalStatement(
-    data.seasonId,
-    data.episodeId,
-    data.index,
-    data.publishTimeMs,
-    data
-  );
-}
-
-export function updateEpisodeInternalStatement(
-  episodeSeasonIdEq: string,
-  episodeEpisodeIdEq: string,
-  setIndex: number,
-  setPublishTimeMs: number,
-  setData: Episode,
-): Statement {
-  return {
-    sql: "UPDATE Episode SET index = @setIndex, publishTimeMs = @setPublishTimeMs, data = @setData WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
-    params: {
-      episodeSeasonIdEq: episodeSeasonIdEq,
-      episodeEpisodeIdEq: episodeEpisodeIdEq,
-      setIndex: Spanner.float(setIndex),
-      setPublishTimeMs: Spanner.float(setPublishTimeMs),
-      setData: Buffer.from(serializeMessage(setData, EPISODE).buffer),
-    },
-    types: {
-      episodeSeasonIdEq: { type: "string" },
-      episodeEpisodeIdEq: { type: "string" },
-      setIndex: { type: "float64" },
-      setPublishTimeMs: { type: "float64" },
-      setData: { type: "bytes" },
-    }
-  };
-}
-
 export function insertIndividualSeasonRatingStatement(
-  data: IndividualSeasonRating,
-): Statement {
-  return insertIndividualSeasonRatingInternalStatement(
-    data.raterId,
-    data.seasonId,
-    data
-  );
-}
-
-export function insertIndividualSeasonRatingInternalStatement(
-  raterId: string,
-  seasonId: string,
-  data: IndividualSeasonRating,
+  args: {
+    raterId: string,
+    seasonId: string,
+    rating?: number,
+    ratedTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT IndividualSeasonRating (raterId, seasonId, data) VALUES (@raterId, @seasonId, @data)",
+    sql: "INSERT IndividualSeasonRating (raterId, seasonId, rating, ratedTimeMs) VALUES (@raterId, @seasonId, @rating, @ratedTimeMs)",
     params: {
-      raterId: raterId,
-      seasonId: seasonId,
-      data: Buffer.from(serializeMessage(data, INDIVIDUAL_SEASON_RATING).buffer),
+      raterId: args.raterId,
+      seasonId: args.seasonId,
+      rating: args.rating == null ? null : Spanner.float(args.rating),
+      ratedTimeMs: args.ratedTimeMs == null ? null : Spanner.float(args.ratedTimeMs),
     },
     types: {
       raterId: { type: "string" },
       seasonId: { type: "string" },
-      data: { type: "bytes" },
+      rating: { type: "float64" },
+      ratedTimeMs: { type: "float64" },
     }
   };
 }
 
 export function deleteIndividualSeasonRatingStatement(
-  individualSeasonRatingRaterIdEq: string,
-  individualSeasonRatingSeasonIdEq: string,
+  args: {
+    individualSeasonRatingRaterIdEq: string,
+    individualSeasonRatingSeasonIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE IndividualSeasonRating WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
     params: {
-      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
-      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
+      individualSeasonRatingRaterIdEq: args.individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: args.individualSeasonRatingSeasonIdEq,
     },
     types: {
       individualSeasonRatingRaterIdEq: { type: "string" },
@@ -494,28 +366,45 @@ export function deleteIndividualSeasonRatingStatement(
 }
 
 export interface GetIndividualSeasonRatingRow {
-  individualSeasonRatingData: IndividualSeasonRating,
+  individualSeasonRatingRaterId?: string,
+  individualSeasonRatingSeasonId?: string,
+  individualSeasonRatingRating?: number,
+  individualSeasonRatingRatedTimeMs?: number,
 }
 
 export let GET_INDIVIDUAL_SEASON_RATING_ROW: MessageDescriptor<GetIndividualSeasonRatingRow> = {
   name: 'GetIndividualSeasonRatingRow',
   fields: [{
-    name: 'individualSeasonRatingData',
+    name: 'individualSeasonRatingRaterId',
     index: 1,
-    messageType: INDIVIDUAL_SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'individualSeasonRatingSeasonId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'individualSeasonRatingRating',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'individualSeasonRatingRatedTimeMs',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getIndividualSeasonRating(
   runner: Database | Transaction,
-  individualSeasonRatingRaterIdEq: string,
-  individualSeasonRatingSeasonIdEq: string,
+  args: {
+    individualSeasonRatingRaterIdEq: string,
+    individualSeasonRatingSeasonIdEq: string,
+  }
 ): Promise<Array<GetIndividualSeasonRatingRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT IndividualSeasonRating.data FROM IndividualSeasonRating WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
+    sql: "SELECT IndividualSeasonRating.raterId, IndividualSeasonRating.seasonId, IndividualSeasonRating.rating, IndividualSeasonRating.ratedTimeMs FROM IndividualSeasonRating WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
     params: {
-      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
-      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
+      individualSeasonRatingRaterIdEq: args.individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: args.individualSeasonRatingSeasonIdEq,
     },
     types: {
       individualSeasonRatingRaterIdEq: { type: "string" },
@@ -525,83 +414,77 @@ export async function getIndividualSeasonRating(
   let resRows = new Array<GetIndividualSeasonRatingRow>();
   for (let row of rows) {
     resRows.push({
-      individualSeasonRatingData: deserializeMessage(row.at(0).value, INDIVIDUAL_SEASON_RATING),
+      individualSeasonRatingRaterId: row.at(0).value == null ? undefined : row.at(0).value,
+      individualSeasonRatingSeasonId: row.at(1).value == null ? undefined : row.at(1).value,
+      individualSeasonRatingRating: row.at(2).value == null ? undefined : row.at(2).value.value,
+      individualSeasonRatingRatedTimeMs: row.at(3).value == null ? undefined : row.at(3).value.value,
     });
   }
   return resRows;
 }
 
 export function updateIndividualSeasonRatingStatement(
-  data: IndividualSeasonRating,
-): Statement {
-  return updateIndividualSeasonRatingInternalStatement(
-    data.raterId,
-    data.seasonId,
-    data
-  );
-}
-
-export function updateIndividualSeasonRatingInternalStatement(
-  individualSeasonRatingRaterIdEq: string,
-  individualSeasonRatingSeasonIdEq: string,
-  setData: IndividualSeasonRating,
+  args: {
+    individualSeasonRatingRaterIdEq: string,
+    individualSeasonRatingSeasonIdEq: string,
+    setRating?: number,
+    setRatedTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "UPDATE IndividualSeasonRating SET data = @setData WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
+    sql: "UPDATE IndividualSeasonRating SET rating = @setRating, ratedTimeMs = @setRatedTimeMs WHERE (IndividualSeasonRating.raterId = @individualSeasonRatingRaterIdEq AND IndividualSeasonRating.seasonId = @individualSeasonRatingSeasonIdEq)",
     params: {
-      individualSeasonRatingRaterIdEq: individualSeasonRatingRaterIdEq,
-      individualSeasonRatingSeasonIdEq: individualSeasonRatingSeasonIdEq,
-      setData: Buffer.from(serializeMessage(setData, INDIVIDUAL_SEASON_RATING).buffer),
+      individualSeasonRatingRaterIdEq: args.individualSeasonRatingRaterIdEq,
+      individualSeasonRatingSeasonIdEq: args.individualSeasonRatingSeasonIdEq,
+      setRating: args.setRating == null ? null : Spanner.float(args.setRating),
+      setRatedTimeMs: args.setRatedTimeMs == null ? null : Spanner.float(args.setRatedTimeMs),
     },
     types: {
       individualSeasonRatingRaterIdEq: { type: "string" },
       individualSeasonRatingSeasonIdEq: { type: "string" },
-      setData: { type: "bytes" },
+      setRating: { type: "float64" },
+      setRatedTimeMs: { type: "float64" },
     }
   };
 }
 
 export function insertSeasonRatingStatement(
-  data: SeasonRating,
-): Statement {
-  return insertSeasonRatingInternalStatement(
-    data.seasonId,
-    data.averageRating,
-    data.updatedTimeMs,
-    data
-  );
-}
-
-export function insertSeasonRatingInternalStatement(
-  seasonId: string,
-  averageRating: number,
-  updatedTimeMs: number,
-  data: SeasonRating,
+  args: {
+    seasonId: string,
+    totalRatings?: number,
+    count?: number,
+    averageRating?: number,
+    updatedTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT SeasonRating (seasonId, averageRating, updatedTimeMs, data) VALUES (@seasonId, @averageRating, @updatedTimeMs, @data)",
+    sql: "INSERT SeasonRating (seasonId, totalRatings, count, averageRating, updatedTimeMs) VALUES (@seasonId, @totalRatings, @count, @averageRating, @updatedTimeMs)",
     params: {
-      seasonId: seasonId,
-      averageRating: Spanner.float(averageRating),
-      updatedTimeMs: Spanner.float(updatedTimeMs),
-      data: Buffer.from(serializeMessage(data, SEASON_RATING).buffer),
+      seasonId: args.seasonId,
+      totalRatings: args.totalRatings == null ? null : Spanner.float(args.totalRatings),
+      count: args.count == null ? null : Spanner.float(args.count),
+      averageRating: args.averageRating == null ? null : Spanner.float(args.averageRating),
+      updatedTimeMs: args.updatedTimeMs == null ? null : Spanner.float(args.updatedTimeMs),
     },
     types: {
       seasonId: { type: "string" },
+      totalRatings: { type: "float64" },
+      count: { type: "float64" },
       averageRating: { type: "float64" },
       updatedTimeMs: { type: "float64" },
-      data: { type: "bytes" },
     }
   };
 }
 
 export function deleteSeasonRatingStatement(
-  seasonRatingSeasonIdEq: string,
+  args: {
+    seasonRatingSeasonIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
     params: {
-      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
     },
     types: {
       seasonRatingSeasonIdEq: { type: "string" },
@@ -610,26 +493,48 @@ export function deleteSeasonRatingStatement(
 }
 
 export interface GetSeasonRatingRow {
-  seasonRatingData: SeasonRating,
+  seasonRatingSeasonId?: string,
+  seasonRatingTotalRatings?: number,
+  seasonRatingCount?: number,
+  seasonRatingAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
 }
 
 export let GET_SEASON_RATING_ROW: MessageDescriptor<GetSeasonRatingRow> = {
   name: 'GetSeasonRatingRow',
   fields: [{
-    name: 'seasonRatingData',
+    name: 'seasonRatingSeasonId',
     index: 1,
-    messageType: SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonRatingTotalRatings',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingCount',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingAverageRating',
+    index: 4,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 5,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeasonRating(
   runner: Database | Transaction,
-  seasonRatingSeasonIdEq: string,
+  args: {
+    seasonRatingSeasonIdEq: string,
+  }
 ): Promise<Array<GetSeasonRatingRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT SeasonRating.data FROM SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    sql: "SELECT SeasonRating.seasonId, SeasonRating.totalRatings, SeasonRating.count, SeasonRating.averageRating, SeasonRating.updatedTimeMs FROM SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
     params: {
-      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
+      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
     },
     types: {
       seasonRatingSeasonIdEq: { type: "string" },
@@ -638,61 +543,199 @@ export async function getSeasonRating(
   let resRows = new Array<GetSeasonRatingRow>();
   for (let row of rows) {
     resRows.push({
-      seasonRatingData: deserializeMessage(row.at(0).value, SEASON_RATING),
+      seasonRatingSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonRatingTotalRatings: row.at(1).value == null ? undefined : row.at(1).value.value,
+      seasonRatingCount: row.at(2).value == null ? undefined : row.at(2).value.value,
+      seasonRatingAverageRating: row.at(3).value == null ? undefined : row.at(3).value.value,
+      seasonRatingUpdatedTimeMs: row.at(4).value == null ? undefined : row.at(4).value.value,
     });
   }
   return resRows;
 }
 
 export function updateSeasonRatingStatement(
-  data: SeasonRating,
-): Statement {
-  return updateSeasonRatingInternalStatement(
-    data.seasonId,
-    data.averageRating,
-    data.updatedTimeMs,
-    data
-  );
-}
-
-export function updateSeasonRatingInternalStatement(
-  seasonRatingSeasonIdEq: string,
-  setAverageRating: number,
-  setUpdatedTimeMs: number,
-  setData: SeasonRating,
+  args: {
+    seasonRatingSeasonIdEq: string,
+    setTotalRatings?: number,
+    setCount?: number,
+    setAverageRating?: number,
+    setUpdatedTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "UPDATE SeasonRating SET averageRating = @setAverageRating, updatedTimeMs = @setUpdatedTimeMs, data = @setData WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
+    sql: "UPDATE SeasonRating SET totalRatings = @setTotalRatings, count = @setCount, averageRating = @setAverageRating, updatedTimeMs = @setUpdatedTimeMs WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
     params: {
-      seasonRatingSeasonIdEq: seasonRatingSeasonIdEq,
-      setAverageRating: Spanner.float(setAverageRating),
-      setUpdatedTimeMs: Spanner.float(setUpdatedTimeMs),
-      setData: Buffer.from(serializeMessage(setData, SEASON_RATING).buffer),
+      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
+      setTotalRatings: args.setTotalRatings == null ? null : Spanner.float(args.setTotalRatings),
+      setCount: args.setCount == null ? null : Spanner.float(args.setCount),
+      setAverageRating: args.setAverageRating == null ? null : Spanner.float(args.setAverageRating),
+      setUpdatedTimeMs: args.setUpdatedTimeMs == null ? null : Spanner.float(args.setUpdatedTimeMs),
     },
     types: {
       seasonRatingSeasonIdEq: { type: "string" },
+      setTotalRatings: { type: "float64" },
+      setCount: { type: "float64" },
       setAverageRating: { type: "float64" },
       setUpdatedTimeMs: { type: "float64" },
-      setData: { type: "bytes" },
     }
   };
 }
 
+export function insertCoverImageFileStatement(
+  args: {
+    r2Filename: string,
+  }
+): Statement {
+  return {
+    sql: "INSERT CoverImageFile (r2Filename) VALUES (@r2Filename)",
+    params: {
+      r2Filename: args.r2Filename,
+    },
+    types: {
+      r2Filename: { type: "string" },
+    }
+  };
+}
+
+export function deleteCoverImageFileStatement(
+  args: {
+    coverImageFileR2FilenameEq: string,
+  }
+): Statement {
+  return {
+    sql: "DELETE CoverImageFile WHERE (CoverImageFile.r2Filename = @coverImageFileR2FilenameEq)",
+    params: {
+      coverImageFileR2FilenameEq: args.coverImageFileR2FilenameEq,
+    },
+    types: {
+      coverImageFileR2FilenameEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetCoverImageFileRow {
+  coverImageFileR2Filename?: string,
+}
+
+export let GET_COVER_IMAGE_FILE_ROW: MessageDescriptor<GetCoverImageFileRow> = {
+  name: 'GetCoverImageFileRow',
+  fields: [{
+    name: 'coverImageFileR2Filename',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function getCoverImageFile(
+  runner: Database | Transaction,
+  args: {
+    coverImageFileR2FilenameEq: string,
+  }
+): Promise<Array<GetCoverImageFileRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT CoverImageFile.r2Filename FROM CoverImageFile WHERE (CoverImageFile.r2Filename = @coverImageFileR2FilenameEq)",
+    params: {
+      coverImageFileR2FilenameEq: args.coverImageFileR2FilenameEq,
+    },
+    types: {
+      coverImageFileR2FilenameEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetCoverImageFileRow>();
+  for (let row of rows) {
+    resRows.push({
+      coverImageFileR2Filename: row.at(0).value == null ? undefined : row.at(0).value,
+    });
+  }
+  return resRows;
+}
+
+export function insertVideoContainerKeyStatement(
+  args: {
+    key: string,
+  }
+): Statement {
+  return {
+    sql: "INSERT VideoContainerKey (key) VALUES (@key)",
+    params: {
+      key: args.key,
+    },
+    types: {
+      key: { type: "string" },
+    }
+  };
+}
+
+export function deleteVideoContainerKeyStatement(
+  args: {
+    videoContainerKeyKeyEq: string,
+  }
+): Statement {
+  return {
+    sql: "DELETE VideoContainerKey WHERE (VideoContainerKey.key = @videoContainerKeyKeyEq)",
+    params: {
+      videoContainerKeyKeyEq: args.videoContainerKeyKeyEq,
+    },
+    types: {
+      videoContainerKeyKeyEq: { type: "string" },
+    }
+  };
+}
+
+export interface GetVideoContainerKeyRow {
+  videoContainerKeyKey?: string,
+}
+
+export let GET_VIDEO_CONTAINER_KEY_ROW: MessageDescriptor<GetVideoContainerKeyRow> = {
+  name: 'GetVideoContainerKeyRow',
+  fields: [{
+    name: 'videoContainerKeyKey',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function getVideoContainerKey(
+  runner: Database | Transaction,
+  args: {
+    videoContainerKeyKeyEq: string,
+  }
+): Promise<Array<GetVideoContainerKeyRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT VideoContainerKey.key FROM VideoContainerKey WHERE (VideoContainerKey.key = @videoContainerKeyKeyEq)",
+    params: {
+      videoContainerKeyKeyEq: args.videoContainerKeyKeyEq,
+    },
+    types: {
+      videoContainerKeyKeyEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetVideoContainerKeyRow>();
+  for (let row of rows) {
+    resRows.push({
+      videoContainerKeyKey: row.at(0).value == null ? undefined : row.at(0).value,
+    });
+  }
+  return resRows;
+}
+
 export function insertVideoContainerCreatingTaskStatement(
-  seasonId: string,
-  episodeId: string,
-  retryCount: number,
-  executionTimeMs: number,
-  createdTimeMs: number,
+  args: {
+    seasonId: string,
+    episodeId: string,
+    retryCount?: number,
+    executionTimeMs?: number,
+    createdTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "INSERT VideoContainerCreatingTask (seasonId, episodeId, retryCount, executionTimeMs, createdTimeMs) VALUES (@seasonId, @episodeId, @retryCount, @executionTimeMs, @createdTimeMs)",
     params: {
-      seasonId: seasonId,
-      episodeId: episodeId,
-      retryCount: Spanner.float(retryCount),
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
+      seasonId: args.seasonId,
+      episodeId: args.episodeId,
+      retryCount: args.retryCount == null ? null : Spanner.float(args.retryCount),
+      executionTimeMs: args.executionTimeMs == null ? null : new Date(args.executionTimeMs).toISOString(),
+      createdTimeMs: args.createdTimeMs == null ? null : new Date(args.createdTimeMs).toISOString(),
     },
     types: {
       seasonId: { type: "string" },
@@ -705,14 +748,16 @@ export function insertVideoContainerCreatingTaskStatement(
 }
 
 export function deleteVideoContainerCreatingTaskStatement(
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
+  args: {
+    videoContainerCreatingTaskSeasonIdEq: string,
+    videoContainerCreatingTaskEpisodeIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
     params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+      videoContainerCreatingTaskSeasonIdEq: args.videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: args.videoContainerCreatingTaskEpisodeIdEq,
     },
     types: {
       videoContainerCreatingTaskSeasonIdEq: { type: "string" },
@@ -722,11 +767,11 @@ export function deleteVideoContainerCreatingTaskStatement(
 }
 
 export interface GetVideoContainerCreatingTaskRow {
-  videoContainerCreatingTaskSeasonId: string,
-  videoContainerCreatingTaskEpisodeId: string,
-  videoContainerCreatingTaskRetryCount: number,
-  videoContainerCreatingTaskExecutionTimeMs: number,
-  videoContainerCreatingTaskCreatedTimeMs: number,
+  videoContainerCreatingTaskSeasonId?: string,
+  videoContainerCreatingTaskEpisodeId?: string,
+  videoContainerCreatingTaskRetryCount?: number,
+  videoContainerCreatingTaskExecutionTimeMs?: number,
+  videoContainerCreatingTaskCreatedTimeMs?: number,
 }
 
 export let GET_VIDEO_CONTAINER_CREATING_TASK_ROW: MessageDescriptor<GetVideoContainerCreatingTaskRow> = {
@@ -756,14 +801,16 @@ export let GET_VIDEO_CONTAINER_CREATING_TASK_ROW: MessageDescriptor<GetVideoCont
 
 export async function getVideoContainerCreatingTask(
   runner: Database | Transaction,
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
+  args: {
+    videoContainerCreatingTaskSeasonIdEq: string,
+    videoContainerCreatingTaskEpisodeIdEq: string,
+  }
 ): Promise<Array<GetVideoContainerCreatingTaskRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerCreatingTask.seasonId, VideoContainerCreatingTask.episodeId, VideoContainerCreatingTask.retryCount, VideoContainerCreatingTask.executionTimeMs, VideoContainerCreatingTask.createdTimeMs FROM VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
     params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+      videoContainerCreatingTaskSeasonIdEq: args.videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: args.videoContainerCreatingTaskEpisodeIdEq,
     },
     types: {
       videoContainerCreatingTaskSeasonIdEq: { type: "string" },
@@ -773,19 +820,19 @@ export async function getVideoContainerCreatingTask(
   let resRows = new Array<GetVideoContainerCreatingTaskRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerCreatingTaskSeasonId: row.at(0).value,
-      videoContainerCreatingTaskEpisodeId: row.at(1).value,
-      videoContainerCreatingTaskRetryCount: row.at(2).value.value,
-      videoContainerCreatingTaskExecutionTimeMs: row.at(3).value.valueOf(),
-      videoContainerCreatingTaskCreatedTimeMs: row.at(4).value.valueOf(),
+      videoContainerCreatingTaskSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      videoContainerCreatingTaskEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      videoContainerCreatingTaskRetryCount: row.at(2).value == null ? undefined : row.at(2).value.value,
+      videoContainerCreatingTaskExecutionTimeMs: row.at(3).value == null ? undefined : row.at(3).value.valueOf(),
+      videoContainerCreatingTaskCreatedTimeMs: row.at(4).value == null ? undefined : row.at(4).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export interface ListPendingVideoContainerCreatingTasksRow {
-  videoContainerCreatingTaskSeasonId: string,
-  videoContainerCreatingTaskEpisodeId: string,
+  videoContainerCreatingTaskSeasonId?: string,
+  videoContainerCreatingTaskEpisodeId?: string,
 }
 
 export let LIST_PENDING_VIDEO_CONTAINER_CREATING_TASKS_ROW: MessageDescriptor<ListPendingVideoContainerCreatingTasksRow> = {
@@ -803,12 +850,14 @@ export let LIST_PENDING_VIDEO_CONTAINER_CREATING_TASKS_ROW: MessageDescriptor<Li
 
 export async function listPendingVideoContainerCreatingTasks(
   runner: Database | Transaction,
-  videoContainerCreatingTaskExecutionTimeMsLe: number,
+  args: {
+    videoContainerCreatingTaskExecutionTimeMsLe?: number,
+  }
 ): Promise<Array<ListPendingVideoContainerCreatingTasksRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerCreatingTask.seasonId, VideoContainerCreatingTask.episodeId FROM VideoContainerCreatingTask WHERE VideoContainerCreatingTask.executionTimeMs <= @videoContainerCreatingTaskExecutionTimeMsLe",
     params: {
-      videoContainerCreatingTaskExecutionTimeMsLe: new Date(videoContainerCreatingTaskExecutionTimeMsLe).toISOString(),
+      videoContainerCreatingTaskExecutionTimeMsLe: args.videoContainerCreatingTaskExecutionTimeMsLe == null ? null : new Date(args.videoContainerCreatingTaskExecutionTimeMsLe).toISOString(),
     },
     types: {
       videoContainerCreatingTaskExecutionTimeMsLe: { type: "timestamp" },
@@ -817,16 +866,16 @@ export async function listPendingVideoContainerCreatingTasks(
   let resRows = new Array<ListPendingVideoContainerCreatingTasksRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerCreatingTaskSeasonId: row.at(0).value,
-      videoContainerCreatingTaskEpisodeId: row.at(1).value,
+      videoContainerCreatingTaskSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      videoContainerCreatingTaskEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
     });
   }
   return resRows;
 }
 
 export interface GetVideoContainerCreatingTaskMetadataRow {
-  videoContainerCreatingTaskRetryCount: number,
-  videoContainerCreatingTaskExecutionTimeMs: number,
+  videoContainerCreatingTaskRetryCount?: number,
+  videoContainerCreatingTaskExecutionTimeMs?: number,
 }
 
 export let GET_VIDEO_CONTAINER_CREATING_TASK_METADATA_ROW: MessageDescriptor<GetVideoContainerCreatingTaskMetadataRow> = {
@@ -844,14 +893,16 @@ export let GET_VIDEO_CONTAINER_CREATING_TASK_METADATA_ROW: MessageDescriptor<Get
 
 export async function getVideoContainerCreatingTaskMetadata(
   runner: Database | Transaction,
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
+  args: {
+    videoContainerCreatingTaskSeasonIdEq: string,
+    videoContainerCreatingTaskEpisodeIdEq: string,
+  }
 ): Promise<Array<GetVideoContainerCreatingTaskMetadataRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerCreatingTask.retryCount, VideoContainerCreatingTask.executionTimeMs FROM VideoContainerCreatingTask WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
     params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
+      videoContainerCreatingTaskSeasonIdEq: args.videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: args.videoContainerCreatingTaskEpisodeIdEq,
     },
     types: {
       videoContainerCreatingTaskSeasonIdEq: { type: "string" },
@@ -861,26 +912,28 @@ export async function getVideoContainerCreatingTaskMetadata(
   let resRows = new Array<GetVideoContainerCreatingTaskMetadataRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerCreatingTaskRetryCount: row.at(0).value.value,
-      videoContainerCreatingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+      videoContainerCreatingTaskRetryCount: row.at(0).value == null ? undefined : row.at(0).value.value,
+      videoContainerCreatingTaskExecutionTimeMs: row.at(1).value == null ? undefined : row.at(1).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export function updateVideoContainerCreatingTaskMetadataStatement(
-  videoContainerCreatingTaskSeasonIdEq: string,
-  videoContainerCreatingTaskEpisodeIdEq: string,
-  setRetryCount: number,
-  setExecutionTimeMs: number,
+  args: {
+    videoContainerCreatingTaskSeasonIdEq: string,
+    videoContainerCreatingTaskEpisodeIdEq: string,
+    setRetryCount?: number,
+    setExecutionTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "UPDATE VideoContainerCreatingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (VideoContainerCreatingTask.seasonId = @videoContainerCreatingTaskSeasonIdEq AND VideoContainerCreatingTask.episodeId = @videoContainerCreatingTaskEpisodeIdEq)",
     params: {
-      videoContainerCreatingTaskSeasonIdEq: videoContainerCreatingTaskSeasonIdEq,
-      videoContainerCreatingTaskEpisodeIdEq: videoContainerCreatingTaskEpisodeIdEq,
-      setRetryCount: Spanner.float(setRetryCount),
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+      videoContainerCreatingTaskSeasonIdEq: args.videoContainerCreatingTaskSeasonIdEq,
+      videoContainerCreatingTaskEpisodeIdEq: args.videoContainerCreatingTaskEpisodeIdEq,
+      setRetryCount: args.setRetryCount == null ? null : Spanner.float(args.setRetryCount),
+      setExecutionTimeMs: args.setExecutionTimeMs == null ? null : new Date(args.setExecutionTimeMs).toISOString(),
     },
     types: {
       videoContainerCreatingTaskSeasonIdEq: { type: "string" },
@@ -892,18 +945,20 @@ export function updateVideoContainerCreatingTaskMetadataStatement(
 }
 
 export function insertVideoContainerDeletingTaskStatement(
-  videoContainerId: string,
-  retryCount: number,
-  executionTimeMs: number,
-  createdTimeMs: number,
+  args: {
+    videoContainerId: string,
+    retryCount?: number,
+    executionTimeMs?: number,
+    createdTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "INSERT VideoContainerDeletingTask (videoContainerId, retryCount, executionTimeMs, createdTimeMs) VALUES (@videoContainerId, @retryCount, @executionTimeMs, @createdTimeMs)",
     params: {
-      videoContainerId: videoContainerId,
-      retryCount: Spanner.float(retryCount),
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
+      videoContainerId: args.videoContainerId,
+      retryCount: args.retryCount == null ? null : Spanner.float(args.retryCount),
+      executionTimeMs: args.executionTimeMs == null ? null : new Date(args.executionTimeMs).toISOString(),
+      createdTimeMs: args.createdTimeMs == null ? null : new Date(args.createdTimeMs).toISOString(),
     },
     types: {
       videoContainerId: { type: "string" },
@@ -915,12 +970,14 @@ export function insertVideoContainerDeletingTaskStatement(
 }
 
 export function deleteVideoContainerDeletingTaskStatement(
-  videoContainerDeletingTaskVideoContainerIdEq: string,
+  args: {
+    videoContainerDeletingTaskVideoContainerIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
     params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+      videoContainerDeletingTaskVideoContainerIdEq: args.videoContainerDeletingTaskVideoContainerIdEq,
     },
     types: {
       videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
@@ -929,10 +986,10 @@ export function deleteVideoContainerDeletingTaskStatement(
 }
 
 export interface GetVideoContainerDeletingTaskRow {
-  videoContainerDeletingTaskVideoContainerId: string,
-  videoContainerDeletingTaskRetryCount: number,
-  videoContainerDeletingTaskExecutionTimeMs: number,
-  videoContainerDeletingTaskCreatedTimeMs: number,
+  videoContainerDeletingTaskVideoContainerId?: string,
+  videoContainerDeletingTaskRetryCount?: number,
+  videoContainerDeletingTaskExecutionTimeMs?: number,
+  videoContainerDeletingTaskCreatedTimeMs?: number,
 }
 
 export let GET_VIDEO_CONTAINER_DELETING_TASK_ROW: MessageDescriptor<GetVideoContainerDeletingTaskRow> = {
@@ -958,12 +1015,14 @@ export let GET_VIDEO_CONTAINER_DELETING_TASK_ROW: MessageDescriptor<GetVideoCont
 
 export async function getVideoContainerDeletingTask(
   runner: Database | Transaction,
-  videoContainerDeletingTaskVideoContainerIdEq: string,
+  args: {
+    videoContainerDeletingTaskVideoContainerIdEq: string,
+  }
 ): Promise<Array<GetVideoContainerDeletingTaskRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerDeletingTask.videoContainerId, VideoContainerDeletingTask.retryCount, VideoContainerDeletingTask.executionTimeMs, VideoContainerDeletingTask.createdTimeMs FROM VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
     params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+      videoContainerDeletingTaskVideoContainerIdEq: args.videoContainerDeletingTaskVideoContainerIdEq,
     },
     types: {
       videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
@@ -972,17 +1031,17 @@ export async function getVideoContainerDeletingTask(
   let resRows = new Array<GetVideoContainerDeletingTaskRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerDeletingTaskVideoContainerId: row.at(0).value,
-      videoContainerDeletingTaskRetryCount: row.at(1).value.value,
-      videoContainerDeletingTaskExecutionTimeMs: row.at(2).value.valueOf(),
-      videoContainerDeletingTaskCreatedTimeMs: row.at(3).value.valueOf(),
+      videoContainerDeletingTaskVideoContainerId: row.at(0).value == null ? undefined : row.at(0).value,
+      videoContainerDeletingTaskRetryCount: row.at(1).value == null ? undefined : row.at(1).value.value,
+      videoContainerDeletingTaskExecutionTimeMs: row.at(2).value == null ? undefined : row.at(2).value.valueOf(),
+      videoContainerDeletingTaskCreatedTimeMs: row.at(3).value == null ? undefined : row.at(3).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export interface ListPendingVideoContainerDeletingTasksRow {
-  videoContainerDeletingTaskVideoContainerId: string,
+  videoContainerDeletingTaskVideoContainerId?: string,
 }
 
 export let LIST_PENDING_VIDEO_CONTAINER_DELETING_TASKS_ROW: MessageDescriptor<ListPendingVideoContainerDeletingTasksRow> = {
@@ -996,12 +1055,14 @@ export let LIST_PENDING_VIDEO_CONTAINER_DELETING_TASKS_ROW: MessageDescriptor<Li
 
 export async function listPendingVideoContainerDeletingTasks(
   runner: Database | Transaction,
-  videoContainerDeletingTaskExecutionTimeMsLe: number,
+  args: {
+    videoContainerDeletingTaskExecutionTimeMsLe?: number,
+  }
 ): Promise<Array<ListPendingVideoContainerDeletingTasksRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerDeletingTask.videoContainerId FROM VideoContainerDeletingTask WHERE VideoContainerDeletingTask.executionTimeMs <= @videoContainerDeletingTaskExecutionTimeMsLe",
     params: {
-      videoContainerDeletingTaskExecutionTimeMsLe: new Date(videoContainerDeletingTaskExecutionTimeMsLe).toISOString(),
+      videoContainerDeletingTaskExecutionTimeMsLe: args.videoContainerDeletingTaskExecutionTimeMsLe == null ? null : new Date(args.videoContainerDeletingTaskExecutionTimeMsLe).toISOString(),
     },
     types: {
       videoContainerDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
@@ -1010,15 +1071,15 @@ export async function listPendingVideoContainerDeletingTasks(
   let resRows = new Array<ListPendingVideoContainerDeletingTasksRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerDeletingTaskVideoContainerId: row.at(0).value,
+      videoContainerDeletingTaskVideoContainerId: row.at(0).value == null ? undefined : row.at(0).value,
     });
   }
   return resRows;
 }
 
 export interface GetVideoContainerDeletingTaskMetadataRow {
-  videoContainerDeletingTaskRetryCount: number,
-  videoContainerDeletingTaskExecutionTimeMs: number,
+  videoContainerDeletingTaskRetryCount?: number,
+  videoContainerDeletingTaskExecutionTimeMs?: number,
 }
 
 export let GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW: MessageDescriptor<GetVideoContainerDeletingTaskMetadataRow> = {
@@ -1036,12 +1097,14 @@ export let GET_VIDEO_CONTAINER_DELETING_TASK_METADATA_ROW: MessageDescriptor<Get
 
 export async function getVideoContainerDeletingTaskMetadata(
   runner: Database | Transaction,
-  videoContainerDeletingTaskVideoContainerIdEq: string,
+  args: {
+    videoContainerDeletingTaskVideoContainerIdEq: string,
+  }
 ): Promise<Array<GetVideoContainerDeletingTaskMetadataRow>> {
   let [rows] = await runner.run({
     sql: "SELECT VideoContainerDeletingTask.retryCount, VideoContainerDeletingTask.executionTimeMs FROM VideoContainerDeletingTask WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
     params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
+      videoContainerDeletingTaskVideoContainerIdEq: args.videoContainerDeletingTaskVideoContainerIdEq,
     },
     types: {
       videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
@@ -1050,24 +1113,26 @@ export async function getVideoContainerDeletingTaskMetadata(
   let resRows = new Array<GetVideoContainerDeletingTaskMetadataRow>();
   for (let row of rows) {
     resRows.push({
-      videoContainerDeletingTaskRetryCount: row.at(0).value.value,
-      videoContainerDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+      videoContainerDeletingTaskRetryCount: row.at(0).value == null ? undefined : row.at(0).value.value,
+      videoContainerDeletingTaskExecutionTimeMs: row.at(1).value == null ? undefined : row.at(1).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export function updateVideoContainerDeletingTaskMetadataStatement(
-  videoContainerDeletingTaskVideoContainerIdEq: string,
-  setRetryCount: number,
-  setExecutionTimeMs: number,
+  args: {
+    videoContainerDeletingTaskVideoContainerIdEq: string,
+    setRetryCount?: number,
+    setExecutionTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "UPDATE VideoContainerDeletingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (VideoContainerDeletingTask.videoContainerId = @videoContainerDeletingTaskVideoContainerIdEq)",
     params: {
-      videoContainerDeletingTaskVideoContainerIdEq: videoContainerDeletingTaskVideoContainerIdEq,
-      setRetryCount: Spanner.float(setRetryCount),
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+      videoContainerDeletingTaskVideoContainerIdEq: args.videoContainerDeletingTaskVideoContainerIdEq,
+      setRetryCount: args.setRetryCount == null ? null : Spanner.float(args.setRetryCount),
+      setExecutionTimeMs: args.setExecutionTimeMs == null ? null : new Date(args.setExecutionTimeMs).toISOString(),
     },
     types: {
       videoContainerDeletingTaskVideoContainerIdEq: { type: "string" },
@@ -1078,18 +1143,20 @@ export function updateVideoContainerDeletingTaskMetadataStatement(
 }
 
 export function insertCoverImageDeletingTaskStatement(
-  r2Filename: string,
-  retryCount: number,
-  executionTimeMs: number,
-  createdTimeMs: number,
+  args: {
+    r2Filename: string,
+    retryCount?: number,
+    executionTimeMs?: number,
+    createdTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "INSERT CoverImageDeletingTask (r2Filename, retryCount, executionTimeMs, createdTimeMs) VALUES (@r2Filename, @retryCount, @executionTimeMs, @createdTimeMs)",
     params: {
-      r2Filename: r2Filename,
-      retryCount: Spanner.float(retryCount),
-      executionTimeMs: new Date(executionTimeMs).toISOString(),
-      createdTimeMs: new Date(createdTimeMs).toISOString(),
+      r2Filename: args.r2Filename,
+      retryCount: args.retryCount == null ? null : Spanner.float(args.retryCount),
+      executionTimeMs: args.executionTimeMs == null ? null : new Date(args.executionTimeMs).toISOString(),
+      createdTimeMs: args.createdTimeMs == null ? null : new Date(args.createdTimeMs).toISOString(),
     },
     types: {
       r2Filename: { type: "string" },
@@ -1101,12 +1168,14 @@ export function insertCoverImageDeletingTaskStatement(
 }
 
 export function deleteCoverImageDeletingTaskStatement(
-  coverImageDeletingTaskR2FilenameEq: string,
+  args: {
+    coverImageDeletingTaskR2FilenameEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
     params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+      coverImageDeletingTaskR2FilenameEq: args.coverImageDeletingTaskR2FilenameEq,
     },
     types: {
       coverImageDeletingTaskR2FilenameEq: { type: "string" },
@@ -1115,10 +1184,10 @@ export function deleteCoverImageDeletingTaskStatement(
 }
 
 export interface GetCoverImageDeletingTaskRow {
-  coverImageDeletingTaskR2Filename: string,
-  coverImageDeletingTaskRetryCount: number,
-  coverImageDeletingTaskExecutionTimeMs: number,
-  coverImageDeletingTaskCreatedTimeMs: number,
+  coverImageDeletingTaskR2Filename?: string,
+  coverImageDeletingTaskRetryCount?: number,
+  coverImageDeletingTaskExecutionTimeMs?: number,
+  coverImageDeletingTaskCreatedTimeMs?: number,
 }
 
 export let GET_COVER_IMAGE_DELETING_TASK_ROW: MessageDescriptor<GetCoverImageDeletingTaskRow> = {
@@ -1144,12 +1213,14 @@ export let GET_COVER_IMAGE_DELETING_TASK_ROW: MessageDescriptor<GetCoverImageDel
 
 export async function getCoverImageDeletingTask(
   runner: Database | Transaction,
-  coverImageDeletingTaskR2FilenameEq: string,
+  args: {
+    coverImageDeletingTaskR2FilenameEq: string,
+  }
 ): Promise<Array<GetCoverImageDeletingTaskRow>> {
   let [rows] = await runner.run({
     sql: "SELECT CoverImageDeletingTask.r2Filename, CoverImageDeletingTask.retryCount, CoverImageDeletingTask.executionTimeMs, CoverImageDeletingTask.createdTimeMs FROM CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
     params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+      coverImageDeletingTaskR2FilenameEq: args.coverImageDeletingTaskR2FilenameEq,
     },
     types: {
       coverImageDeletingTaskR2FilenameEq: { type: "string" },
@@ -1158,17 +1229,17 @@ export async function getCoverImageDeletingTask(
   let resRows = new Array<GetCoverImageDeletingTaskRow>();
   for (let row of rows) {
     resRows.push({
-      coverImageDeletingTaskR2Filename: row.at(0).value,
-      coverImageDeletingTaskRetryCount: row.at(1).value.value,
-      coverImageDeletingTaskExecutionTimeMs: row.at(2).value.valueOf(),
-      coverImageDeletingTaskCreatedTimeMs: row.at(3).value.valueOf(),
+      coverImageDeletingTaskR2Filename: row.at(0).value == null ? undefined : row.at(0).value,
+      coverImageDeletingTaskRetryCount: row.at(1).value == null ? undefined : row.at(1).value.value,
+      coverImageDeletingTaskExecutionTimeMs: row.at(2).value == null ? undefined : row.at(2).value.valueOf(),
+      coverImageDeletingTaskCreatedTimeMs: row.at(3).value == null ? undefined : row.at(3).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export interface ListPendingCoverImageDeletingTasksRow {
-  coverImageDeletingTaskR2Filename: string,
+  coverImageDeletingTaskR2Filename?: string,
 }
 
 export let LIST_PENDING_COVER_IMAGE_DELETING_TASKS_ROW: MessageDescriptor<ListPendingCoverImageDeletingTasksRow> = {
@@ -1182,12 +1253,14 @@ export let LIST_PENDING_COVER_IMAGE_DELETING_TASKS_ROW: MessageDescriptor<ListPe
 
 export async function listPendingCoverImageDeletingTasks(
   runner: Database | Transaction,
-  coverImageDeletingTaskExecutionTimeMsLe: number,
+  args: {
+    coverImageDeletingTaskExecutionTimeMsLe?: number,
+  }
 ): Promise<Array<ListPendingCoverImageDeletingTasksRow>> {
   let [rows] = await runner.run({
     sql: "SELECT CoverImageDeletingTask.r2Filename FROM CoverImageDeletingTask WHERE CoverImageDeletingTask.executionTimeMs <= @coverImageDeletingTaskExecutionTimeMsLe",
     params: {
-      coverImageDeletingTaskExecutionTimeMsLe: new Date(coverImageDeletingTaskExecutionTimeMsLe).toISOString(),
+      coverImageDeletingTaskExecutionTimeMsLe: args.coverImageDeletingTaskExecutionTimeMsLe == null ? null : new Date(args.coverImageDeletingTaskExecutionTimeMsLe).toISOString(),
     },
     types: {
       coverImageDeletingTaskExecutionTimeMsLe: { type: "timestamp" },
@@ -1196,15 +1269,15 @@ export async function listPendingCoverImageDeletingTasks(
   let resRows = new Array<ListPendingCoverImageDeletingTasksRow>();
   for (let row of rows) {
     resRows.push({
-      coverImageDeletingTaskR2Filename: row.at(0).value,
+      coverImageDeletingTaskR2Filename: row.at(0).value == null ? undefined : row.at(0).value,
     });
   }
   return resRows;
 }
 
 export interface GetCoverImageDeletingTaskMetadataRow {
-  coverImageDeletingTaskRetryCount: number,
-  coverImageDeletingTaskExecutionTimeMs: number,
+  coverImageDeletingTaskRetryCount?: number,
+  coverImageDeletingTaskExecutionTimeMs?: number,
 }
 
 export let GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW: MessageDescriptor<GetCoverImageDeletingTaskMetadataRow> = {
@@ -1222,12 +1295,14 @@ export let GET_COVER_IMAGE_DELETING_TASK_METADATA_ROW: MessageDescriptor<GetCove
 
 export async function getCoverImageDeletingTaskMetadata(
   runner: Database | Transaction,
-  coverImageDeletingTaskR2FilenameEq: string,
+  args: {
+    coverImageDeletingTaskR2FilenameEq: string,
+  }
 ): Promise<Array<GetCoverImageDeletingTaskMetadataRow>> {
   let [rows] = await runner.run({
     sql: "SELECT CoverImageDeletingTask.retryCount, CoverImageDeletingTask.executionTimeMs FROM CoverImageDeletingTask WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
     params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
+      coverImageDeletingTaskR2FilenameEq: args.coverImageDeletingTaskR2FilenameEq,
     },
     types: {
       coverImageDeletingTaskR2FilenameEq: { type: "string" },
@@ -1236,24 +1311,26 @@ export async function getCoverImageDeletingTaskMetadata(
   let resRows = new Array<GetCoverImageDeletingTaskMetadataRow>();
   for (let row of rows) {
     resRows.push({
-      coverImageDeletingTaskRetryCount: row.at(0).value.value,
-      coverImageDeletingTaskExecutionTimeMs: row.at(1).value.valueOf(),
+      coverImageDeletingTaskRetryCount: row.at(0).value == null ? undefined : row.at(0).value.value,
+      coverImageDeletingTaskExecutionTimeMs: row.at(1).value == null ? undefined : row.at(1).value.valueOf(),
     });
   }
   return resRows;
 }
 
 export function updateCoverImageDeletingTaskMetadataStatement(
-  coverImageDeletingTaskR2FilenameEq: string,
-  setRetryCount: number,
-  setExecutionTimeMs: number,
+  args: {
+    coverImageDeletingTaskR2FilenameEq: string,
+    setRetryCount?: number,
+    setExecutionTimeMs?: number,
+  }
 ): Statement {
   return {
     sql: "UPDATE CoverImageDeletingTask SET retryCount = @setRetryCount, executionTimeMs = @setExecutionTimeMs WHERE (CoverImageDeletingTask.r2Filename = @coverImageDeletingTaskR2FilenameEq)",
     params: {
-      coverImageDeletingTaskR2FilenameEq: coverImageDeletingTaskR2FilenameEq,
-      setRetryCount: Spanner.float(setRetryCount),
-      setExecutionTimeMs: new Date(setExecutionTimeMs).toISOString(),
+      coverImageDeletingTaskR2FilenameEq: args.coverImageDeletingTaskR2FilenameEq,
+      setRetryCount: args.setRetryCount == null ? null : Spanner.float(args.setRetryCount),
+      setExecutionTimeMs: args.setExecutionTimeMs == null ? null : new Date(args.setExecutionTimeMs).toISOString(),
     },
     types: {
       coverImageDeletingTaskR2FilenameEq: { type: "string" },
@@ -1263,41 +1340,357 @@ export function updateCoverImageDeletingTaskMetadataStatement(
   };
 }
 
-export function insertCoverImageFileStatement(
-  r2Filename: string,
+export function updateSeasonLastChangeTimeStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setLastChangeTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT CoverImageFile (r2Filename) VALUES (@r2Filename)",
+    sql: "UPDATE Season SET lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
-      r2Filename: r2Filename,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
     },
     types: {
-      r2Filename: { type: "string" },
+      seasonSeasonIdEq: { type: "string" },
+      setLastChangeTimeMs: { type: "float64" },
     }
   };
 }
 
-export function insertVideoContainerKeyStatement(
-  key: string,
+export function archiveSeasonStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setState?: SeasonState,
+    setCoverImageR2Filename?: string,
+    setLastChangeTimeMs?: number,
+  }
 ): Statement {
   return {
-    sql: "INSERT VideoContainerKey (key) VALUES (@key)",
+    sql: "UPDATE Season SET state = @setState, coverImageR2Filename = @setCoverImageR2Filename, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
-      key: key,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setState: args.setState == null ? null : Spanner.float(args.setState),
+      setCoverImageR2Filename: args.setCoverImageR2Filename == null ? null : args.setCoverImageR2Filename,
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
     },
     types: {
-      key: { type: "string" },
+      seasonSeasonIdEq: { type: "string" },
+      setState: { type: "float64" },
+      setCoverImageR2Filename: { type: "string" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonTotalEpisodesStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setTotalEpisodes?: number,
+    setLastChangeTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET totalEpisodes = @setTotalEpisodes, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setTotalEpisodes: args.setTotalEpisodes == null ? null : Spanner.float(args.setTotalEpisodes),
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setTotalEpisodes: { type: "float64" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function publishSeasonStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setState?: SeasonState,
+    setRecentPremierTimeMs?: number,
+    setLastChangeTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET state = @setState, recentPremierTimeMs = @setRecentPremierTimeMs, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setState: args.setState == null ? null : Spanner.float(args.setState),
+      setRecentPremierTimeMs: args.setRecentPremierTimeMs == null ? null : Spanner.float(args.setRecentPremierTimeMs),
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setState: { type: "float64" },
+      setRecentPremierTimeMs: { type: "float64" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonPremierTimeStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setRecentPremierTimeMs?: number,
+    setLastChangeTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET recentPremierTimeMs = @setRecentPremierTimeMs, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setRecentPremierTimeMs: args.setRecentPremierTimeMs == null ? null : Spanner.float(args.setRecentPremierTimeMs),
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setRecentPremierTimeMs: { type: "float64" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonNameAndDescriptionStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setName?: string,
+    setDescription?: string,
+    setLastChangeTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET name = @setName, description = @setDescription, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setName: args.setName == null ? null : args.setName,
+      setDescription: args.setDescription == null ? null : args.setDescription,
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setName: { type: "string" },
+      setDescription: { type: "string" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonCoverImageStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setCoverImageR2Filename?: string,
+    setLastChangeTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET coverImageR2Filename = @setCoverImageR2Filename, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setCoverImageR2Filename: args.setCoverImageR2Filename == null ? null : args.setCoverImageR2Filename,
+      setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setCoverImageR2Filename: { type: "string" },
+      setLastChangeTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonGradeStatement(
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeGradeIdEq: string,
+    setGrade?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE SeasonGrade SET grade = @setGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.gradeId = @seasonGradeGradeIdEq)",
+    params: {
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeGradeIdEq: args.seasonGradeGradeIdEq,
+      setGrade: args.setGrade == null ? null : Spanner.float(args.setGrade),
+    },
+    types: {
+      seasonGradeSeasonIdEq: { type: "string" },
+      seasonGradeGradeIdEq: { type: "string" },
+      setGrade: { type: "float64" },
+    }
+  };
+}
+
+export function updateSeasonGradeEndDateStatement(
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeGradeIdEq: string,
+    setEndDate?: string,
+  }
+): Statement {
+  return {
+    sql: "UPDATE SeasonGrade SET endDate = @setEndDate WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.gradeId = @seasonGradeGradeIdEq)",
+    params: {
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeGradeIdEq: args.seasonGradeGradeIdEq,
+      setEndDate: args.setEndDate == null ? null : args.setEndDate,
+    },
+    types: {
+      seasonGradeSeasonIdEq: { type: "string" },
+      seasonGradeGradeIdEq: { type: "string" },
+      setEndDate: { type: "string" },
+    }
+  };
+}
+
+export function updateSeasonGradeStartDateAndGradeStatement(
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeGradeIdEq: string,
+    setStartDate?: string,
+    setGrade?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE SeasonGrade SET startDate = @setStartDate, grade = @setGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.gradeId = @seasonGradeGradeIdEq)",
+    params: {
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeGradeIdEq: args.seasonGradeGradeIdEq,
+      setStartDate: args.setStartDate == null ? null : args.setStartDate,
+      setGrade: args.setGrade == null ? null : Spanner.float(args.setGrade),
+    },
+    types: {
+      seasonGradeSeasonIdEq: { type: "string" },
+      seasonGradeGradeIdEq: { type: "string" },
+      setStartDate: { type: "string" },
+      setGrade: { type: "float64" },
+    }
+  };
+}
+
+export function updateEpisodeVideoContainerIdStatement(
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+    setVideoContainerId?: string,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Episode SET videoContainerId = @setVideoContainerId WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      setVideoContainerId: args.setVideoContainerId == null ? null : args.setVideoContainerId,
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+      setVideoContainerId: { type: "string" },
+    }
+  };
+}
+
+export function updateEpisodeVideoContainerStatement(
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+    setVideoContainer?: VideoContainer,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Episode SET videoContainer = @setVideoContainer WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      setVideoContainer: args.setVideoContainer == null ? null : Buffer.from(serializeMessage(args.setVideoContainer, VIDEO_CONTAINER).buffer),
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+      setVideoContainer: { type: "bytes" },
+    }
+  };
+}
+
+export function updateEpisodeIndexStatement(
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+    setIndex?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Episode SET index = @setIndex WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      setIndex: args.setIndex == null ? null : Spanner.float(args.setIndex),
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+      setIndex: { type: "float64" },
+    }
+  };
+}
+
+export function publishEpisodeStatement(
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+    setPublishTimeMs?: number,
+    setPremierTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Episode SET publishTimeMs = @setPublishTimeMs, premierTimeMs = @setPremierTimeMs WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      setPublishTimeMs: args.setPublishTimeMs == null ? null : Spanner.float(args.setPublishTimeMs),
+      setPremierTimeMs: args.setPremierTimeMs == null ? null : Spanner.float(args.setPremierTimeMs),
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+      setPublishTimeMs: { type: "float64" },
+      setPremierTimeMs: { type: "float64" },
+    }
+  };
+}
+
+export function updateEpisodeNameStatement(
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+    setName?: string,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Episode SET name = @setName WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    params: {
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      setName: args.setName == null ? null : args.setName,
+    },
+    types: {
+      episodeSeasonIdEq: { type: "string" },
+      episodeEpisodeIdEq: { type: "string" },
+      setName: { type: "string" },
     }
   };
 }
 
 export function deleteAllEpisodesStatement(
-  episodeSeasonIdEq: string,
+  args: {
+    episodeSeasonIdEq: string,
+  }
 ): Statement {
   return {
     sql: "DELETE Episode WHERE Episode.seasonId = @episodeSeasonIdEq",
     params: {
-      episodeSeasonIdEq: episodeSeasonIdEq,
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
     },
     types: {
       episodeSeasonIdEq: { type: "string" },
@@ -1305,36 +1698,8 @@ export function deleteAllEpisodesStatement(
   };
 }
 
-export function deleteCoverImageFileStatement(
-  coverImageFileR2FilenameEq: string,
-): Statement {
-  return {
-    sql: "DELETE CoverImageFile WHERE CoverImageFile.r2Filename = @coverImageFileR2FilenameEq",
-    params: {
-      coverImageFileR2FilenameEq: coverImageFileR2FilenameEq,
-    },
-    types: {
-      coverImageFileR2FilenameEq: { type: "string" },
-    }
-  };
-}
-
-export function deleteVideoContainerKeyStatement(
-  videoContainerKeyKeyEq: string,
-): Statement {
-  return {
-    sql: "DELETE VideoContainerKey WHERE VideoContainerKey.key = @videoContainerKeyKeyEq",
-    params: {
-      videoContainerKeyKeyEq: videoContainerKeyKeyEq,
-    },
-    types: {
-      videoContainerKeyKeyEq: { type: "string" },
-    }
-  };
-}
-
 export interface CheckPresenceOfSeasonRow {
-  seasonLastChangeTimeMs: number,
+  seasonLastChangeTimeMs?: number,
 }
 
 export let CHECK_PRESENCE_OF_SEASON_ROW: MessageDescriptor<CheckPresenceOfSeasonRow> = {
@@ -1348,12 +1713,14 @@ export let CHECK_PRESENCE_OF_SEASON_ROW: MessageDescriptor<CheckPresenceOfSeason
 
 export async function checkPresenceOfSeason(
   runner: Database | Transaction,
-  seasonSeasonIdEq: string,
+  args: {
+    seasonSeasonIdEq: string,
+  }
 ): Promise<Array<CheckPresenceOfSeasonRow>> {
   let [rows] = await runner.run({
     sql: "SELECT Season.lastChangeTimeMs FROM Season WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
-      seasonSeasonIdEq: seasonSeasonIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
@@ -1362,14 +1729,14 @@ export async function checkPresenceOfSeason(
   let resRows = new Array<CheckPresenceOfSeasonRow>();
   for (let row of rows) {
     resRows.push({
-      seasonLastChangeTimeMs: row.at(0).value.value,
+      seasonLastChangeTimeMs: row.at(0).value == null ? undefined : row.at(0).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetSeasonPublisherRow {
-  seasonPublisherId: string,
+  seasonPublisherId?: string,
 }
 
 export let GET_SEASON_PUBLISHER_ROW: MessageDescriptor<GetSeasonPublisherRow> = {
@@ -1383,12 +1750,14 @@ export let GET_SEASON_PUBLISHER_ROW: MessageDescriptor<GetSeasonPublisherRow> = 
 
 export async function getSeasonPublisher(
   runner: Database | Transaction,
-  seasonSeasonIdEq: string,
+  args: {
+    seasonSeasonIdEq: string,
+  }
 ): Promise<Array<GetSeasonPublisherRow>> {
   let [rows] = await runner.run({
     sql: "SELECT Season.publisherId FROM Season WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
-      seasonSeasonIdEq: seasonSeasonIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
@@ -1397,35 +1766,72 @@ export async function getSeasonPublisher(
   let resRows = new Array<GetSeasonPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      seasonPublisherId: row.at(0).value,
+      seasonPublisherId: row.at(0).value == null ? undefined : row.at(0).value,
     });
   }
   return resRows;
 }
 
 export interface GetSeasonForPublisherRow {
-  seasonData: Season,
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
 }
 
 export let GET_SEASON_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonForPublisherRow> = {
   name: 'GetSeasonForPublisherRow',
   fields: [{
-    name: 'seasonData',
+    name: 'seasonSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeasonForPublisher(
   runner: Database | Transaction,
-  seasonPublisherIdEq: string,
-  seasonSeasonIdEq: string,
+  args: {
+    seasonPublisherIdEq?: string,
+    seasonSeasonIdEq: string,
+  }
 ): Promise<Array<GetSeasonForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.data FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
     params: {
-      seasonPublisherIdEq: seasonPublisherIdEq,
-      seasonSeasonIdEq: seasonSeasonIdEq,
+      seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
       seasonPublisherIdEq: { type: "string" },
@@ -1435,94 +1841,232 @@ export async function getSeasonForPublisher(
   let resRows = new Array<GetSeasonForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      seasonData: deserializeMessage(row.at(0).value, SEASON),
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
-export interface GetSeasonAndMoreAndRatingForPublisherRow {
-  sData: Season,
-  mData: SeasonMore,
-  srData: SeasonRating,
+export interface GetSeasonAllAndRatingForPublisherRow {
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  sDescription?: string,
+  sCreatedTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
-export let GET_SEASON_AND_MORE_AND_RATING_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAndMoreAndRatingForPublisherRow> = {
-  name: 'GetSeasonAndMoreAndRatingForPublisherRow',
+export let GET_SEASON_ALL_AND_RATING_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAllAndRatingForPublisherRow> = {
+  name: 'GetSeasonAllAndRatingForPublisherRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'mData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_MORE,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sState',
     index: 3,
-    messageType: SEASON_RATING,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sDescription',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCreatedTimeMs',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 11,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 14,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 15,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function getSeasonAndMoreAndRatingForPublisher(
+export async function getSeasonAllAndRatingForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  sSeasonIdEq: string,
-): Promise<Array<GetSeasonAndMoreAndRatingForPublisherRow>> {
+  args: {
+    sPublisherIdEq?: string,
+    sSeasonIdEq: string,
+  }
+): Promise<Array<GetSeasonAllAndRatingForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, m.data, sr.data FROM Season AS s INNER JOIN SeasonMore AS m ON s.seasonId = m.seasonId LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.seasonId = @sSeasonIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.description, s.createdTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.seasonId = @sSeasonIdEq)",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      sSeasonIdEq: sSeasonIdEq,
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      sSeasonIdEq: args.sSeasonIdEq,
     },
     types: {
       sPublisherIdEq: { type: "string" },
       sSeasonIdEq: { type: "string" },
     }
   });
-  let resRows = new Array<GetSeasonAndMoreAndRatingForPublisherRow>();
+  let resRows = new Array<GetSeasonAllAndRatingForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      mData: deserializeMessage(row.at(1).value, SEASON_MORE),
-      srData: deserializeMessage(row.at(2).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      sDescription: row.at(8).value == null ? undefined : row.at(8).value,
+      sCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      srTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srCount: row.at(12).value == null ? undefined : row.at(12).value.value,
+      srAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
+      srUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListSeasonsForPublisherRow {
-  sData: Season,
-  srData: SeasonRating,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
 export let LIST_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<ListSeasonsForPublisherRow> = {
   name: 'ListSeasonsForPublisherRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listSeasonsForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  sStateEq: SeasonState,
-  sLastChangeTimeMsLt: number,
-  limit: number,
+  args: {
+    sPublisherIdEq?: string,
+    sStateEq?: SeasonState,
+    sLastChangeTimeMsLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, sr.data FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.state = @sStateEq AND s.lastChangeTimeMs < @sLastChangeTimeMsLt) ORDER BY s.lastChangeTimeMs DESC LIMIT @limit",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.state = @sStateEq AND s.lastChangeTimeMs < @sLastChangeTimeMsLt) ORDER BY s.lastChangeTimeMs DESC LIMIT @limit",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      sStateEq: Spanner.float(sStateEq),
-      sLastChangeTimeMsLt: Spanner.float(sLastChangeTimeMsLt),
-      limit: limit.toString(),
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      sLastChangeTimeMsLt: args.sLastChangeTimeMsLt == null ? null : Spanner.float(args.sLastChangeTimeMsLt),
+      limit: args.limit.toString(),
     },
     types: {
       sPublisherIdEq: { type: "string" },
@@ -1534,43 +2078,111 @@ export async function listSeasonsForPublisher(
   let resRows = new Array<ListSeasonsForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
+      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListPublishedSeasonsByPublishTimeForConsumerRow {
-  sData: Season,
-  srData: SeasonRating,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
 export let LIST_PUBLISHED_SEASONS_BY_PUBLISH_TIME_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByPublishTimeForConsumerRow> = {
   name: 'ListPublishedSeasonsByPublishTimeForConsumerRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listPublishedSeasonsByPublishTimeForConsumer(
   runner: Database | Transaction,
-  sStateEq: SeasonState,
-  sRecentPremierTimeMsLt: number,
-  limit: number,
+  args: {
+    sStateEq?: SeasonState,
+    sRecentPremierTimeMsLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListPublishedSeasonsByPublishTimeForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, sr.data FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND s.recentPremierTimeMs < @sRecentPremierTimeMsLt) ORDER BY s.recentPremierTimeMs DESC LIMIT @limit",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND s.recentPremierTimeMs < @sRecentPremierTimeMsLt) ORDER BY s.recentPremierTimeMs DESC LIMIT @limit",
     params: {
-      sStateEq: Spanner.float(sStateEq),
-      sRecentPremierTimeMsLt: Spanner.float(sRecentPremierTimeMsLt),
-      limit: limit.toString(),
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      sRecentPremierTimeMsLt: args.sRecentPremierTimeMsLt == null ? null : Spanner.float(args.sRecentPremierTimeMsLt),
+      limit: args.limit.toString(),
     },
     types: {
       sStateEq: { type: "float64" },
@@ -1581,47 +2193,115 @@ export async function listPublishedSeasonsByPublishTimeForConsumer(
   let resRows = new Array<ListPublishedSeasonsByPublishTimeForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
+      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListPublishedSeasonsByRatingForConsumerRow {
-  sData: Season,
-  srData: SeasonRating,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
 export let LIST_PUBLISHED_SEASONS_BY_RATING_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByRatingForConsumerRow> = {
   name: 'ListPublishedSeasonsByRatingForConsumerRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listPublishedSeasonsByRatingForConsumer(
   runner: Database | Transaction,
-  sStateEq: SeasonState,
-  srAverageRatingLt: number,
-  srAverageRatingEq: number,
-  srUpdatedTimeMsLt: number,
-  limit: number,
+  args: {
+    sStateEq?: SeasonState,
+    srAverageRatingLt?: number,
+    srAverageRatingEq?: number,
+    srUpdatedTimeMsLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListPublishedSeasonsByRatingForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, sr.data FROM Season AS s INNER JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND (sr.averageRating < @srAverageRatingLt OR (sr.averageRating = @srAverageRatingEq AND sr.updatedTimeMs < @srUpdatedTimeMsLt))) ORDER BY sr.averageRating DESC, sr.updatedTimeMs DESC LIMIT @limit",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s INNER JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND (sr.averageRating < @srAverageRatingLt OR (sr.averageRating = @srAverageRatingEq AND sr.updatedTimeMs < @srUpdatedTimeMsLt))) ORDER BY sr.averageRating DESC, sr.updatedTimeMs DESC LIMIT @limit",
     params: {
-      sStateEq: Spanner.float(sStateEq),
-      srAverageRatingLt: Spanner.float(srAverageRatingLt),
-      srAverageRatingEq: Spanner.float(srAverageRatingEq),
-      srUpdatedTimeMsLt: Spanner.float(srUpdatedTimeMsLt),
-      limit: limit.toString(),
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      srAverageRatingLt: args.srAverageRatingLt == null ? null : Spanner.float(args.srAverageRatingLt),
+      srAverageRatingEq: args.srAverageRatingEq == null ? null : Spanner.float(args.srAverageRatingEq),
+      srUpdatedTimeMsLt: args.srUpdatedTimeMsLt == null ? null : Spanner.float(args.srUpdatedTimeMsLt),
+      limit: args.limit.toString(),
     },
     types: {
       sStateEq: { type: "float64" },
@@ -1634,41 +2314,109 @@ export async function listPublishedSeasonsByRatingForConsumer(
   let resRows = new Array<ListPublishedSeasonsByRatingForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
+      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetPublishedSeasonAndRatingForConsumerRow {
-  sData: Season,
-  srData: SeasonRating,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
 export let GET_PUBLISHED_SEASON_AND_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndRatingForConsumerRow> = {
   name: 'GetPublishedSeasonAndRatingForConsumerRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_RATING,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getPublishedSeasonAndRatingForConsumer(
   runner: Database | Transaction,
-  sSeasonIdEq: string,
-  sStateEq: SeasonState,
+  args: {
+    sSeasonIdEq: string,
+    sStateEq?: SeasonState,
+  }
 ): Promise<Array<GetPublishedSeasonAndRatingForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, sr.data FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
     params: {
-      sSeasonIdEq: sSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
+      sSeasonIdEq: args.sSeasonIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
     },
     types: {
       sSeasonIdEq: { type: "string" },
@@ -1678,88 +2426,195 @@ export async function getPublishedSeasonAndRatingForConsumer(
   let resRows = new Array<GetPublishedSeasonAndRatingForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      srData: deserializeMessage(row.at(1).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
+      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
     });
   }
   return resRows;
 }
 
-export interface GetPublishedSeasonAndMoreAndRatingForConsumerRow {
-  sData: Season,
-  mData: SeasonMore,
-  srData: SeasonRating,
+export interface GetPublishedSeasonAllAndRatingForConsumerRow {
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  sDescription?: string,
+  sCreatedTimeMs?: number,
+  srSeasonId?: string,
+  srTotalRatings?: number,
+  srCount?: number,
+  srAverageRating?: number,
+  srUpdatedTimeMs?: number,
 }
 
-export let GET_PUBLISHED_SEASON_AND_MORE_AND_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndMoreAndRatingForConsumerRow> = {
-  name: 'GetPublishedSeasonAndMoreAndRatingForConsumerRow',
+export let GET_PUBLISHED_SEASON_ALL_AND_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAllAndRatingForConsumerRow> = {
+  name: 'GetPublishedSeasonAllAndRatingForConsumerRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'mData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: SEASON_MORE,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'srData',
+    name: 'sState',
     index: 3,
-    messageType: SEASON_RATING,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sDescription',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCreatedTimeMs',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srSeasonId',
+    index: 11,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'srTotalRatings',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srCount',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srAverageRating',
+    index: 14,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'srUpdatedTimeMs',
+    index: 15,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function getPublishedSeasonAndMoreAndRatingForConsumer(
+export async function getPublishedSeasonAllAndRatingForConsumer(
   runner: Database | Transaction,
-  sSeasonIdEq: string,
-  sStateEq: SeasonState,
-): Promise<Array<GetPublishedSeasonAndMoreAndRatingForConsumerRow>> {
+  args: {
+    sSeasonIdEq: string,
+    sStateEq?: SeasonState,
+  }
+): Promise<Array<GetPublishedSeasonAllAndRatingForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, m.data, sr.data FROM Season AS s INNER JOIN SeasonMore AS m ON s.seasonId = m.seasonId LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.description, s.createdTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
     params: {
-      sSeasonIdEq: sSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
+      sSeasonIdEq: args.sSeasonIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
     },
     types: {
       sSeasonIdEq: { type: "string" },
       sStateEq: { type: "float64" },
     }
   });
-  let resRows = new Array<GetPublishedSeasonAndMoreAndRatingForConsumerRow>();
+  let resRows = new Array<GetPublishedSeasonAllAndRatingForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      mData: deserializeMessage(row.at(1).value, SEASON_MORE),
-      srData: deserializeMessage(row.at(2).value, SEASON_RATING),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      sDescription: row.at(8).value == null ? undefined : row.at(8).value,
+      sCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
+      srSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      srTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
+      srCount: row.at(12).value == null ? undefined : row.at(12).value.value,
+      srAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
+      srUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetSeasonGradeRow {
-  seasonGradeData: SeasonGrade,
+  seasonGradeSeasonId?: string,
+  seasonGradeGradeId?: string,
+  seasonGradeStartDate?: string,
+  seasonGradeEndDate?: string,
+  seasonGradeGrade?: number,
 }
 
 export let GET_SEASON_GRADE_ROW: MessageDescriptor<GetSeasonGradeRow> = {
   name: 'GetSeasonGradeRow',
   fields: [{
-    name: 'seasonGradeData',
+    name: 'seasonGradeSeasonId',
     index: 1,
-    messageType: SEASON_GRADE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeGradeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeStartDate',
+    index: 3,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeEndDate',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeGrade',
+    index: 5,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeasonGrade(
   runner: Database | Transaction,
-  seasonGradeSeasonIdEq: string,
-  seasonGradeStartDateLe: string,
-  seasonGradeEndDateGt: string,
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeStartDateLe?: string,
+    seasonGradeEndDateGt?: string,
+  }
 ): Promise<Array<GetSeasonGradeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT SeasonGrade.data FROM SeasonGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.startDate <= @seasonGradeStartDateLe AND SeasonGrade.endDate > @seasonGradeEndDateGt)",
+    sql: "SELECT SeasonGrade.seasonId, SeasonGrade.gradeId, SeasonGrade.startDate, SeasonGrade.endDate, SeasonGrade.grade FROM SeasonGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.startDate <= @seasonGradeStartDateLe AND SeasonGrade.endDate > @seasonGradeEndDateGt)",
     params: {
-      seasonGradeSeasonIdEq: seasonGradeSeasonIdEq,
-      seasonGradeStartDateLe: seasonGradeStartDateLe,
-      seasonGradeEndDateGt: seasonGradeEndDateGt,
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeStartDateLe: args.seasonGradeStartDateLe == null ? null : args.seasonGradeStartDateLe,
+      seasonGradeEndDateGt: args.seasonGradeEndDateGt == null ? null : args.seasonGradeEndDateGt,
     },
     types: {
       seasonGradeSeasonIdEq: { type: "string" },
@@ -1770,37 +2625,63 @@ export async function getSeasonGrade(
   let resRows = new Array<GetSeasonGradeRow>();
   for (let row of rows) {
     resRows.push({
-      seasonGradeData: deserializeMessage(row.at(0).value, SEASON_GRADE),
+      seasonGradeSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonGradeGradeId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonGradeStartDate: row.at(2).value == null ? undefined : row.at(2).value,
+      seasonGradeEndDate: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonGradeGrade: row.at(4).value == null ? undefined : row.at(4).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetLastSeasonGradesRow {
-  seasonGradeData: SeasonGrade,
+  seasonGradeSeasonId?: string,
+  seasonGradeGradeId?: string,
+  seasonGradeStartDate?: string,
+  seasonGradeEndDate?: string,
+  seasonGradeGrade?: number,
 }
 
 export let GET_LAST_SEASON_GRADES_ROW: MessageDescriptor<GetLastSeasonGradesRow> = {
   name: 'GetLastSeasonGradesRow',
   fields: [{
-    name: 'seasonGradeData',
+    name: 'seasonGradeSeasonId',
     index: 1,
-    messageType: SEASON_GRADE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeGradeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeStartDate',
+    index: 3,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeEndDate',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonGradeGrade',
+    index: 5,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getLastSeasonGrades(
   runner: Database | Transaction,
-  seasonGradeSeasonIdEq: string,
-  seasonGradeEndDateGt: string,
-  limit: number,
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeEndDateGt?: string,
+    limit: number,
+  }
 ): Promise<Array<GetLastSeasonGradesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT SeasonGrade.data FROM SeasonGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.endDate > @seasonGradeEndDateGt) ORDER BY SeasonGrade.endDate DESC LIMIT @limit",
+    sql: "SELECT SeasonGrade.seasonId, SeasonGrade.gradeId, SeasonGrade.startDate, SeasonGrade.endDate, SeasonGrade.grade FROM SeasonGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.endDate > @seasonGradeEndDateGt) ORDER BY SeasonGrade.endDate DESC LIMIT @limit",
     params: {
-      seasonGradeSeasonIdEq: seasonGradeSeasonIdEq,
-      seasonGradeEndDateGt: seasonGradeEndDateGt,
-      limit: limit.toString(),
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeEndDateGt: args.seasonGradeEndDateGt == null ? null : args.seasonGradeEndDateGt,
+      limit: args.limit.toString(),
     },
     types: {
       seasonGradeSeasonIdEq: { type: "string" },
@@ -1811,14 +2692,18 @@ export async function getLastSeasonGrades(
   let resRows = new Array<GetLastSeasonGradesRow>();
   for (let row of rows) {
     resRows.push({
-      seasonGradeData: deserializeMessage(row.at(0).value, SEASON_GRADE),
+      seasonGradeSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonGradeGradeId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonGradeStartDate: row.at(2).value == null ? undefined : row.at(2).value,
+      seasonGradeEndDate: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonGradeGrade: row.at(4).value == null ? undefined : row.at(4).value.value,
     });
   }
   return resRows;
 }
 
 export interface CheckPresenceOfEpisodeRow {
-  episodePublishTimeMs: number,
+  episodePublishTimeMs?: number,
 }
 
 export let CHECK_PRESENCE_OF_EPISODE_ROW: MessageDescriptor<CheckPresenceOfEpisodeRow> = {
@@ -1832,14 +2717,16 @@ export let CHECK_PRESENCE_OF_EPISODE_ROW: MessageDescriptor<CheckPresenceOfEpiso
 
 export async function checkPresenceOfEpisode(
   runner: Database | Transaction,
-  episodeSeasonIdEq: string,
-  episodeEpisodeIdEq: string,
+  args: {
+    episodeSeasonIdEq: string,
+    episodeEpisodeIdEq: string,
+  }
 ): Promise<Array<CheckPresenceOfEpisodeRow>> {
   let [rows] = await runner.run({
     sql: "SELECT Episode.publishTimeMs FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
-      episodeSeasonIdEq: episodeSeasonIdEq,
-      episodeEpisodeIdEq: episodeEpisodeIdEq,
+      episodeSeasonIdEq: args.episodeSeasonIdEq,
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
     },
     types: {
       episodeSeasonIdEq: { type: "string" },
@@ -1849,39 +2736,76 @@ export async function checkPresenceOfEpisode(
   let resRows = new Array<CheckPresenceOfEpisodeRow>();
   for (let row of rows) {
     resRows.push({
-      episodePublishTimeMs: row.at(0).value.value,
+      episodePublishTimeMs: row.at(0).value == null ? undefined : row.at(0).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetPublishedEpisodeForConsumerRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let GET_PUBLISHED_EPISODE_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedEpisodeForConsumerRow> = {
   name: 'GetPublishedEpisodeForConsumerRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getPublishedEpisodeForConsumer(
   runner: Database | Transaction,
-  eSeasonIdEq: string,
-  sStateEq: SeasonState,
-  eEpisodeIdEq: string,
-  ePublishTimeMsLt: number,
+  args: {
+    eSeasonIdEq: string,
+    sStateEq?: SeasonState,
+    eEpisodeIdEq: string,
+    ePublishTimeMsLt?: number,
+  }
 ): Promise<Array<GetPublishedEpisodeForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.episodeId = @eEpisodeIdEq AND e.publishTimeMs < @ePublishTimeMsLt)",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.episodeId = @eEpisodeIdEq AND e.publishTimeMs < @ePublishTimeMsLt)",
     params: {
-      eSeasonIdEq: eSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
-      eEpisodeIdEq: eEpisodeIdEq,
-      ePublishTimeMsLt: Spanner.float(ePublishTimeMsLt),
+      eSeasonIdEq: args.eSeasonIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      eEpisodeIdEq: args.eEpisodeIdEq,
+      ePublishTimeMsLt: args.ePublishTimeMsLt == null ? null : Spanner.float(args.ePublishTimeMsLt),
     },
     types: {
       eSeasonIdEq: { type: "string" },
@@ -1893,41 +2817,85 @@ export async function getPublishedEpisodeForConsumer(
   let resRows = new Array<GetPublishedEpisodeForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListNextPublishedEpisodesForConsumerRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let LIST_NEXT_PUBLISHED_EPISODES_FOR_CONSUMER_ROW: MessageDescriptor<ListNextPublishedEpisodesForConsumerRow> = {
   name: 'ListNextPublishedEpisodesForConsumerRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listNextPublishedEpisodesForConsumer(
   runner: Database | Transaction,
-  eSeasonIdEq: string,
-  sStateEq: SeasonState,
-  eIndexGt: number,
-  ePublishTimeMsLt: number,
-  limit: number,
+  args: {
+    eSeasonIdEq: string,
+    sStateEq?: SeasonState,
+    eIndexGt?: number,
+    ePublishTimeMsLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListNextPublishedEpisodesForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.index > @eIndexGt AND e.publishTimeMs < @ePublishTimeMsLt) ORDER BY e.index LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.index > @eIndexGt AND e.publishTimeMs < @ePublishTimeMsLt) ORDER BY e.index LIMIT @limit",
     params: {
-      eSeasonIdEq: eSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
-      eIndexGt: Spanner.float(eIndexGt),
-      ePublishTimeMsLt: Spanner.float(ePublishTimeMsLt),
-      limit: limit.toString(),
+      eSeasonIdEq: args.eSeasonIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      eIndexGt: args.eIndexGt == null ? null : Spanner.float(args.eIndexGt),
+      ePublishTimeMsLt: args.ePublishTimeMsLt == null ? null : Spanner.float(args.ePublishTimeMsLt),
+      limit: args.limit.toString(),
     },
     types: {
       eSeasonIdEq: { type: "string" },
@@ -1940,41 +2908,85 @@ export async function listNextPublishedEpisodesForConsumer(
   let resRows = new Array<ListNextPublishedEpisodesForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListPrevPublishedEpisodesForConsumerRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let LIST_PREV_PUBLISHED_EPISODES_FOR_CONSUMER_ROW: MessageDescriptor<ListPrevPublishedEpisodesForConsumerRow> = {
   name: 'ListPrevPublishedEpisodesForConsumerRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listPrevPublishedEpisodesForConsumer(
   runner: Database | Transaction,
-  eSeasonIdEq: string,
-  sStateEq: SeasonState,
-  eIndexLt: number,
-  ePublishTimeMsLt: number,
-  limit: number,
+  args: {
+    eSeasonIdEq: string,
+    sStateEq?: SeasonState,
+    eIndexLt?: number,
+    ePublishTimeMsLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListPrevPublishedEpisodesForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.index < @eIndexLt AND e.publishTimeMs < @ePublishTimeMsLt) ORDER BY e.index DESC LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND s.state = @sStateEq AND e.index < @eIndexLt AND e.publishTimeMs < @ePublishTimeMsLt) ORDER BY e.index DESC LIMIT @limit",
     params: {
-      eSeasonIdEq: eSeasonIdEq,
-      sStateEq: Spanner.float(sStateEq),
-      eIndexLt: Spanner.float(eIndexLt),
-      ePublishTimeMsLt: Spanner.float(ePublishTimeMsLt),
-      limit: limit.toString(),
+      eSeasonIdEq: args.eSeasonIdEq,
+      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      eIndexLt: args.eIndexLt == null ? null : Spanner.float(args.eIndexLt),
+      ePublishTimeMsLt: args.ePublishTimeMsLt == null ? null : Spanner.float(args.ePublishTimeMsLt),
+      limit: args.limit.toString(),
     },
     types: {
       eSeasonIdEq: { type: "string" },
@@ -1987,39 +2999,83 @@ export async function listPrevPublishedEpisodesForConsumer(
   let resRows = new Array<ListPrevPublishedEpisodesForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListPrevEpisodesForPublisherRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let LIST_PREV_EPISODES_FOR_PUBLISHER_ROW: MessageDescriptor<ListPrevEpisodesForPublisherRow> = {
   name: 'ListPrevEpisodesForPublisherRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listPrevEpisodesForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  eSeasonIdEq: string,
-  eIndexLt: number,
-  limit: number,
+  args: {
+    sPublisherIdEq?: string,
+    eSeasonIdEq: string,
+    eIndexLt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListPrevEpisodesForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.index < @eIndexLt) ORDER BY e.index DESC LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.index < @eIndexLt) ORDER BY e.index DESC LIMIT @limit",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      eSeasonIdEq: eSeasonIdEq,
-      eIndexLt: Spanner.float(eIndexLt),
-      limit: limit.toString(),
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eIndexLt: args.eIndexLt == null ? null : Spanner.float(args.eIndexLt),
+      limit: args.limit.toString(),
     },
     types: {
       sPublisherIdEq: { type: "string" },
@@ -2031,39 +3087,83 @@ export async function listPrevEpisodesForPublisher(
   let resRows = new Array<ListPrevEpisodesForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListNextEpisodesForPublisherRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW: MessageDescriptor<ListNextEpisodesForPublisherRow> = {
   name: 'ListNextEpisodesForPublisherRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function listNextEpisodesForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  eSeasonIdEq: string,
-  eIndexGt: number,
-  limit: number,
+  args: {
+    sPublisherIdEq?: string,
+    eSeasonIdEq: string,
+    eIndexGt?: number,
+    limit: number,
+  }
 ): Promise<Array<ListNextEpisodesForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.index > @eIndexGt) ORDER BY e.index LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.index > @eIndexGt) ORDER BY e.index LIMIT @limit",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      eSeasonIdEq: eSeasonIdEq,
-      eIndexGt: Spanner.float(eIndexGt),
-      limit: limit.toString(),
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eIndexGt: args.eIndexGt == null ? null : Spanner.float(args.eIndexGt),
+      limit: args.limit.toString(),
     },
     types: {
       sPublisherIdEq: { type: "string" },
@@ -2075,37 +3175,81 @@ export async function listNextEpisodesForPublisher(
   let resRows = new Array<ListNextEpisodesForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetEpisodeForPublisherRow {
-  eData: Episode,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let GET_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetEpisodeForPublisherRow> = {
   name: 'GetEpisodeForPublisherRow',
   fields: [{
-    name: 'eData',
+    name: 'eSeasonId',
     index: 1,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 6,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getEpisodeForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  eSeasonIdEq: string,
-  eEpisodeIdEq: string,
+  args: {
+    sPublisherIdEq?: string,
+    eSeasonIdEq: string,
+    eEpisodeIdEq: string,
+  }
 ): Promise<Array<GetEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      eSeasonIdEq: eSeasonIdEq,
-      eEpisodeIdEq: eEpisodeIdEq,
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eEpisodeIdEq: args.eEpisodeIdEq,
     },
     types: {
       sPublisherIdEq: { type: "string" },
@@ -2116,40 +3260,162 @@ export async function getEpisodeForPublisher(
   let resRows = new Array<GetEpisodeForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      eData: deserializeMessage(row.at(0).value, EPISODE),
+      eSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      eEpisodeId: row.at(1).value == null ? undefined : row.at(1).value,
+      eIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
+      eName: row.at(3).value == null ? undefined : row.at(3).value,
+      eVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
+      eVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      ePublishTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface CheckPresenceOfEpisodeForPublisherRow {
+  ePublishTimeMs?: number,
+}
+
+export let CHECK_PRESENCE_OF_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<CheckPresenceOfEpisodeForPublisherRow> = {
+  name: 'CheckPresenceOfEpisodeForPublisherRow',
+  fields: [{
+    name: 'ePublishTimeMs',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function checkPresenceOfEpisodeForPublisher(
+  runner: Database | Transaction,
+  args: {
+    sPublisherIdEq?: string,
+    eSeasonIdEq: string,
+    eEpisodeIdEq: string,
+  }
+): Promise<Array<CheckPresenceOfEpisodeForPublisherRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    params: {
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eEpisodeIdEq: args.eEpisodeIdEq,
+    },
+    types: {
+      sPublisherIdEq: { type: "string" },
+      eSeasonIdEq: { type: "string" },
+      eEpisodeIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<CheckPresenceOfEpisodeForPublisherRow>();
+  for (let row of rows) {
+    resRows.push({
+      ePublishTimeMs: row.at(0).value == null ? undefined : row.at(0).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetSeasonAndEpisodeRow {
-  sData: Season,
-  eData: Episode,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let GET_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetSeasonAndEpisodeRow> = {
   name: 'GetSeasonAndEpisodeRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 10,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 12,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 13,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 14,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 15,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 16,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeasonAndEpisode(
   runner: Database | Transaction,
-  eSeasonIdEq: string,
-  eEpisodeIdEq: string,
+  args: {
+    eSeasonIdEq: string,
+    eEpisodeIdEq: string,
+  }
 ): Promise<Array<GetSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
     params: {
-      eSeasonIdEq: eSeasonIdEq,
-      eEpisodeIdEq: eEpisodeIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eEpisodeIdEq: args.eEpisodeIdEq,
     },
     types: {
       eSeasonIdEq: { type: "string" },
@@ -2159,43 +3425,129 @@ export async function getSeasonAndEpisode(
   let resRows = new Array<GetSeasonAndEpisodeRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      eData: deserializeMessage(row.at(1).value, EPISODE),
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      eSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      eEpisodeId: row.at(9).value == null ? undefined : row.at(9).value,
+      eIndex: row.at(10).value == null ? undefined : row.at(10).value.value,
+      eName: row.at(11).value == null ? undefined : row.at(11).value,
+      eVideoContainerId: row.at(12).value == null ? undefined : row.at(12).value,
+      eVideoContainer: row.at(13).value == null ? undefined : deserializeMessage(row.at(13).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
+      ePublishTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
     });
   }
   return resRows;
 }
 
 export interface GetSeasonAndEpisodeForPublisherRow {
-  sData: Season,
-  eData: Episode,
+  sSeasonId?: string,
+  sPublisherId?: string,
+  sState?: SeasonState,
+  sName?: string,
+  sCoverImageR2Filename?: string,
+  sTotalEpisodes?: number,
+  sLastChangeTimeMs?: number,
+  sRecentPremierTimeMs?: number,
+  eSeasonId?: string,
+  eEpisodeId?: string,
+  eIndex?: number,
+  eName?: string,
+  eVideoContainerId?: string,
+  eVideoContainer?: VideoContainer,
+  ePremierTimeMs?: number,
+  ePublishTimeMs?: number,
 }
 
 export let GET_SEASON_AND_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAndEpisodeForPublisherRow> = {
   name: 'GetSeasonAndEpisodeForPublisherRow',
   fields: [{
-    name: 'sData',
+    name: 'sSeasonId',
     index: 1,
-    messageType: SEASON,
+    primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eData',
+    name: 'sPublisherId',
     index: 2,
-    messageType: EPISODE,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'sName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'sTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'sRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eSeasonId',
+    index: 9,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eEpisodeId',
+    index: 10,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'eName',
+    index: 12,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainerId',
+    index: 13,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 14,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'ePremierTimeMs',
+    index: 15,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'ePublishTimeMs',
+    index: 16,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
 export async function getSeasonAndEpisodeForPublisher(
   runner: Database | Transaction,
-  sPublisherIdEq: string,
-  eSeasonIdEq: string,
-  eEpisodeIdEq: string,
+  args: {
+    sPublisherIdEq?: string,
+    eSeasonIdEq: string,
+    eEpisodeIdEq: string,
+  }
 ): Promise<Array<GetSeasonAndEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.data, e.data FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
     params: {
-      sPublisherIdEq: sPublisherIdEq,
-      eSeasonIdEq: eSeasonIdEq,
-      eEpisodeIdEq: eEpisodeIdEq,
+      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
+      eSeasonIdEq: args.eSeasonIdEq,
+      eEpisodeIdEq: args.eEpisodeIdEq,
     },
     types: {
       sPublisherIdEq: { type: "string" },
@@ -2206,78 +3558,22 @@ export async function getSeasonAndEpisodeForPublisher(
   let resRows = new Array<GetSeasonAndEpisodeForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      sData: deserializeMessage(row.at(0).value, SEASON),
-      eData: deserializeMessage(row.at(1).value, EPISODE),
-    });
-  }
-  return resRows;
-}
-
-export interface CheckPresenceOfCoverImageFileRow {
-  coverImageFileR2Filename: string,
-}
-
-export let CHECK_PRESENCE_OF_COVER_IMAGE_FILE_ROW: MessageDescriptor<CheckPresenceOfCoverImageFileRow> = {
-  name: 'CheckPresenceOfCoverImageFileRow',
-  fields: [{
-    name: 'coverImageFileR2Filename',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }],
-};
-
-export async function checkPresenceOfCoverImageFile(
-  runner: Database | Transaction,
-  coverImageFileR2FilenameEq: string,
-): Promise<Array<CheckPresenceOfCoverImageFileRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT CoverImageFile.r2Filename FROM CoverImageFile WHERE CoverImageFile.r2Filename = @coverImageFileR2FilenameEq",
-    params: {
-      coverImageFileR2FilenameEq: coverImageFileR2FilenameEq,
-    },
-    types: {
-      coverImageFileR2FilenameEq: { type: "string" },
-    }
-  });
-  let resRows = new Array<CheckPresenceOfCoverImageFileRow>();
-  for (let row of rows) {
-    resRows.push({
-      coverImageFileR2Filename: row.at(0).value,
-    });
-  }
-  return resRows;
-}
-
-export interface CheckPresenceOfVideoContainerKeyRow {
-  videoContainerKeyKey: string,
-}
-
-export let CHECK_PRESENCE_OF_VIDEO_CONTAINER_KEY_ROW: MessageDescriptor<CheckPresenceOfVideoContainerKeyRow> = {
-  name: 'CheckPresenceOfVideoContainerKeyRow',
-  fields: [{
-    name: 'videoContainerKeyKey',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }],
-};
-
-export async function checkPresenceOfVideoContainerKey(
-  runner: Database | Transaction,
-  videoContainerKeyKeyEq: string,
-): Promise<Array<CheckPresenceOfVideoContainerKeyRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT VideoContainerKey.key FROM VideoContainerKey WHERE VideoContainerKey.key = @videoContainerKeyKeyEq",
-    params: {
-      videoContainerKeyKeyEq: videoContainerKeyKeyEq,
-    },
-    types: {
-      videoContainerKeyKeyEq: { type: "string" },
-    }
-  });
-  let resRows = new Array<CheckPresenceOfVideoContainerKeyRow>();
-  for (let row of rows) {
-    resRows.push({
-      videoContainerKeyKey: row.at(0).value,
+      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      sName: row.at(3).value == null ? undefined : row.at(3).value,
+      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      eSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
+      eEpisodeId: row.at(9).value == null ? undefined : row.at(9).value,
+      eIndex: row.at(10).value == null ? undefined : row.at(10).value.value,
+      eName: row.at(11).value == null ? undefined : row.at(11).value,
+      eVideoContainerId: row.at(12).value == null ? undefined : row.at(12).value,
+      eVideoContainer: row.at(13).value == null ? undefined : deserializeMessage(row.at(13).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
+      ePublishTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
     });
   }
   return resRows;

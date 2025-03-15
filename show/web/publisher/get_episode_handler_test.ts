@@ -6,11 +6,10 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetEpisodeHandler } from "./get_episode_handler";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import {
-  EXCHANGE_SESSION_AND_CHECK_CAPABILITY,
-  ExchangeSessionAndCheckCapabilityResponse,
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
 } from "@phading/user_session_service_interface/node/interface";
 import {
   GET_VIDEO_CONTAINER,
@@ -35,9 +34,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -54,13 +50,13 @@ TEST_RUNNER.run({
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(request: any): Promise<any> {
             switch (request.descriptor) {
-              case EXCHANGE_SESSION_AND_CHECK_CAPABILITY:
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
                 return {
                   accountId: "publisher1",
                   capabilities: {
-                    canPublishShows: true,
+                    canPublish: true,
                   },
-                } as ExchangeSessionAndCheckCapabilityResponse;
+                } as FetchSessionAndCheckCapabilityResponse;
               case GET_VIDEO_CONTAINER:
                 this.request = request;
                 return {
@@ -129,7 +125,11 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+          ]);
           await transaction.commit();
         });
       },
@@ -144,9 +144,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
-              state: SeasonState.PUBLISHED,
-              lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -163,9 +160,9 @@ TEST_RUNNER.run({
         serviceClientMock.response = {
           accountId: "publisher1",
           capabilities: {
-            canPublishShows: true,
+            canPublish: true,
           },
-        } as ExchangeSessionAndCheckCapabilityResponse;
+        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
@@ -201,7 +198,9 @@ TEST_RUNNER.run({
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([deleteSeasonStatement("season1")]);
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
           await transaction.commit();
         });
       },
