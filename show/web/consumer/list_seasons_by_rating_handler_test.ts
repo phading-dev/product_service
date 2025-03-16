@@ -1,10 +1,8 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
-  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { ListSeasonsByRatingHandler } from "./list_seasons_by_rating_handler";
@@ -32,11 +30,8 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
               averageRating: 5,
-              updatedTimeMs: 1000,
+              ratingUpdatedTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -52,11 +47,8 @@ TEST_RUNNER.run({
               name: "name4",
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season4",
               averageRating: 5,
-              updatedTimeMs: 2000,
+              ratingUpdatedTimeMs: 2000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -72,11 +64,8 @@ TEST_RUNNER.run({
               name: "name3",
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season3",
               averageRating: 3,
-              updatedTimeMs: 2000,
+              ratingUpdatedTimeMs: 3000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -92,11 +81,8 @@ TEST_RUNNER.run({
               name: "name2",
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season2",
               averageRating: 3,
-              updatedTimeMs: 1000,
+              ratingUpdatedTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -215,18 +201,6 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season4",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season2",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season3",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season4",
             }),
           ]);
           await transaction.commit();

@@ -34,6 +34,18 @@
         - name: createdTimeMs
           type: float64
           nullable: true
+        - name: totalRatings
+          type: float64
+          nullable: true
+        - name: ratingsCount
+          type: float64
+          nullable: true
+        - name: averageRating
+          type: float64
+          nullable: true
+        - name: ratingUpdatedTimeMs
+          type: float64
+          nullable: true
       columnGroups:
         - name: main
           columns:
@@ -45,6 +57,18 @@
             - totalEpisodes
             - lastChangeTimeMs
             - recentPremierTimeMs
+            - averageRating
+        - name: rating
+          columns:
+            - totalRatings
+            - ratingsCount
+            - averageRating
+            - ratingUpdatedTimeMs
+      searchColumns:
+        - name: fullText
+          columnRefs:
+            - name
+            - description
       primaryKeys:
         - seasonId
       indexes:
@@ -59,6 +83,24 @@
             - name: recentPremierTimeMs
               desc: true
             - state
+        - name: ByAverageRating
+          columns:
+            - name: averageRating
+              desc: true
+            - name: ratingUpdatedTimeMs
+              desc: true
+            - state
+      searchIndexes:
+        - name: ByFullText
+          columns:
+            - fullText
+          partitionByColumns:
+            - state
+        - name: ByPublisherAndFullText
+          columns:
+            - fullText
+          partitionByColumns:
+            - publisherId
       insert: InsertSeason
       delete: DeleteSeason
       get: GetSeason
@@ -151,36 +193,6 @@
       delete: DeleteIndividualSeasonRating
       get: GetIndividualSeasonRating
       update: UpdateIndividualSeasonRating
-    - kind: Table
-      name: SeasonRating
-      columns:
-        - name: seasonId
-          type: string
-        - name: totalRatings
-          type: float64
-          nullable: true
-        - name: count
-          type: float64
-          nullable: true
-        - name: averageRating
-          type: float64
-          nullable: true
-        - name: updatedTimeMs
-          type: float64
-          nullable: true
-      primaryKeys:
-        - seasonId
-      indexes:
-        - name: ByRating
-          columns:
-            - name: averageRating
-              desc: true
-            - name: updatedTimeMs
-              desc: true
-      insert: InsertSeasonRating
-      delete: DeleteSeasonRating
-      get: GetSeasonRating
-      update: UpdateSeasonRating
     - kind: Table
       name: CoverImageFile
       columns:
@@ -320,6 +332,16 @@
       set:
         - coverImageR2Filename
         - lastChangeTimeMs
+    - name: UpdateSeasonRating
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - totalRatings
+        - ratingsCount
+        - averageRating
+        - ratingUpdatedTimeMs
     - name: UpdateSeasonGrade
       table: SeasonGrade
       where:
@@ -437,193 +459,186 @@
             lColumn: seasonId
       get:
         - columnGroup: main
-    - name: GetSeasonAllAndRatingForPublisher
+    - name: GetSeasonAllForPublisher
       from: Season
-      as: s
-      join:
-        - type: LEFT
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
       where:
         op: AND
         exprs:
           - op: =
             lColumn: publisherId
-            lTable: s
           - op: =
             lColumn: seasonId
-            lTable: s
       get:
         - all: true
-          table: s
-        - all: true
-          table: sr
     - name: ListSeasonsForPublisher
       from: Season
-      as: s
-      join:
-        - type: LEFT
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
       where:
         op: AND
         exprs:
           - op: =
             lColumn: publisherId
-            lTable: s
           - op: =
             lColumn: state
-            lTable: s
           - op: <
             lColumn: lastChangeTimeMs
-            lTable: s
       orderBy:
         - column: lastChangeTimeMs
-          table: s
           desc: true
       withLimit: true
       get:
         - columnGroup: main
-          table: s
-        - all: true
-          table: sr
-    - name: ListPublishedSeasonsByPublishTimeForConsumer
+    - name: SearchSeasonsForPublisher
       from: Season
-      as: s
-      join:
-        - type: LEFT
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: publisherId
+          - op: SEARCH
+            lColumn: fullText
+      orderBy:
+        - func: SCORE
+          column: fullText
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - func: SCORE
+          column: fullText
+    - name: ContinuedSearchSeasonsForPublisher
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: publisherId
+          - op: SEARCH
+            lColumn: fullText
+          - op: <
+            func: SCORE
+            lColumn: fullText
+      orderBy:
+        - func: SCORE
+          column: fullText
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - func: SCORE
+          column: fullText
+    - name: ListPublishedSeasonsByPremierTimeForConsumer
+      from: Season
       where:
         op: AND
         exprs:
           - op: =
             lColumn: state
-            lTable: s
           - op: <
             lColumn: recentPremierTimeMs
-            lTable: s
       orderBy:
         - column: recentPremierTimeMs
-          table: s
           desc: true
       withLimit: true
       get:
         - columnGroup: main
-          table: s
-        - all: true
-          table: sr
     - name: ListPublishedSeasonsByRatingForConsumer
       from: Season
-      as: s
-      join:
-        - type: INNER
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
       where:
         op: AND
         exprs:
           - op: =
             lColumn: state
-            lTable: s
           - op: OR
             exprs:
               - op: <
                 lColumn: averageRating
-                lTable: sr
               - op: AND
                 exprs:
                   - op: =
                     lColumn: averageRating
-                    lTable: sr
                   - op: <
-                    lColumn: updatedTimeMs
-                    lTable: sr
+                    lColumn: ratingUpdatedTimeMs
       orderBy:
         - column: averageRating
-          table: sr
           desc: true
-        - column: updatedTimeMs
-          table: sr
+        - column: ratingUpdatedTimeMs
           desc: true
       withLimit: true
       get:
         - columnGroup: main
-          table: s
-        - all: true
-          table: sr
-    - name: GetPublishedSeasonAndRatingForConsumer
+        - ratingUpdatedTimeMs
+    - name: GetPublishedSeasonForConsumer
       from: Season
-      as: s
-      join:
-        - type: LEFT
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
       where:
         op: AND
         exprs:
           - op: =
             lColumn: seasonId
-            lTable: s
           - op: =
             lColumn: state
-            lTable: s
       get:
         - columnGroup: main
-          table: s
-        - all: true
-          table: sr
-    - name: GetPublishedSeasonAllAndRatingForConsumer
+    - name: GetPublishedSeasonAllForConsumer
       from: Season
-      as: s
-      join:
-        - type: LEFT
-          with: SeasonRating
-          as: sr
-          on:
-            op: =
-            lColumn: seasonId
-            lTable: s
-            rColumn: seasonId
       where:
         op: AND
         exprs:
           - op: =
             lColumn: seasonId
-            lTable: s
           - op: =
             lColumn: state
-            lTable: s
       get:
         - all: true
-          table: s
-        - all: true
-          table: sr
+    - name: GetPublishedSeasonRatingForConsumer
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: state
+      get:
+        - columnGroup: rating
+    - name: SearchPublishedSeasonsForConsumer
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: state
+          - op: SEARCH
+            lColumn: fullText
+      orderBy:
+        - func: SCORE
+          column: fullText
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - func: SCORE
+          column: fullText
+    - name: ContinuedSearchPublishedSeasonsForConsumer
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: state
+          - op: SEARCH
+            lColumn: fullText
+          - op: <
+            func: SCORE
+            lColumn: fullText
+      orderBy:
+        - func: SCORE
+          column: fullText
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - func: SCORE
+          column: fullText
     # SeasonGrade
     - name: GetSeasonGrade
       from: SeasonGrade

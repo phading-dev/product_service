@@ -1,0 +1,168 @@
+import "../../../local/env";
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
+import { SearchSeasonsHandler } from "./search_seasons_handler";
+import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
+import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/publisher/season_summary";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import { eqMessage } from "@selfage/message/test_matcher";
+import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
+import { assertThat, eq, gt } from "@selfage/test_matcher";
+import { TEST_RUNNER } from "@selfage/test_runner";
+
+TEST_RUNNER.run({
+  name: "SearchSeasonsHandlerTest",
+  cases: [
+    {
+      name: "SearchOnce_SearchAgainButNoMore",
+      async execute() {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              name: "Thrilling Eclipse",
+              description:
+                "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 1000,
+              averageRating: 0,
+            }),
+            insertSeasonStatement({
+              seasonId: "season2",
+              publisherId: "publisher1",
+              name: "Happy sand",
+              description: "A sand in a desert.",
+              coverImageR2Filename: "cover2",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 2000,
+              averageRating: 0,
+            }),
+            insertSeasonStatement({
+              seasonId: "season3",
+              publisherId: "publisher1",
+              name: "Lyrics",
+              description:
+                "A thrilling adventure of discovering eclipse. A tale of courage and growth. Filled with twists, turns, and surprises.",
+              coverImageR2Filename: "cover3",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 3000,
+              averageRating: 0,
+            }),
+            insertSeasonStatement({
+              seasonId: "season4",
+              publisherId: "publisher1",
+              name: "Thrilling Eclipse Lyrics",
+              description:
+                "Epic season with thrilling narratives. A heartwarming tale of courage and growth. Packed with twists, turns, and surprises.",
+              coverImageR2Filename: "cover4",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 4000,
+              averageRating: 4.5,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "publisher1",
+          capabilities: {
+            canPublish: true,
+          },
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new SearchSeasonsHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          "https://test.com",
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          {
+            query: "Thrilling Eclipse Lyrics",
+            limit: 2,
+          },
+          "session1",
+        );
+
+        // Verify
+        assertThat(response.seasons.length, eq(2), "response seasons length");
+        assertThat(
+          response.seasons[0],
+          eqMessage(
+            {
+              seasonId: "season4",
+              name: "Thrilling Eclipse Lyrics",
+              coverImageUrl: "https://test.com/cover4",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 4000,
+              averageRating: 4.5,
+            },
+            SEASON_SUMMARY,
+          ),
+          "response 1 first season",
+        );
+        assertThat(
+          response.seasons[1],
+          eqMessage(
+            {
+              seasonId: "season1",
+              name: "Thrilling Eclipse",
+              totalEpisodes: 1,
+              lastChangeTimeMs: 1000,
+              averageRating: 0,
+            },
+            SEASON_SUMMARY,
+          ),
+          "response 1 second season",
+        );
+        assertThat(response.scoreCursor, gt(0), "response 1 score cursor");
+
+        // Execute
+        response = await handler.handle(
+          "",
+          {
+            query: "Thrilling Eclipse Lyrics",
+            limit: 2,
+            scoreCursor: response.scoreCursor,
+          },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              seasons: [
+                {
+                  seasonId: "season3",
+                  name: "Lyrics",
+                  coverImageUrl: "https://test.com/cover3",
+                  totalEpisodes: 1,
+                  lastChangeTimeMs: 3000,
+                  averageRating: 0,
+                },
+              ],
+            },
+            SEARCH_SEASONS_RESPONSE,
+          ),
+          "response 2",
+        );
+      },
+      async tearDown() {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season2" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season3" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season4" }),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+  ],
+});

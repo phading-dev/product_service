@@ -2,25 +2,29 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { listPublishedSeasonsByRatingForConsumer } from "../../../db/sql";
+import {
+  ContinuedSearchPublishedSeasonsForConsumerRow,
+  SearchPublishedSeasonsForConsumerRow,
+  continuedSearchPublishedSeasonsForConsumer,
+  searchPublishedSeasonsForConsumer,
+} from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
-import { VALID_RATINGS } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListSeasonsByRatingHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
-  ListSeasonsByRatingRequestBody,
-  ListSeasonsByRatingResponse,
+  SearchSeasonsRequestBody,
+  SearchSeasonsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterface {
-  public static create(): ListSeasonsByRatingHandler {
-    return new ListSeasonsByRatingHandler(
+export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
+  public static create(): SearchSeasonsHandler {
+    return new SearchSeasonsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
@@ -39,9 +43,12 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
 
   public async handle(
     loggingPrefix: string,
-    body: ListSeasonsByRatingRequestBody,
+    body: SearchSeasonsRequestBody,
     sessionStr: string,
-  ): Promise<ListSeasonsByRatingResponse> {
+  ): Promise<SearchSeasonsResponse> {
+    if (!body.query) {
+      throw newBadRequestError(`"query" is required.`);
+    }
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
@@ -58,24 +65,39 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
     );
     if (!capabilities.canConsume) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to list seasons by rating.`,
+        `Account ${accountId} is not allowed to search seasons.`,
       );
     }
-    let nowDate = this.getNowDate();
-    let now = nowDate.valueOf();
-    let todayStr = toTodaISOString(nowDate);
-    let ratingCursor =
-      body.ratingCursor ?? VALID_RATINGS[VALID_RATINGS.length - 1] + 1;
-    let rows = await listPublishedSeasonsByRatingForConsumer(this.database, {
-      seasonStateEq: SeasonState.PUBLISHED,
-      seasonAverageRatingLt: ratingCursor,
-      seasonAverageRatingEq: ratingCursor,
-      seasonRatingUpdatedTimeMsLt: body.updatedTimeCursor ?? now,
-      limit: body.limit,
-    });
-    let seasons = new Array<SeasonSummary>(rows.length);
+    let seasonRows: Array<
+      | SearchPublishedSeasonsForConsumerRow
+      | ContinuedSearchPublishedSeasonsForConsumerRow
+    >;
+    if (!body.scoreCursor) {
+      seasonRows = await searchPublishedSeasonsForConsumer(this.database, {
+        seasonFullTextSearch: body.query,
+        seasonFullTextScoreOrderBy: body.query,
+        seasonStateEq: SeasonState.PUBLISHED,
+        limit: body.limit,
+        seasonFullTextScoreSelect: body.query,
+      });
+    } else {
+      seasonRows = await continuedSearchPublishedSeasonsForConsumer(
+        this.database,
+        {
+          seasonFullTextSearch: body.query,
+          seasonFullTextScoreWhere: body.query,
+          seasonFullTextScoreLt: body.scoreCursor,
+          seasonFullTextScoreOrderBy: body.query,
+          seasonStateEq: SeasonState.PUBLISHED,
+          limit: body.limit,
+          seasonFullTextScoreSelect: body.query,
+        },
+      );
+    }
+    let todayStr = toTodaISOString(this.getNowDate());
+    let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
-      rows.map(async (row, i) => {
+      seasonRows.map(async (row, i) => {
         await getLatestSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessDomain,
@@ -88,13 +110,9 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
     );
     return {
       seasons,
-      ratingCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].seasonAverageRating
-          : undefined,
-      updatedTimeCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].seasonRatingUpdatedTimeMs
+      scoreCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonFullTextScore
           : undefined,
     };
   }

@@ -2,17 +2,16 @@ import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_INDIVIDUAL_SEASON_RATING_ROW,
-  GET_SEASON_RATING_ROW,
+  GET_SEASON_ROW,
   deleteIndividualSeasonRatingStatement,
-  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   getIndividualSeasonRating,
-  getSeasonRating,
+  getSeason,
   insertIndividualSeasonRatingStatement,
-  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { RateSeasonHandler } from "./rate_season_handler";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
@@ -32,6 +31,10 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 0,
+              totalRatings: 0,
+              ratingsCount: 0,
             }),
           ]);
           await transaction.commit();
@@ -54,19 +57,20 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, {
-            seasonRatingSeasonIdEq: "season1",
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRatingSeasonId: "season1",
-                seasonRatingTotalRatings: 5,
-                seasonRatingCount: 1,
-                seasonRatingAverageRating: 5,
+                seasonSeasonId: "season1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonTotalRatings: 5,
+                seasonRatingsCount: 1,
+                seasonAverageRating: 5,
                 seasonRatingUpdatedTimeMs: 1000,
               },
-              GET_SEASON_RATING_ROW,
+              GET_SEASON_ROW,
             ),
           ]),
           "SeasonRating",
@@ -96,9 +100,6 @@ TEST_RUNNER.run({
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
             }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
-            }),
             deleteIndividualSeasonRatingStatement({
               individualSeasonRatingRaterIdEq: "account1",
               individualSeasonRatingSeasonIdEq: "season1",
@@ -116,11 +117,10 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 5,
               totalRatings: 5,
-              count: 1,
+              ratingsCount: 1,
             }),
           ]);
           await transaction.commit();
@@ -143,19 +143,20 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, {
-            seasonRatingSeasonIdEq: "season1",
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRatingSeasonId: "season1",
-                seasonRatingTotalRatings: 8,
-                seasonRatingCount: 2,
-                seasonRatingAverageRating: 4,
+                seasonSeasonId: "season1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonTotalRatings: 8,
+                seasonRatingsCount: 2,
+                seasonAverageRating: 4,
                 seasonRatingUpdatedTimeMs: 1000,
               },
-              GET_SEASON_RATING_ROW,
+              GET_SEASON_ROW,
             ),
           ]),
           "SeasonRating",
@@ -185,9 +186,6 @@ TEST_RUNNER.run({
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
             }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
-            }),
             deleteIndividualSeasonRatingStatement({
               individualSeasonRatingRaterIdEq: "account1",
               individualSeasonRatingSeasonIdEq: "season1",
@@ -205,11 +203,10 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 4,
               totalRatings: 8,
-              count: 2,
+              ratingsCount: 2,
             }),
             insertIndividualSeasonRatingStatement({
               raterId: "account1",
@@ -237,19 +234,20 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, {
-            seasonRatingSeasonIdEq: "season1",
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRatingSeasonId: "season1",
-                seasonRatingTotalRatings: 6,
-                seasonRatingCount: 2,
-                seasonRatingAverageRating: 3,
+                seasonSeasonId: "season1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonTotalRatings: 6,
+                seasonRatingsCount: 2,
+                seasonAverageRating: 3,
                 seasonRatingUpdatedTimeMs: 1000,
               },
-              GET_SEASON_RATING_ROW,
+              GET_SEASON_ROW,
             ),
           ]),
           "SeasonRating",
@@ -278,9 +276,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
             }),
             deleteIndividualSeasonRatingStatement({
               individualSeasonRatingRaterIdEq: "account1",

@@ -1,10 +1,8 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
-  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
@@ -25,7 +23,7 @@ TEST_RUNNER.run({
   name: "GetSeasonDetailsHandlerTest",
   cases: [
     {
-      name: "GetSeasonWithoutDescriptionAndWithoutRatingAndWithOneEffectiveGrade",
+      name: "GetSeasonWithoutDescriptionAndWithOneEffectiveGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -40,6 +38,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
               description: "",
+              averageRating: 0,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -113,9 +112,6 @@ TEST_RUNNER.run({
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
             }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
-            }),
           ]);
           await transaction.commit();
         });
@@ -137,6 +133,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
               description: "something something",
+              averageRating: 4.5,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -158,11 +155,6 @@ TEST_RUNNER.run({
               startDate: "2020-03-01",
               endDate: "2020-04-01",
               grade: 8,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
-              averageRating: 3,
-              updatedTimeMs: 100,
             }),
           ]);
           await transaction.commit();
@@ -212,7 +204,7 @@ TEST_RUNNER.run({
                   grade: 8,
                   effectiveDate: "2020-03-01",
                 },
-                averageRating: 3,
+                averageRating: 4.5,
               },
             },
             GET_SEASON_DETAILS_RESPONSE,
@@ -225,9 +217,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();
@@ -248,6 +237,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               recentPremierTimeMs: 100,
               description: "something something",
+              averageRating: 4.5,
             }),
           ]);
           await transaction.commit();
@@ -291,9 +281,6 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();

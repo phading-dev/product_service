@@ -1,6 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { fetchContinueEpisode } from "./common/continue_episode_fetcher";
+import { fetchContinueEpisode } from "./common/fetch_continue_episode";
 import { Database } from "@google-cloud/spanner";
 import { newGetLatestWatchedEpisodeRequest } from "@phading/play_activity_service_interface/show/node/client";
 import { GetContinueEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";

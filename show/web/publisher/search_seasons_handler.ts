@@ -1,26 +1,30 @@
 import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { listSeasonsForPublisher } from "../../../db/sql";
+import {
+  ContinuedSearchSeasonsForPublisherRow,
+  SearchSeasonsForPublisherRow,
+  continuedSearchSeasonsForPublisher,
+  searchSeasonsForPublisher,
+} from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
-import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  ListSeasonsRequestBody,
-  ListSeasonsResponse,
+  SearchSeasonsRequestBody,
+  SearchSeasonsResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/publisher/season_summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
-  public static create(): ListSeasonsHandler {
-    return new ListSeasonsHandler(
+export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
+  public static create(): SearchSeasonsHandler {
+    return new SearchSeasonsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
-      () => Date.now(),
     );
   }
 
@@ -28,18 +32,17 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
-    private getNow: () => number,
   ) {
     super();
   }
 
   public async handle(
     loggingPrefix: string,
-    body: ListSeasonsRequestBody,
+    body: SearchSeasonsRequestBody,
     sessionStr: string,
-  ): Promise<ListSeasonsResponse> {
-    if (!body.state) {
-      throw newBadRequestError(`"state" is required.`);
+  ): Promise<SearchSeasonsResponse> {
+    if (!body.query) {
+      throw newBadRequestError(`"query" is required.`);
     }
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
@@ -57,17 +60,33 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to list seasons.`,
+        `Account ${accountId} is not allowed to search seasons.`,
       );
     }
-    let rows = await listSeasonsForPublisher(this.database, {
-      seasonPublisherIdEq: accountId,
-      seasonStateEq: body.state,
-      seasonLastChangeTimeMsLt: body.lastChangeTimeCursor ?? this.getNow(),
-      limit: body.limit,
-    });
+    let seasonRows: Array<
+      SearchSeasonsForPublisherRow | ContinuedSearchSeasonsForPublisherRow
+    >;
+    if (!body.scoreCursor) {
+      seasonRows = await searchSeasonsForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonFullTextSearch: body.query,
+        seasonFullTextScoreOrderBy: body.query,
+        limit: body.limit,
+        seasonFullTextScoreSelect: body.query,
+      });
+    } else {
+      seasonRows = await continuedSearchSeasonsForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonFullTextSearch: body.query,
+        seasonFullTextScoreWhere: body.query,
+        seasonFullTextScoreLt: body.scoreCursor,
+        seasonFullTextScoreOrderBy: body.query,
+        limit: body.limit,
+        seasonFullTextScoreSelect: body.query,
+      });
+    }
     return {
-      seasons: rows.map(
+      seasons: seasonRows.map(
         (row): SeasonSummary => ({
           seasonId: row.seasonSeasonId,
           name: row.seasonName,
@@ -79,10 +98,10 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
           averageRating: row.seasonAverageRating,
         }),
       ),
-      lastChangeTimeCursor:
-        rows.length < body.limit
-          ? undefined
-          : rows[rows.length - 1].seasonLastChangeTimeMs,
+      scoreCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonFullTextScore
+          : undefined,
     };
   }
 }

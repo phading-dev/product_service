@@ -4,10 +4,10 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getPublishedSeasonAndRatingForConsumer,
+  getPublishedSeasonForConsumer,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
-import { fetchContinueEpisode } from "./common/continue_episode_fetcher";
+import { fetchContinueEpisode } from "./common/fetch_continue_episode";
 import { Database } from "@google-cloud/spanner";
 import { newListRecentlyWatchedSeasonsRequest } from "@phading/play_activity_service_interface/show/node/client";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -83,11 +83,11 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     let continues = new Array<ContinueSeason>(response.seasons.length);
     await Promise.all(
       response.seasons.map(async (recentSeason, i) => {
-        let seasonRowsPromise = getPublishedSeasonAndRatingForConsumer(
+        let seasonRowsPromise = getPublishedSeasonForConsumer(
           this.database,
           {
-            sSeasonIdEq: recentSeason.seasonId,
-            sStateEq: SeasonState.PUBLISHED,
+            seasonSeasonIdEq: recentSeason.seasonId,
+            seasonStateEq: SeasonState.PUBLISHED,
           },
         );
         let seasonGradeRowsPromise = getLastSeasonGrades(this.database, {
@@ -118,13 +118,13 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         let seasonRow = seasonRows[0];
         let seasonGradeRow = seasonGradeRows[0];
         let seasonSummary: SeasonSummary = {
-          seasonId: seasonRow.sSeasonId,
-          name: seasonRow.sName,
-          publisherId: seasonRow.sPublisherId,
-          totalEpisodes: seasonRow.sTotalEpisodes,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.sCoverImageR2Filename}`,
+          seasonId: seasonRow.seasonSeasonId,
+          name: seasonRow.seasonName,
+          publisherId: seasonRow.seasonPublisherId,
+          totalEpisodes: seasonRow.seasonTotalEpisodes,
+          coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`,
           grade: seasonGradeRow.seasonGradeGrade,
-          averageRating: seasonRow.srAverageRating ?? 0,
+          averageRating: seasonRow.seasonAverageRating,
         };
         let continueEpisode = await fetchContinueEpisodePromise;
         if (!continueEpisode) {

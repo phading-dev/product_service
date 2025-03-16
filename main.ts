@@ -15,8 +15,9 @@ import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_vi
 import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
-import { ListEpisodesHandler as ConsumerListEpisodesHandler } from "./show/web/consumer/list_episodes_handler";
+import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/consumer/list_episodes_handler";
 import { RateSeasonHandler } from "./show/web/consumer/rate_season_handler";
+import { SearchSeasonsHandler as SearchSeasonsForConsumerHandler } from "./show/web/consumer/search_seasons_handler";
 import { UnrateSeasonHandler } from "./show/web/consumer/unrate_season_handler";
 import { ArchiveSeasonHandler } from "./show/web/publisher/archive_season_handler";
 import { CancelMediaFormattingHandler } from "./show/web/publisher/cancel_media_formatting_handler";
@@ -38,9 +39,10 @@ import { DropSubtitleTrackStagingDataHandler } from "./show/web/publisher/drop_s
 import { DropVideoTrackStagingDataHandler } from "./show/web/publisher/drop_video_track_staging_data_handler";
 import { GetEpisodeHandler } from "./show/web/publisher/get_episode_handler";
 import { GetSeasonHandler } from "./show/web/publisher/get_season_handler";
-import { ListEpisodesHandler as PublisherListEpisodesHandler } from "./show/web/publisher/list_episodes_handler";
+import { ListEpisodesHandler as ListEpisodesForPublisherHandler } from "./show/web/publisher/list_episodes_handler";
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
+import { SearchSeasonsHandler as SearchSeasonsForPublisherHandler } from "./show/web/publisher/search_seasons_handler";
 import { StartMediaUploadingHandler } from "./show/web/publisher/start_media_uploading_handler";
 import { StartSubtitleUploadingHandler } from "./show/web/publisher/start_subtitle_uploading_handler";
 import { UnpublishEpisodeHandler } from "./show/web/publisher/unpublish_episode_handler";
@@ -81,9 +83,10 @@ async function main() {
     .add(GetEpisodeDetailsHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
     .add(GetSeasonDetailsHandler.create())
-    .add(ConsumerListEpisodesHandler.create())
+    .add(ListEpisodesForConsumerHandler.create())
     .add(RateSeasonHandler.create())
     .add(UnrateSeasonHandler.create())
+    .add(SearchSeasonsForConsumerHandler.create())
     .add(ArchiveSeasonHandler.create())
     .add(CancelMediaFormattingHandler.create())
     .add(CancelMediaUploadingHandler.create())
@@ -104,9 +107,10 @@ async function main() {
     .add(DropVideoTrackStagingDataHandler.create())
     .add(GetEpisodeHandler.create())
     .add(GetSeasonHandler.create())
-    .add(PublisherListEpisodesHandler.create())
+    .add(ListEpisodesForPublisherHandler.create())
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
+    .add(SearchSeasonsForPublisherHandler.create())
     .add(StartMediaUploadingHandler.create())
     .add(StartSubtitleUploadingHandler.create())
     .add(UnpublishEpisodeHandler.create())

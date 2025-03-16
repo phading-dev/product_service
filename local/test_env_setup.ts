@@ -18,7 +18,7 @@ async function main() {
       ENV_VARS.spannerInstanceId,
       `--config=${ENV_VARS.spannerRegion}`,
       `--description=${ENV_VARS.spannerInstanceId}`,
-      "--edition=STANDARD",
+      "--edition=ENTERPRISE",
       "--processing-units=100",
     ],
     { stdio: "inherit" },

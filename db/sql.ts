@@ -17,10 +17,14 @@ export function insertSeasonStatement(
     recentPremierTimeMs?: number,
     description?: string,
     createdTimeMs?: number,
+    totalRatings?: number,
+    ratingsCount?: number,
+    averageRating?: number,
+    ratingUpdatedTimeMs?: number,
   }
 ): Statement {
   return {
-    sql: "INSERT Season (seasonId, publisherId, state, name, coverImageR2Filename, totalEpisodes, lastChangeTimeMs, recentPremierTimeMs, description, createdTimeMs) VALUES (@seasonId, @publisherId, @state, @name, @coverImageR2Filename, @totalEpisodes, @lastChangeTimeMs, @recentPremierTimeMs, @description, @createdTimeMs)",
+    sql: "INSERT Season (seasonId, publisherId, state, name, coverImageR2Filename, totalEpisodes, lastChangeTimeMs, recentPremierTimeMs, description, createdTimeMs, totalRatings, ratingsCount, averageRating, ratingUpdatedTimeMs) VALUES (@seasonId, @publisherId, @state, @name, @coverImageR2Filename, @totalEpisodes, @lastChangeTimeMs, @recentPremierTimeMs, @description, @createdTimeMs, @totalRatings, @ratingsCount, @averageRating, @ratingUpdatedTimeMs)",
     params: {
       seasonId: args.seasonId,
       publisherId: args.publisherId == null ? null : args.publisherId,
@@ -32,6 +36,10 @@ export function insertSeasonStatement(
       recentPremierTimeMs: args.recentPremierTimeMs == null ? null : Spanner.float(args.recentPremierTimeMs),
       description: args.description == null ? null : args.description,
       createdTimeMs: args.createdTimeMs == null ? null : Spanner.float(args.createdTimeMs),
+      totalRatings: args.totalRatings == null ? null : Spanner.float(args.totalRatings),
+      ratingsCount: args.ratingsCount == null ? null : Spanner.float(args.ratingsCount),
+      averageRating: args.averageRating == null ? null : Spanner.float(args.averageRating),
+      ratingUpdatedTimeMs: args.ratingUpdatedTimeMs == null ? null : Spanner.float(args.ratingUpdatedTimeMs),
     },
     types: {
       seasonId: { type: "string" },
@@ -44,6 +52,10 @@ export function insertSeasonStatement(
       recentPremierTimeMs: { type: "float64" },
       description: { type: "string" },
       createdTimeMs: { type: "float64" },
+      totalRatings: { type: "float64" },
+      ratingsCount: { type: "float64" },
+      averageRating: { type: "float64" },
+      ratingUpdatedTimeMs: { type: "float64" },
     }
   };
 }
@@ -75,6 +87,10 @@ export interface GetSeasonRow {
   seasonRecentPremierTimeMs?: number,
   seasonDescription?: string,
   seasonCreatedTimeMs?: number,
+  seasonTotalRatings?: number,
+  seasonRatingsCount?: number,
+  seasonAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
 }
 
 export let GET_SEASON_ROW: MessageDescriptor<GetSeasonRow> = {
@@ -119,6 +135,22 @@ export let GET_SEASON_ROW: MessageDescriptor<GetSeasonRow> = {
     name: 'seasonCreatedTimeMs',
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonTotalRatings',
+    index: 11,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingsCount',
+    index: 12,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 14,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
@@ -129,7 +161,7 @@ export async function getSeason(
   }
 ): Promise<Array<GetSeasonRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.description, Season.createdTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
@@ -150,6 +182,10 @@ export async function getSeason(
       seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
       seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
       seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
     });
   }
   return resRows;
@@ -444,139 +480,6 @@ export function updateIndividualSeasonRatingStatement(
       individualSeasonRatingSeasonIdEq: { type: "string" },
       setRating: { type: "float64" },
       setRatedTimeMs: { type: "float64" },
-    }
-  };
-}
-
-export function insertSeasonRatingStatement(
-  args: {
-    seasonId: string,
-    totalRatings?: number,
-    count?: number,
-    averageRating?: number,
-    updatedTimeMs?: number,
-  }
-): Statement {
-  return {
-    sql: "INSERT SeasonRating (seasonId, totalRatings, count, averageRating, updatedTimeMs) VALUES (@seasonId, @totalRatings, @count, @averageRating, @updatedTimeMs)",
-    params: {
-      seasonId: args.seasonId,
-      totalRatings: args.totalRatings == null ? null : Spanner.float(args.totalRatings),
-      count: args.count == null ? null : Spanner.float(args.count),
-      averageRating: args.averageRating == null ? null : Spanner.float(args.averageRating),
-      updatedTimeMs: args.updatedTimeMs == null ? null : Spanner.float(args.updatedTimeMs),
-    },
-    types: {
-      seasonId: { type: "string" },
-      totalRatings: { type: "float64" },
-      count: { type: "float64" },
-      averageRating: { type: "float64" },
-      updatedTimeMs: { type: "float64" },
-    }
-  };
-}
-
-export function deleteSeasonRatingStatement(
-  args: {
-    seasonRatingSeasonIdEq: string,
-  }
-): Statement {
-  return {
-    sql: "DELETE SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
-    params: {
-      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
-    },
-    types: {
-      seasonRatingSeasonIdEq: { type: "string" },
-    }
-  };
-}
-
-export interface GetSeasonRatingRow {
-  seasonRatingSeasonId?: string,
-  seasonRatingTotalRatings?: number,
-  seasonRatingCount?: number,
-  seasonRatingAverageRating?: number,
-  seasonRatingUpdatedTimeMs?: number,
-}
-
-export let GET_SEASON_RATING_ROW: MessageDescriptor<GetSeasonRatingRow> = {
-  name: 'GetSeasonRatingRow',
-  fields: [{
-    name: 'seasonRatingSeasonId',
-    index: 1,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'seasonRatingTotalRatings',
-    index: 2,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'seasonRatingCount',
-    index: 3,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'seasonRatingAverageRating',
-    index: 4,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'seasonRatingUpdatedTimeMs',
-    index: 5,
-    primitiveType: PrimitiveType.NUMBER,
-  }],
-};
-
-export async function getSeasonRating(
-  runner: Database | Transaction,
-  args: {
-    seasonRatingSeasonIdEq: string,
-  }
-): Promise<Array<GetSeasonRatingRow>> {
-  let [rows] = await runner.run({
-    sql: "SELECT SeasonRating.seasonId, SeasonRating.totalRatings, SeasonRating.count, SeasonRating.averageRating, SeasonRating.updatedTimeMs FROM SeasonRating WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
-    params: {
-      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
-    },
-    types: {
-      seasonRatingSeasonIdEq: { type: "string" },
-    }
-  });
-  let resRows = new Array<GetSeasonRatingRow>();
-  for (let row of rows) {
-    resRows.push({
-      seasonRatingSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      seasonRatingTotalRatings: row.at(1).value == null ? undefined : row.at(1).value.value,
-      seasonRatingCount: row.at(2).value == null ? undefined : row.at(2).value.value,
-      seasonRatingAverageRating: row.at(3).value == null ? undefined : row.at(3).value.value,
-      seasonRatingUpdatedTimeMs: row.at(4).value == null ? undefined : row.at(4).value.value,
-    });
-  }
-  return resRows;
-}
-
-export function updateSeasonRatingStatement(
-  args: {
-    seasonRatingSeasonIdEq: string,
-    setTotalRatings?: number,
-    setCount?: number,
-    setAverageRating?: number,
-    setUpdatedTimeMs?: number,
-  }
-): Statement {
-  return {
-    sql: "UPDATE SeasonRating SET totalRatings = @setTotalRatings, count = @setCount, averageRating = @setAverageRating, updatedTimeMs = @setUpdatedTimeMs WHERE (SeasonRating.seasonId = @seasonRatingSeasonIdEq)",
-    params: {
-      seasonRatingSeasonIdEq: args.seasonRatingSeasonIdEq,
-      setTotalRatings: args.setTotalRatings == null ? null : Spanner.float(args.setTotalRatings),
-      setCount: args.setCount == null ? null : Spanner.float(args.setCount),
-      setAverageRating: args.setAverageRating == null ? null : Spanner.float(args.setAverageRating),
-      setUpdatedTimeMs: args.setUpdatedTimeMs == null ? null : Spanner.float(args.setUpdatedTimeMs),
-    },
-    types: {
-      seasonRatingSeasonIdEq: { type: "string" },
-      setTotalRatings: { type: "float64" },
-      setCount: { type: "float64" },
-      setAverageRating: { type: "float64" },
-      setUpdatedTimeMs: { type: "float64" },
     }
   };
 }
@@ -1500,6 +1403,34 @@ export function updateSeasonCoverImageStatement(
   };
 }
 
+export function updateSeasonRatingStatement(
+  args: {
+    seasonSeasonIdEq: string,
+    setTotalRatings?: number,
+    setRatingsCount?: number,
+    setAverageRating?: number,
+    setRatingUpdatedTimeMs?: number,
+  }
+): Statement {
+  return {
+    sql: "UPDATE Season SET totalRatings = @setTotalRatings, ratingsCount = @setRatingsCount, averageRating = @setAverageRating, ratingUpdatedTimeMs = @setRatingUpdatedTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      setTotalRatings: args.setTotalRatings == null ? null : Spanner.float(args.setTotalRatings),
+      setRatingsCount: args.setRatingsCount == null ? null : Spanner.float(args.setRatingsCount),
+      setAverageRating: args.setAverageRating == null ? null : Spanner.float(args.setAverageRating),
+      setRatingUpdatedTimeMs: args.setRatingUpdatedTimeMs == null ? null : Spanner.float(args.setRatingUpdatedTimeMs),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      setTotalRatings: { type: "float64" },
+      setRatingsCount: { type: "float64" },
+      setAverageRating: { type: "float64" },
+      setRatingUpdatedTimeMs: { type: "float64" },
+    }
+  };
+}
+
 export function updateSeasonGradeStatement(
   args: {
     seasonGradeSeasonIdEq: string,
@@ -1781,6 +1712,7 @@ export interface GetSeasonForPublisherRow {
   seasonTotalEpisodes?: number,
   seasonLastChangeTimeMs?: number,
   seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
 }
 
 export let GET_SEASON_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonForPublisherRow> = {
@@ -1817,6 +1749,10 @@ export let GET_SEASON_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonForPublisher
     name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
@@ -1828,7 +1764,7 @@ export async function getSeasonForPublisher(
   }
 ): Promise<Array<GetSeasonForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonSeasonIdEq: args.seasonSeasonIdEq,
@@ -1849,204 +1785,179 @@ export async function getSeasonForPublisher(
       seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
       seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
       seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
     });
   }
   return resRows;
 }
 
-export interface GetSeasonAllAndRatingForPublisherRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  sDescription?: string,
-  sCreatedTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+export interface GetSeasonAllForPublisherRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonDescription?: string,
+  seasonCreatedTimeMs?: number,
+  seasonTotalRatings?: number,
+  seasonRatingsCount?: number,
+  seasonAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
 }
 
-export let GET_SEASON_ALL_AND_RATING_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAllAndRatingForPublisherRow> = {
-  name: 'GetSeasonAllAndRatingForPublisherRow',
+export let GET_SEASON_ALL_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAllForPublisherRow> = {
+  name: 'GetSeasonAllForPublisherRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sDescription',
+    name: 'seasonDescription',
     index: 9,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCreatedTimeMs',
+    name: 'seasonCreatedTimeMs',
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonTotalRatings',
     index: 11,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srTotalRatings',
+    name: 'seasonRatingsCount',
     index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srCount',
+    name: 'seasonAverageRating',
     index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srAverageRating',
+    name: 'seasonRatingUpdatedTimeMs',
     index: 14,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srUpdatedTimeMs',
-    index: 15,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function getSeasonAllAndRatingForPublisher(
+export async function getSeasonAllForPublisher(
   runner: Database | Transaction,
   args: {
-    sPublisherIdEq?: string,
-    sSeasonIdEq: string,
+    seasonPublisherIdEq?: string,
+    seasonSeasonIdEq: string,
   }
-): Promise<Array<GetSeasonAllAndRatingForPublisherRow>> {
+): Promise<Array<GetSeasonAllForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.description, s.createdTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.seasonId = @sSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
     params: {
-      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
-      sSeasonIdEq: args.sSeasonIdEq,
+      seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
     types: {
-      sPublisherIdEq: { type: "string" },
-      sSeasonIdEq: { type: "string" },
+      seasonPublisherIdEq: { type: "string" },
+      seasonSeasonIdEq: { type: "string" },
     }
   });
-  let resRows = new Array<GetSeasonAllAndRatingForPublisherRow>();
+  let resRows = new Array<GetSeasonAllForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      sDescription: row.at(8).value == null ? undefined : row.at(8).value,
-      sCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
-      srTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srCount: row.at(12).value == null ? undefined : row.at(12).value.value,
-      srAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
-      srUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
+      seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListSeasonsForPublisherRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
 }
 
 export let LIST_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<ListSeasonsForPublisherRow> = {
   name: 'ListSeasonsForPublisherRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'srTotalRatings',
-    index: 10,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srCount',
-    index: 11,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srAverageRating',
-    index: 12,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srUpdatedTimeMs',
-    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2054,232 +1965,401 @@ export let LIST_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<ListSeasonsForPubli
 export async function listSeasonsForPublisher(
   runner: Database | Transaction,
   args: {
-    sPublisherIdEq?: string,
-    sStateEq?: SeasonState,
-    sLastChangeTimeMsLt?: number,
+    seasonPublisherIdEq?: string,
+    seasonStateEq?: SeasonState,
+    seasonLastChangeTimeMsLt?: number,
     limit: number,
   }
 ): Promise<Array<ListSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.publisherId = @sPublisherIdEq AND s.state = @sStateEq AND s.lastChangeTimeMs < @sLastChangeTimeMsLt) ORDER BY s.lastChangeTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.state = @seasonStateEq AND Season.lastChangeTimeMs < @seasonLastChangeTimeMsLt) ORDER BY Season.lastChangeTimeMs DESC LIMIT @limit",
     params: {
-      sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
-      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
-      sLastChangeTimeMsLt: args.sLastChangeTimeMsLt == null ? null : Spanner.float(args.sLastChangeTimeMsLt),
+      seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      seasonLastChangeTimeMsLt: args.seasonLastChangeTimeMsLt == null ? null : Spanner.float(args.seasonLastChangeTimeMsLt),
       limit: args.limit.toString(),
     },
     types: {
-      sPublisherIdEq: { type: "string" },
-      sStateEq: { type: "float64" },
-      sLastChangeTimeMsLt: { type: "float64" },
+      seasonPublisherIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
+      seasonLastChangeTimeMsLt: { type: "float64" },
       limit: { type: "int64" },
     }
   });
   let resRows = new Array<ListSeasonsForPublisherRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
-      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
     });
   }
   return resRows;
 }
 
-export interface ListPublishedSeasonsByPublishTimeForConsumerRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+export interface SearchSeasonsForPublisherRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+  seasonFullTextScore?: number,
 }
 
-export let LIST_PUBLISHED_SEASONS_BY_PUBLISH_TIME_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByPublishTimeForConsumerRow> = {
-  name: 'ListPublishedSeasonsByPublishTimeForConsumerRow',
+export let SEARCH_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<SearchSeasonsForPublisherRow> = {
+  name: 'SearchSeasonsForPublisherRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srTotalRatings',
+    name: 'seasonFullTextScore',
     index: 10,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srCount',
-    index: 11,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srAverageRating',
-    index: 12,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srUpdatedTimeMs',
-    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function listPublishedSeasonsByPublishTimeForConsumer(
+export async function searchSeasonsForPublisher(
   runner: Database | Transaction,
   args: {
-    sStateEq?: SeasonState,
-    sRecentPremierTimeMsLt?: number,
+    seasonPublisherIdEq?: string,
+    seasonFullTextSearch: string,
+    seasonFullTextScoreOrderBy: string,
+    limit: number,
+    seasonFullTextScoreSelect: string,
+  }
+): Promise<Array<SearchSeasonsForPublisherRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect) FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC LIMIT @limit",
+    params: {
+      seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonFullTextSearch: args.seasonFullTextSearch,
+      seasonFullTextScoreOrderBy: args.seasonFullTextScoreOrderBy,
+      limit: args.limit.toString(),
+      seasonFullTextScoreSelect: args.seasonFullTextScoreSelect,
+    },
+    types: {
+      seasonPublisherIdEq: { type: "string" },
+      seasonFullTextSearch: { type: "string" },
+      seasonFullTextScoreOrderBy: { type: "string" },
+      limit: { type: "int64" },
+      seasonFullTextScoreSelect: { type: "string" },
+    }
+  });
+  let resRows = new Array<SearchSeasonsForPublisherRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonFullTextScore: row.at(9).value == null ? undefined : row.at(9).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface ContinuedSearchSeasonsForPublisherRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+  seasonFullTextScore?: number,
+}
+
+export let CONTINUED_SEARCH_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<ContinuedSearchSeasonsForPublisherRow> = {
+  name: 'ContinuedSearchSeasonsForPublisherRow',
+  fields: [{
+    name: 'seasonSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonFullTextScore',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function continuedSearchSeasonsForPublisher(
+  runner: Database | Transaction,
+  args: {
+    seasonPublisherIdEq?: string,
+    seasonFullTextSearch: string,
+    seasonFullTextScoreWhere: string,
+    seasonFullTextScoreLt: number,
+    seasonFullTextScoreOrderBy: string,
+    limit: number,
+    seasonFullTextScoreSelect: string,
+  }
+): Promise<Array<ContinuedSearchSeasonsForPublisherRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect) FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND SCORE(Season.fullText, @seasonFullTextScoreWhere) < @seasonFullTextScoreLt) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC LIMIT @limit",
+    params: {
+      seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonFullTextSearch: args.seasonFullTextSearch,
+      seasonFullTextScoreWhere: args.seasonFullTextScoreWhere,
+      seasonFullTextScoreLt: Spanner.float(args.seasonFullTextScoreLt),
+      seasonFullTextScoreOrderBy: args.seasonFullTextScoreOrderBy,
+      limit: args.limit.toString(),
+      seasonFullTextScoreSelect: args.seasonFullTextScoreSelect,
+    },
+    types: {
+      seasonPublisherIdEq: { type: "string" },
+      seasonFullTextSearch: { type: "string" },
+      seasonFullTextScoreWhere: { type: "string" },
+      seasonFullTextScoreLt: { type: "float64" },
+      seasonFullTextScoreOrderBy: { type: "string" },
+      limit: { type: "int64" },
+      seasonFullTextScoreSelect: { type: "string" },
+    }
+  });
+  let resRows = new Array<ContinuedSearchSeasonsForPublisherRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonFullTextScore: row.at(9).value == null ? undefined : row.at(9).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface ListPublishedSeasonsByPremierTimeForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+}
+
+export let LIST_PUBLISHED_SEASONS_BY_PREMIER_TIME_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByPremierTimeForConsumerRow> = {
+  name: 'ListPublishedSeasonsByPremierTimeForConsumerRow',
+  fields: [{
+    name: 'seasonSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function listPublishedSeasonsByPremierTimeForConsumer(
+  runner: Database | Transaction,
+  args: {
+    seasonStateEq?: SeasonState,
+    seasonRecentPremierTimeMsLt?: number,
     limit: number,
   }
-): Promise<Array<ListPublishedSeasonsByPublishTimeForConsumerRow>> {
+): Promise<Array<ListPublishedSeasonsByPremierTimeForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND s.recentPremierTimeMs < @sRecentPremierTimeMsLt) ORDER BY s.recentPremierTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating FROM Season WHERE (Season.state = @seasonStateEq AND Season.recentPremierTimeMs < @seasonRecentPremierTimeMsLt) ORDER BY Season.recentPremierTimeMs DESC LIMIT @limit",
     params: {
-      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
-      sRecentPremierTimeMsLt: args.sRecentPremierTimeMsLt == null ? null : Spanner.float(args.sRecentPremierTimeMsLt),
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      seasonRecentPremierTimeMsLt: args.seasonRecentPremierTimeMsLt == null ? null : Spanner.float(args.seasonRecentPremierTimeMsLt),
       limit: args.limit.toString(),
     },
     types: {
-      sStateEq: { type: "float64" },
-      sRecentPremierTimeMsLt: { type: "float64" },
+      seasonStateEq: { type: "float64" },
+      seasonRecentPremierTimeMsLt: { type: "float64" },
       limit: { type: "int64" },
     }
   });
-  let resRows = new Array<ListPublishedSeasonsByPublishTimeForConsumerRow>();
+  let resRows = new Array<ListPublishedSeasonsByPremierTimeForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
-      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
     });
   }
   return resRows;
 }
 
 export interface ListPublishedSeasonsByRatingForConsumerRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
 }
 
 export let LIST_PUBLISHED_SEASONS_BY_RATING_FOR_CONSUMER_ROW: MessageDescriptor<ListPublishedSeasonsByRatingForConsumerRow> = {
   name: 'ListPublishedSeasonsByRatingForConsumerRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srTotalRatings',
+    name: 'seasonRatingUpdatedTimeMs',
     index: 10,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srCount',
-    index: 11,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srAverageRating',
-    index: 12,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srUpdatedTimeMs',
-    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2287,282 +2367,519 @@ export let LIST_PUBLISHED_SEASONS_BY_RATING_FOR_CONSUMER_ROW: MessageDescriptor<
 export async function listPublishedSeasonsByRatingForConsumer(
   runner: Database | Transaction,
   args: {
-    sStateEq?: SeasonState,
-    srAverageRatingLt?: number,
-    srAverageRatingEq?: number,
-    srUpdatedTimeMsLt?: number,
+    seasonStateEq?: SeasonState,
+    seasonAverageRatingLt?: number,
+    seasonAverageRatingEq?: number,
+    seasonRatingUpdatedTimeMsLt?: number,
     limit: number,
   }
 ): Promise<Array<ListPublishedSeasonsByRatingForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s INNER JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.state = @sStateEq AND (sr.averageRating < @srAverageRatingLt OR (sr.averageRating = @srAverageRatingEq AND sr.updatedTimeMs < @srUpdatedTimeMsLt))) ORDER BY sr.averageRating DESC, sr.updatedTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND (Season.averageRating < @seasonAverageRatingLt OR (Season.averageRating = @seasonAverageRatingEq AND Season.ratingUpdatedTimeMs < @seasonRatingUpdatedTimeMsLt))) ORDER BY Season.averageRating DESC, Season.ratingUpdatedTimeMs DESC LIMIT @limit",
     params: {
-      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
-      srAverageRatingLt: args.srAverageRatingLt == null ? null : Spanner.float(args.srAverageRatingLt),
-      srAverageRatingEq: args.srAverageRatingEq == null ? null : Spanner.float(args.srAverageRatingEq),
-      srUpdatedTimeMsLt: args.srUpdatedTimeMsLt == null ? null : Spanner.float(args.srUpdatedTimeMsLt),
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      seasonAverageRatingLt: args.seasonAverageRatingLt == null ? null : Spanner.float(args.seasonAverageRatingLt),
+      seasonAverageRatingEq: args.seasonAverageRatingEq == null ? null : Spanner.float(args.seasonAverageRatingEq),
+      seasonRatingUpdatedTimeMsLt: args.seasonRatingUpdatedTimeMsLt == null ? null : Spanner.float(args.seasonRatingUpdatedTimeMsLt),
       limit: args.limit.toString(),
     },
     types: {
-      sStateEq: { type: "float64" },
-      srAverageRatingLt: { type: "float64" },
-      srAverageRatingEq: { type: "float64" },
-      srUpdatedTimeMsLt: { type: "float64" },
+      seasonStateEq: { type: "float64" },
+      seasonAverageRatingLt: { type: "float64" },
+      seasonAverageRatingEq: { type: "float64" },
+      seasonRatingUpdatedTimeMsLt: { type: "float64" },
       limit: { type: "int64" },
     }
   });
   let resRows = new Array<ListPublishedSeasonsByRatingForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
-      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonRatingUpdatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
 }
 
-export interface GetPublishedSeasonAndRatingForConsumerRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+export interface GetPublishedSeasonForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
 }
 
-export let GET_PUBLISHED_SEASON_AND_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndRatingForConsumerRow> = {
-  name: 'GetPublishedSeasonAndRatingForConsumerRow',
+export let GET_PUBLISHED_SEASON_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonForConsumerRow> = {
+  name: 'GetPublishedSeasonForConsumerRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'srTotalRatings',
-    index: 10,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srCount',
-    index: 11,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srAverageRating',
-    index: 12,
-    primitiveType: PrimitiveType.NUMBER,
-  }, {
-    name: 'srUpdatedTimeMs',
-    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function getPublishedSeasonAndRatingForConsumer(
+export async function getPublishedSeasonForConsumer(
   runner: Database | Transaction,
   args: {
-    sSeasonIdEq: string,
-    sStateEq?: SeasonState,
+    seasonSeasonIdEq: string,
+    seasonStateEq?: SeasonState,
   }
-): Promise<Array<GetPublishedSeasonAndRatingForConsumerRow>> {
+): Promise<Array<GetPublishedSeasonForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
     params: {
-      sSeasonIdEq: args.sSeasonIdEq,
-      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
     },
     types: {
-      sSeasonIdEq: { type: "string" },
-      sStateEq: { type: "float64" },
+      seasonSeasonIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
     }
   });
-  let resRows = new Array<GetPublishedSeasonAndRatingForConsumerRow>();
+  let resRows = new Array<GetPublishedSeasonForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      srSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      srTotalRatings: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srCount: row.at(10).value == null ? undefined : row.at(10).value.value,
-      srAverageRating: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srUpdatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
     });
   }
   return resRows;
 }
 
-export interface GetPublishedSeasonAllAndRatingForConsumerRow {
-  sSeasonId?: string,
-  sPublisherId?: string,
-  sState?: SeasonState,
-  sName?: string,
-  sCoverImageR2Filename?: string,
-  sTotalEpisodes?: number,
-  sLastChangeTimeMs?: number,
-  sRecentPremierTimeMs?: number,
-  sDescription?: string,
-  sCreatedTimeMs?: number,
-  srSeasonId?: string,
-  srTotalRatings?: number,
-  srCount?: number,
-  srAverageRating?: number,
-  srUpdatedTimeMs?: number,
+export interface GetPublishedSeasonAllForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonDescription?: string,
+  seasonCreatedTimeMs?: number,
+  seasonTotalRatings?: number,
+  seasonRatingsCount?: number,
+  seasonAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
 }
 
-export let GET_PUBLISHED_SEASON_ALL_AND_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAllAndRatingForConsumerRow> = {
-  name: 'GetPublishedSeasonAllAndRatingForConsumerRow',
+export let GET_PUBLISHED_SEASON_ALL_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAllForConsumerRow> = {
+  name: 'GetPublishedSeasonAllForConsumerRow',
   fields: [{
-    name: 'sSeasonId',
+    name: 'seasonSeasonId',
     index: 1,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sPublisherId',
+    name: 'seasonPublisherId',
     index: 2,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sState',
+    name: 'seasonState',
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'sName',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCoverImageR2Filename',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sTotalEpisodes',
+    name: 'seasonTotalEpisodes',
     index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sLastChangeTimeMs',
+    name: 'seasonLastChangeTimeMs',
     index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sRecentPremierTimeMs',
+    name: 'seasonRecentPremierTimeMs',
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'sDescription',
+    name: 'seasonDescription',
     index: 9,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'sCreatedTimeMs',
+    name: 'seasonCreatedTimeMs',
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srSeasonId',
+    name: 'seasonTotalRatings',
     index: 11,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srTotalRatings',
+    name: 'seasonRatingsCount',
     index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srCount',
+    name: 'seasonAverageRating',
     index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srAverageRating',
+    name: 'seasonRatingUpdatedTimeMs',
     index: 14,
     primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getPublishedSeasonAllForConsumer(
+  runner: Database | Transaction,
+  args: {
+    seasonSeasonIdEq: string,
+    seasonStateEq?: SeasonState,
+  }
+): Promise<Array<GetPublishedSeasonAllForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
+    }
+  });
+  let resRows = new Array<GetPublishedSeasonAllForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
+      seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface GetPublishedSeasonRatingForConsumerRow {
+  seasonTotalRatings?: number,
+  seasonRatingsCount?: number,
+  seasonAverageRating?: number,
+  seasonRatingUpdatedTimeMs?: number,
+}
+
+export let GET_PUBLISHED_SEASON_RATING_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonRatingForConsumerRow> = {
+  name: 'GetPublishedSeasonRatingForConsumerRow',
+  fields: [{
+    name: 'seasonTotalRatings',
+    index: 1,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'srUpdatedTimeMs',
-    index: 15,
+    name: 'seasonRatingsCount',
+    index: 2,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 3,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 4,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
 
-export async function getPublishedSeasonAllAndRatingForConsumer(
+export async function getPublishedSeasonRatingForConsumer(
   runner: Database | Transaction,
   args: {
-    sSeasonIdEq: string,
-    sStateEq?: SeasonState,
+    seasonSeasonIdEq: string,
+    seasonStateEq?: SeasonState,
   }
-): Promise<Array<GetPublishedSeasonAllAndRatingForConsumerRow>> {
+): Promise<Array<GetPublishedSeasonRatingForConsumerRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.description, s.createdTimeMs, sr.seasonId, sr.totalRatings, sr.count, sr.averageRating, sr.updatedTimeMs FROM Season AS s LEFT JOIN SeasonRating AS sr ON s.seasonId = sr.seasonId WHERE (s.seasonId = @sSeasonIdEq AND s.state = @sStateEq)",
+    sql: "SELECT Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
     params: {
-      sSeasonIdEq: args.sSeasonIdEq,
-      sStateEq: args.sStateEq == null ? null : Spanner.float(args.sStateEq),
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
     },
     types: {
-      sSeasonIdEq: { type: "string" },
-      sStateEq: { type: "float64" },
+      seasonSeasonIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
     }
   });
-  let resRows = new Array<GetPublishedSeasonAllAndRatingForConsumerRow>();
+  let resRows = new Array<GetPublishedSeasonRatingForConsumerRow>();
   for (let row of rows) {
     resRows.push({
-      sSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
-      sPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
-      sState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      sName: row.at(3).value == null ? undefined : row.at(3).value,
-      sCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
-      sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
-      sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
-      sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      sDescription: row.at(8).value == null ? undefined : row.at(8).value,
-      sCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.value,
-      srSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
-      srTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
-      srCount: row.at(12).value == null ? undefined : row.at(12).value.value,
-      srAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
-      srUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
+      seasonTotalRatings: row.at(0).value == null ? undefined : row.at(0).value.value,
+      seasonRatingsCount: row.at(1).value == null ? undefined : row.at(1).value.value,
+      seasonAverageRating: row.at(2).value == null ? undefined : row.at(2).value.value,
+      seasonRatingUpdatedTimeMs: row.at(3).value == null ? undefined : row.at(3).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface SearchPublishedSeasonsForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+  seasonFullTextScore?: number,
+}
+
+export let SEARCH_PUBLISHED_SEASONS_FOR_CONSUMER_ROW: MessageDescriptor<SearchPublishedSeasonsForConsumerRow> = {
+  name: 'SearchPublishedSeasonsForConsumerRow',
+  fields: [{
+    name: 'seasonSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonFullTextScore',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function searchPublishedSeasonsForConsumer(
+  runner: Database | Transaction,
+  args: {
+    seasonStateEq?: SeasonState,
+    seasonFullTextSearch: string,
+    seasonFullTextScoreOrderBy: string,
+    limit: number,
+    seasonFullTextScoreSelect: string,
+  }
+): Promise<Array<SearchPublishedSeasonsForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect) FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC LIMIT @limit",
+    params: {
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      seasonFullTextSearch: args.seasonFullTextSearch,
+      seasonFullTextScoreOrderBy: args.seasonFullTextScoreOrderBy,
+      limit: args.limit.toString(),
+      seasonFullTextScoreSelect: args.seasonFullTextScoreSelect,
+    },
+    types: {
+      seasonStateEq: { type: "float64" },
+      seasonFullTextSearch: { type: "string" },
+      seasonFullTextScoreOrderBy: { type: "string" },
+      limit: { type: "int64" },
+      seasonFullTextScoreSelect: { type: "string" },
+    }
+  });
+  let resRows = new Array<SearchPublishedSeasonsForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonFullTextScore: row.at(9).value == null ? undefined : row.at(9).value.value,
+    });
+  }
+  return resRows;
+}
+
+export interface ContinuedSearchPublishedSeasonsForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremierTimeMs?: number,
+  seasonAverageRating?: number,
+  seasonFullTextScore?: number,
+}
+
+export let CONTINUED_SEARCH_PUBLISHED_SEASONS_FOR_CONSUMER_ROW: MessageDescriptor<ContinuedSearchPublishedSeasonsForConsumerRow> = {
+  name: 'ContinuedSearchPublishedSeasonsForConsumerRow',
+  fields: [{
+    name: 'seasonSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremierTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonFullTextScore',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function continuedSearchPublishedSeasonsForConsumer(
+  runner: Database | Transaction,
+  args: {
+    seasonStateEq?: SeasonState,
+    seasonFullTextSearch: string,
+    seasonFullTextScoreWhere: string,
+    seasonFullTextScoreLt: number,
+    seasonFullTextScoreOrderBy: string,
+    limit: number,
+    seasonFullTextScoreSelect: string,
+  }
+): Promise<Array<ContinuedSearchPublishedSeasonsForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalEpisodes, Season.lastChangeTimeMs, Season.recentPremierTimeMs, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect) FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND SCORE(Season.fullText, @seasonFullTextScoreWhere) < @seasonFullTextScoreLt) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC LIMIT @limit",
+    params: {
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      seasonFullTextSearch: args.seasonFullTextSearch,
+      seasonFullTextScoreWhere: args.seasonFullTextScoreWhere,
+      seasonFullTextScoreLt: Spanner.float(args.seasonFullTextScoreLt),
+      seasonFullTextScoreOrderBy: args.seasonFullTextScoreOrderBy,
+      limit: args.limit.toString(),
+      seasonFullTextScoreSelect: args.seasonFullTextScoreSelect,
+    },
+    types: {
+      seasonStateEq: { type: "float64" },
+      seasonFullTextSearch: { type: "string" },
+      seasonFullTextScoreWhere: { type: "string" },
+      seasonFullTextScoreLt: { type: "float64" },
+      seasonFullTextScoreOrderBy: { type: "string" },
+      limit: { type: "int64" },
+      seasonFullTextScoreSelect: { type: "string" },
+    }
+  });
+  let resRows = new Array<ContinuedSearchPublishedSeasonsForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonFullTextScore: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
@@ -3325,6 +3642,7 @@ export interface GetSeasonAndEpisodeRow {
   sTotalEpisodes?: number,
   sLastChangeTimeMs?: number,
   sRecentPremierTimeMs?: number,
+  sAverageRating?: number,
   eSeasonId?: string,
   eEpisodeId?: string,
   eIndex?: number,
@@ -3370,36 +3688,40 @@ export let GET_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetSeasonAndEpisodeRow>
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'eSeasonId',
+    name: 'sAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'eEpisodeId',
+    name: 'eSeasonId',
     index: 10,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eIndex',
+    name: 'eEpisodeId',
     index: 11,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'eName',
-    index: 12,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'eVideoContainerId',
     index: 13,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eVideoContainer',
+    name: 'eVideoContainerId',
     index: 14,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 15,
     messageType: VIDEO_CONTAINER,
   }, {
     name: 'ePremierTimeMs',
-    index: 15,
+    index: 16,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'ePublishTimeMs',
-    index: 16,
+    index: 17,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3412,7 +3734,7 @@ export async function getSeasonAndEpisode(
   }
 ): Promise<Array<GetSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
     params: {
       eSeasonIdEq: args.eSeasonIdEq,
       eEpisodeIdEq: args.eEpisodeIdEq,
@@ -3433,14 +3755,15 @@ export async function getSeasonAndEpisode(
       sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
       sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
       sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      eSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      eEpisodeId: row.at(9).value == null ? undefined : row.at(9).value,
-      eIndex: row.at(10).value == null ? undefined : row.at(10).value.value,
-      eName: row.at(11).value == null ? undefined : row.at(11).value,
-      eVideoContainerId: row.at(12).value == null ? undefined : row.at(12).value,
-      eVideoContainer: row.at(13).value == null ? undefined : deserializeMessage(row.at(13).value, VIDEO_CONTAINER),
-      ePremierTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
-      ePublishTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
+      sAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      eSeasonId: row.at(9).value == null ? undefined : row.at(9).value,
+      eEpisodeId: row.at(10).value == null ? undefined : row.at(10).value,
+      eIndex: row.at(11).value == null ? undefined : row.at(11).value.value,
+      eName: row.at(12).value == null ? undefined : row.at(12).value,
+      eVideoContainerId: row.at(13).value == null ? undefined : row.at(13).value,
+      eVideoContainer: row.at(14).value == null ? undefined : deserializeMessage(row.at(14).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
+      ePublishTimeMs: row.at(16).value == null ? undefined : row.at(16).value.value,
     });
   }
   return resRows;
@@ -3455,6 +3778,7 @@ export interface GetSeasonAndEpisodeForPublisherRow {
   sTotalEpisodes?: number,
   sLastChangeTimeMs?: number,
   sRecentPremierTimeMs?: number,
+  sAverageRating?: number,
   eSeasonId?: string,
   eEpisodeId?: string,
   eIndex?: number,
@@ -3500,36 +3824,40 @@ export let GET_SEASON_AND_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeason
     index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'eSeasonId',
+    name: 'sAverageRating',
     index: 9,
-    primitiveType: PrimitiveType.STRING,
+    primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'eEpisodeId',
+    name: 'eSeasonId',
     index: 10,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eIndex',
+    name: 'eEpisodeId',
     index: 11,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eIndex',
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'eName',
-    index: 12,
-    primitiveType: PrimitiveType.STRING,
-  }, {
-    name: 'eVideoContainerId',
     index: 13,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'eVideoContainer',
+    name: 'eVideoContainerId',
     index: 14,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'eVideoContainer',
+    index: 15,
     messageType: VIDEO_CONTAINER,
   }, {
     name: 'ePremierTimeMs',
-    index: 15,
+    index: 16,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'ePublishTimeMs',
-    index: 16,
+    index: 17,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3543,7 +3871,7 @@ export async function getSeasonAndEpisodeForPublisher(
   }
 ): Promise<Array<GetSeasonAndEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremierTimeMs, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.premierTimeMs, e.publishTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @sPublisherIdEq AND e.seasonId = @eSeasonIdEq AND e.episodeId = @eEpisodeIdEq)",
     params: {
       sPublisherIdEq: args.sPublisherIdEq == null ? null : args.sPublisherIdEq,
       eSeasonIdEq: args.eSeasonIdEq,
@@ -3566,14 +3894,15 @@ export async function getSeasonAndEpisodeForPublisher(
       sTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
       sLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
       sRecentPremierTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      eSeasonId: row.at(8).value == null ? undefined : row.at(8).value,
-      eEpisodeId: row.at(9).value == null ? undefined : row.at(9).value,
-      eIndex: row.at(10).value == null ? undefined : row.at(10).value.value,
-      eName: row.at(11).value == null ? undefined : row.at(11).value,
-      eVideoContainerId: row.at(12).value == null ? undefined : row.at(12).value,
-      eVideoContainer: row.at(13).value == null ? undefined : deserializeMessage(row.at(13).value, VIDEO_CONTAINER),
-      ePremierTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
-      ePublishTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
+      sAverageRating: row.at(8).value == null ? undefined : row.at(8).value.value,
+      eSeasonId: row.at(9).value == null ? undefined : row.at(9).value,
+      eEpisodeId: row.at(10).value == null ? undefined : row.at(10).value,
+      eIndex: row.at(11).value == null ? undefined : row.at(11).value.value,
+      eName: row.at(12).value == null ? undefined : row.at(12).value,
+      eVideoContainerId: row.at(13).value == null ? undefined : row.at(13).value,
+      eVideoContainer: row.at(14).value == null ? undefined : deserializeMessage(row.at(14).value, VIDEO_CONTAINER),
+      ePremierTimeMs: row.at(15).value == null ? undefined : row.at(15).value.value,
+      ePublishTimeMs: row.at(16).value == null ? undefined : row.at(16).value.value,
     });
   }
   return resRows;

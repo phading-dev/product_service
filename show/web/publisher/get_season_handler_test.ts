@@ -1,10 +1,8 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertSeasonGradeStatement,
-  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetSeasonHandler } from "./get_season_handler";
@@ -25,7 +23,7 @@ TEST_RUNNER.run({
   name: "GetSeasonHandlerTest",
   cases: [
     {
-      name: "GetSeasonWithoutDescriptionAndWithoutCoverImageAndWithoutRatingAndWithOneEffectiveGrade",
+      name: "GetSeasonWithoutDescriptionAndWithoutCoverImageAndWithOneEffectiveGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -40,6 +38,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               description: "",
               createdTimeMs: 50,
+              averageRating: 0,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -114,14 +113,13 @@ TEST_RUNNER.run({
             deleteSeasonStatement({
               seasonSeasonIdEq: "season1",
             }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season1" }),
           ]);
           await transaction.commit();
         });
       },
     },
     {
-      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithRatingAndWithTwoGrades",
+      name: "GetSeasonWithCoverImageAndWithDescriptionAndWithTwoGrades",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -137,11 +135,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               description: "something something",
               createdTimeMs: 50,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
               averageRating: 4.5,
-              updatedTimeMs: 100,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -226,7 +220,6 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season1" }),
           ]);
           await transaction.commit();
         });
@@ -290,7 +283,6 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season1" }),
           ]);
           await transaction.commit();
         });

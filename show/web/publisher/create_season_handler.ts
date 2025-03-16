@@ -80,6 +80,10 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
           recentPremierTimeMs: FAR_FUTURE_TIME_MS,
           description: "",
           createdTimeMs: now,
+          totalRatings: 0,
+          ratingsCount: 0,
+          averageRating: 0,
+          ratingUpdatedTimeMs: now,
         }),
         insertSeasonGradeStatement({
           seasonId,

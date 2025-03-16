@@ -1,10 +1,7 @@
 import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import {
-  getLastSeasonGrades,
-  getSeasonAllAndRatingForPublisher,
-} from "../../../db/sql";
+import { getLastSeasonGrades, getSeasonAllForPublisher } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { GetSeasonHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
@@ -63,9 +60,9 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     }
     let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
-      getSeasonAllAndRatingForPublisher(this.database, {
-        sPublisherIdEq: accountId,
-        sSeasonIdEq: body.seasonId,
+      getSeasonAllForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: body.seasonId,
       }),
       getLastSeasonGrades(this.database, {
         seasonGradeSeasonIdEq: body.seasonId,
@@ -90,18 +87,18 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     let season = seasonRows[0];
     return {
       seasonDetails: {
-        name: season.sName,
-        state: season.sState,
-        description: season.sDescription,
-        coverImageUrl: season.sCoverImageR2Filename
-          ? `${this.coverImagePublicAccessDomain}/${season.sCoverImageR2Filename}`
+        name: season.seasonName,
+        state: season.seasonState,
+        description: season.seasonDescription,
+        coverImageUrl: season.seasonCoverImageR2Filename
+          ? `${this.coverImagePublicAccessDomain}/${season.seasonCoverImageR2Filename}`
           : undefined,
-        totalEpisodes: season.sTotalEpisodes,
-        createdTimeMs: season.sCreatedTimeMs,
-        lastChangeTimeMs: season.sLastChangeTimeMs,
+        totalEpisodes: season.seasonTotalEpisodes,
+        createdTimeMs: season.seasonCreatedTimeMs,
+        lastChangeTimeMs: season.seasonLastChangeTimeMs,
         grade,
         nextGrade,
-        averageRating: season.srAverageRating ?? 0,
+        averageRating: season.seasonAverageRating,
       },
     };
   }

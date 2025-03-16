@@ -1,20 +1,18 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  GET_SEASON_RATING_ROW,
+  GET_SEASON_ROW,
   deleteIndividualSeasonRatingStatement,
-  deleteSeasonRatingStatement,
+  deleteSeasonStatement,
   getIndividualSeasonRating,
-  getSeasonRating,
+  getSeason,
   insertIndividualSeasonRatingStatement,
-  insertSeasonRatingStatement,
+  insertSeasonStatement,
 } from "../../../db/sql";
 import { UnrateSeasonHandler } from "./unrate_season_handler";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
-import {
-  newInternalServerErrorError,
-  newNotFoundError,
-} from "@selfage/http_error";
+import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -30,10 +28,12 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertSeasonRatingStatement({
+            insertSeasonStatement({
               seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 4,
               totalRatings: 8,
-              count: 2,
+              ratingsCount: 2,
             }),
             insertIndividualSeasonRatingStatement({
               raterId: "account1",
@@ -61,19 +61,20 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, {
-            seasonRatingSeasonIdEq: "season1",
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRatingSeasonId: "season1",
-                seasonRatingTotalRatings: 5,
-                seasonRatingCount: 1,
-                seasonRatingAverageRating: 5,
+                seasonSeasonId: "season1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonTotalRatings: 5,
+                seasonRatingsCount: 1,
+                seasonAverageRating: 5,
                 seasonRatingUpdatedTimeMs: 1000,
               },
-              GET_SEASON_RATING_ROW,
+              GET_SEASON_ROW,
             ),
           ]),
           "SeasonRating",
@@ -90,8 +91,8 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
             deleteIndividualSeasonRatingStatement({
               individualSeasonRatingRaterIdEq: "account1",
@@ -108,10 +109,12 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertSeasonRatingStatement({
+            insertSeasonStatement({
               seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 5,
               totalRatings: 5,
-              count: 1,
+              ratingsCount: 1,
             }),
             insertIndividualSeasonRatingStatement({
               raterId: "account1",
@@ -139,19 +142,20 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRating(SPANNER_DATABASE, {
-            seasonRatingSeasonIdEq: "season1",
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRatingSeasonId: "season1",
-                seasonRatingTotalRatings: 0,
-                seasonRatingCount: 0,
-                seasonRatingAverageRating: 0,
+                seasonSeasonId: "season1",
+                seasonState: SeasonState.PUBLISHED,
+                seasonTotalRatings: 0,
+                seasonRatingsCount: 0,
+                seasonAverageRating: 0,
                 seasonRatingUpdatedTimeMs: 1000,
               },
-              GET_SEASON_RATING_ROW,
+              GET_SEASON_ROW,
             ),
           ]),
           "SeasonRating",
@@ -168,8 +172,8 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
             deleteIndividualSeasonRatingStatement({
               individualSeasonRatingRaterIdEq: "account1",
@@ -186,10 +190,12 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertSeasonRatingStatement({
+            insertSeasonStatement({
               seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              averageRating: 4,
               totalRatings: 8,
-              count: 2,
+              ratingsCount: 2,
             }),
           ]);
           await transaction.commit();
@@ -224,8 +230,8 @@ TEST_RUNNER.run({
       async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();
@@ -233,7 +239,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "NoSeasonRating",
+      name: "SeasonNotFound",
       async execute() {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -267,9 +273,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           error,
-          eqHttpError(
-            newInternalServerErrorError("Season rating season1 is not found."),
-          ),
+          eqHttpError(newNotFoundError("Season season1 is not found.")),
           "error",
         );
       },

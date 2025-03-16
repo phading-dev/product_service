@@ -3,7 +3,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getPublishedSeasonAllAndRatingForConsumer,
+  getPublishedSeasonAllForConsumer,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
@@ -65,9 +65,9 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     }
     let todayStr = toTodaISOString(this.getNowDate());
     let [seasonRows, seasonGradeRows] = await Promise.all([
-      getPublishedSeasonAllAndRatingForConsumer(this.database, {
-        sSeasonIdEq: body.seasonId,
-        sStateEq: SeasonState.PUBLISHED,
+      getPublishedSeasonAllForConsumer(this.database, {
+        seasonSeasonIdEq: body.seasonId,
+        seasonStateEq: SeasonState.PUBLISHED,
       }),
       getLastSeasonGrades(this.database, {
         seasonGradeSeasonIdEq: body.seasonId,
@@ -98,14 +98,14 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     let row = seasonRows[0];
     return {
       seasonDetails: {
-        publisherId: row.sPublisherId,
-        name: row.sName,
-        coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`,
-        totalEpisodes: row.sTotalEpisodes,
-        description: row.sDescription,
+        publisherId: row.seasonPublisherId,
+        name: row.seasonName,
+        coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
+        totalEpisodes: row.seasonTotalEpisodes,
+        description: row.seasonDescription,
         grade,
         nextGrade,
-        averageRating: row.srAverageRating ?? 0,
+        averageRating: row.seasonAverageRating,
       },
     };
   }

@@ -1,11 +1,6 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import {
-  deleteSeasonRatingStatement,
-  deleteSeasonStatement,
-  insertSeasonRatingStatement,
-  insertSeasonStatement,
-} from "../../../db/sql";
+import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
 import { ListSeasonsHandler } from "./list_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
@@ -32,11 +27,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "season1.jpg",
               lastChangeTimeMs: 100,
               totalEpisodes: 1,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
               averageRating: 4.5,
-              updatedTimeMs: 100,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -46,6 +37,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "season2.jpg",
               lastChangeTimeMs: 200,
               totalEpisodes: 2,
+              averageRating: 0,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -54,11 +46,7 @@ TEST_RUNNER.run({
               name: "Season 3",
               lastChangeTimeMs: 300,
               totalEpisodes: 3,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season3",
               averageRating: 4,
-              updatedTimeMs: 200,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -67,6 +55,7 @@ TEST_RUNNER.run({
               name: "Season 4",
               lastChangeTimeMs: 400,
               totalEpisodes: 4,
+              averageRating: 0,
             }),
           ]);
           await transaction.commit();
@@ -165,10 +154,6 @@ TEST_RUNNER.run({
             deleteSeasonStatement({ seasonSeasonIdEq: "season2" }),
             deleteSeasonStatement({ seasonSeasonIdEq: "season3" }),
             deleteSeasonStatement({ seasonSeasonIdEq: "season4" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season1" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season2" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season3" }),
-            deleteSeasonRatingStatement({ seasonRatingSeasonIdEq: "season4" }),
           ]);
           await transaction.commit();
         });

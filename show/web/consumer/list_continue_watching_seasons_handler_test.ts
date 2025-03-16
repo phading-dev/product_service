@@ -1,11 +1,9 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRatingStatement,
   deleteSeasonStatement,
   insertEpisodeStatement,
   insertSeasonGradeStatement,
-  insertSeasonRatingStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { ListContinueWatchingSeasonsHandler } from "./list_continue_watching_seasons_handler";
@@ -31,7 +29,7 @@ TEST_RUNNER.run({
   name: "ListContinueWatchingSeasonsHandlerTest",
   cases: [
     {
-      name: "ListThatOneSeasonWithRatingAndContinueWithLatestEpisode_OneWithoutRatingAndContinueWithNextEpisode_OneWithLatestEpisodeNotFound_OneWithNextEpisodeNotFound_OneWithSeasonNotFound",
+      name: "ListThatOneSeasonAndContinueWithLatestEpisode_OneWithoutRatingAndContinueWithNextEpisode_OneWithLatestEpisodeNotFound_OneWithNextEpisodeNotFound_OneWithSeasonNotFound",
       async execute() {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -43,9 +41,6 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
-            }),
-            insertSeasonRatingStatement({
-              seasonId: "season1",
               averageRating: 4.5,
             }),
             insertSeasonGradeStatement({
@@ -73,6 +68,7 @@ TEST_RUNNER.run({
               name: "name2",
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
+              averageRating: 0,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -110,6 +106,7 @@ TEST_RUNNER.run({
               name: "name3",
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
+              averageRating: 0,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -125,6 +122,7 @@ TEST_RUNNER.run({
               name: "name4",
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
+              averageRating: 0,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -294,21 +292,6 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season5",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season1",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season2",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season3",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season4",
-            }),
-            deleteSeasonRatingStatement({
-              seasonRatingSeasonIdEq: "season5",
             }),
           ]);
           await transaction.commit();

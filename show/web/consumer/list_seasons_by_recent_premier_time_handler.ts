@@ -2,11 +2,9 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import {
-  getLastSeasonGrades,
-  listPublishedSeasonsByPublishTimeForConsumer,
-} from "../../../db/sql";
+import { listPublishedSeasonsByPremierTimeForConsumer } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
+import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ListSeasonsByRecentPremierTimeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
@@ -16,11 +14,7 @@ import {
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
-import {
-  newBadRequestError,
-  newInternalServerErrorError,
-  newUnauthorizedError,
-} from "@selfage/http_error";
+import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPremierTimeHandlerInterface {
@@ -69,43 +63,32 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
     let nowDate = this.getNowDate();
     let now = nowDate.valueOf();
     let todayStr = toTodaISOString(nowDate);
-    let seasonRows = await listPublishedSeasonsByPublishTimeForConsumer(
+    let seasonRows = await listPublishedSeasonsByPremierTimeForConsumer(
       this.database,
       {
-        sStateEq: SeasonState.PUBLISHED,
-        sRecentPremierTimeMsLt: body.premierTimeCursor ?? now,
+        seasonStateEq: SeasonState.PUBLISHED,
+        seasonRecentPremierTimeMsLt: body.premierTimeCursor ?? now,
         limit: body.limit,
       },
     );
     let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
       seasonRows.map(async (row, i) => {
-        let gradeRows = await getLastSeasonGrades(this.database, {
-          seasonGradeSeasonIdEq: row.sSeasonId,
-          seasonGradeEndDateGt: todayStr,
-          limit: 1,
-        });
-        if (gradeRows.length === 0) {
-          throw newInternalServerErrorError(
-            `Season ${row.sSeasonId} has no grade at today ${todayStr}.`,
-          );
-        }
-        seasons[i] = {
-          seasonId: row.sSeasonId,
-          publisherId: row.sPublisherId,
-          name: row.sName,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.sCoverImageR2Filename}`,
-          totalEpisodes: row.sTotalEpisodes,
-          averageRating: row.srAverageRating ?? 0,
-          grade: gradeRows[0].seasonGradeGrade,
-        };
+        await getLatestSeasonGradeAndSummarizeSeason(
+          this.database,
+          this.coverImagePublicAccessDomain,
+          todayStr,
+          row,
+          i,
+          seasons,
+        );
       }),
     );
     return {
       seasons,
       premierTimeCursor:
         seasonRows.length === body.limit
-          ? seasonRows[seasonRows.length - 1].sRecentPremierTimeMs
+          ? seasonRows[seasonRows.length - 1].seasonRecentPremierTimeMs
           : undefined,
     };
   }
