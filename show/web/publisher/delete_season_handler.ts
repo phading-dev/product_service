@@ -68,9 +68,9 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
           seasonSeasonIdEq: body.seasonId,
         }),
         listPrevEpisodesForPublisher(transaction, {
-          sPublisherIdEq: accountId,
-          eSeasonIdEq: body.seasonId,
-          eIndexLt: MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+          seasonPublisherIdEq: accountId,
+          episodeSeasonIdEq: body.seasonId,
+          episodeIndexLt: MAX_NUM_OF_EPISODES_PER_SEASON + 1,
           limit: MAX_NUM_OF_EPISODES_PER_SEASON,
         }),
       ]);
@@ -98,10 +98,10 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
         );
       }
       for (let episode of episodeRows) {
-        if (episode.eVideoContainerId) {
+        if (episode.episodeVideoContainerId) {
           statements.push(
             insertVideoContainerDeletingTaskStatement({
-              videoContainerId: episode.eVideoContainerId,
+              videoContainerId: episode.episodeVideoContainerId,
               retryCount: 0,
               executionTimeMs: now,
               createdTimeMs: now,
@@ -110,8 +110,8 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
         } else {
           statements.push(
             deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: episode.eSeasonId,
-              videoContainerCreatingTaskEpisodeIdEq: episode.eEpisodeId,
+              videoContainerCreatingTaskSeasonIdEq: episode.episodeSeasonId,
+              videoContainerCreatingTaskEpisodeIdEq: episode.episodeEpisodeId,
             }),
           );
         }

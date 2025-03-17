@@ -63,9 +63,9 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
 
     await this.database.runTransactionAsync(async (transaction) => {
       let rows = await getSeasonAndEpisodeForPublisher(transaction, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eEpisodeIdEq: body.episodeId,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeEpisodeIdEq: body.episodeId,
       });
       if (rows.length === 0) {
         throw newNotFoundError(
@@ -73,7 +73,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
         );
       }
       let row = rows[0];
-      if (!row.eVideoContainer) {
+      if (!row.episodeVideoContainer) {
         throw newBadRequestError(
           `Video container is not committed yet for season ${body.seasonId} episode ${body.episodeId}.`,
         );
@@ -87,7 +87,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
           setPublishTimeMs: now,
           setPremierTimeMs: premierTimeMs,
         }),
-        row.sState === SeasonState.DRAFT
+        row.seasonState === SeasonState.DRAFT
           ? publishSeasonStatement({
               seasonSeasonIdEq: body.seasonId,
               setState: SeasonState.PUBLISHED,

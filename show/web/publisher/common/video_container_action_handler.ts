@@ -46,9 +46,9 @@ export class VideoContainerActionHandler {
       );
     }
     let rows = await getEpisodeForPublisher(this.database, {
-      sPublisherIdEq: accountId,
-      eSeasonIdEq: seasonId,
-      eEpisodeIdEq: episodeId,
+      seasonPublisherIdEq: accountId,
+      episodeSeasonIdEq: seasonId,
+      episodeEpisodeIdEq: episodeId,
     });
     if (rows.length === 0) {
       throw newNotFoundError(
@@ -56,13 +56,13 @@ export class VideoContainerActionHandler {
       );
     }
     let row = rows[0];
-    if (!row.eVideoContainerId) {
+    if (!row.episodeVideoContainerId) {
       throw newBadRequestError(
         `Season ${seasonId} episode ${episodeId} does not have a video container yet.`,
       );
     }
     let response = await this.serviceClient.send(
-      newRequest(row.eVideoContainerId),
+      newRequest(row.episodeVideoContainerId),
     );
     await this.database.runTransactionAsync(async (transaction) => {
       await transaction.batchUpdate([

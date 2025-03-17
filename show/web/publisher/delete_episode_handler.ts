@@ -66,9 +66,9 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let rows = await getSeasonAndEpisodeForPublisher(transaction, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eEpisodeIdEq: body.episodeId,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeEpisodeIdEq: body.episodeId,
       });
       if (rows.length === 0) {
         throw newNotFoundError(
@@ -80,7 +80,7 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
       let statements: Array<Statement> = [
         updateSeasonTotalEpisodesStatement({
           seasonSeasonIdEq: body.seasonId,
-          setTotalEpisodes: seasonAndEpisode.sTotalEpisodes - 1,
+          setTotalEpisodes: seasonAndEpisode.seasonTotalEpisodes - 1,
           setLastChangeTimeMs: now,
         }),
         deleteEpisodeStatement({
@@ -88,10 +88,10 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
           episodeEpisodeIdEq: body.episodeId,
         }),
       ];
-      if (seasonAndEpisode.eVideoContainerId) {
+      if (seasonAndEpisode.episodeVideoContainerId) {
         statements.push(
           insertVideoContainerDeletingTaskStatement({
-            videoContainerId: seasonAndEpisode.eVideoContainerId,
+            videoContainerId: seasonAndEpisode.episodeVideoContainerId,
             retryCount: 0,
             executionTimeMs: now,
             createdTimeMs: now,
@@ -107,17 +107,17 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
       }
 
       let nextEpisodes = await listNextEpisodesForPublisher(transaction, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eIndexGt: seasonAndEpisode.eIndex,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeIndexGt: seasonAndEpisode.episodeIndex,
         limit: MAX_NUM_OF_EPISODES_PER_SEASON,
       });
       for (let episode of nextEpisodes) {
         statements.push(
           updateEpisodeIndexStatement({
-            episodeSeasonIdEq: episode.eSeasonId,
-            episodeEpisodeIdEq: episode.eEpisodeId,
-            setIndex: episode.eIndex - 1,
+            episodeSeasonIdEq: episode.episodeSeasonId,
+            episodeEpisodeIdEq: episode.episodeEpisodeId,
+            setIndex: episode.episodeIndex - 1,
           }),
         );
       }

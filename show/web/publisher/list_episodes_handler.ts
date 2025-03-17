@@ -63,32 +63,32 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     >;
     if (body.next) {
       rows = await listNextEpisodesForPublisher(this.database, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eIndexGt: body.indexCursor ?? 0,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeIndexGt: body.indexCursor ?? 0,
         limit: body.limit,
       });
     } else {
       rows = await listPrevEpisodesForPublisher(this.database, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
         limit: body.limit,
       });
     }
     return {
       episodes: rows.map(
         (row): EpisodeSummary => ({
-          episodeId: row.eEpisodeId,
-          name: row.eName,
-          index: row.eIndex,
-          videoContainer: row.eVideoContainer,
-          premierTimeMs: row.ePremierTimeMs,
-          publishTimeMs: row.ePublishTimeMs,
+          episodeId: row.episodeEpisodeId,
+          name: row.episodeName,
+          index: row.episodeIndex,
+          videoContainer: row.episodeVideoContainer,
+          premierTimeMs: row.episodePremierTimeMs,
+          publishTimeMs: row.episodePublishTimeMs,
         }),
       ),
       indexCursor:
-        rows.length < body.limit ? undefined : rows[rows.length - 1].eIndex,
+        rows.length < body.limit ? undefined : rows[rows.length - 1].episodeIndex,
     };
   }
 }

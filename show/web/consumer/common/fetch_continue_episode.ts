@@ -16,16 +16,16 @@ export async function fetchContinueEpisode(
   now: number,
 ): Promise<EpisodeSummary> {
   let latestEpisodeRowsPromise = getPublishedEpisodeForConsumer(database, {
-    eSeasonIdEq: seasonId,
-    sStateEq: SeasonState.PUBLISHED,
-    eEpisodeIdEq: episodeId,
-    ePublishTimeMsLt: now,
+    episodeSeasonIdEq: seasonId,
+    seasonStateEq: SeasonState.PUBLISHED,
+    episodeEpisodeIdEq: episodeId,
+    episodePublishTimeMsLt: now,
   });
   let nextEpisodeRowsPromise = listNextPublishedEpisodesForConsumer(database, {
-    eSeasonIdEq: seasonId,
-    sStateEq: SeasonState.PUBLISHED,
-    eIndexGt: episodeIndex,
-    ePublishTimeMsLt: now,
+    episodeSeasonIdEq: seasonId,
+    seasonStateEq: SeasonState.PUBLISHED,
+    episodeIndexGt: episodeIndex,
+    episodePublishTimeMsLt: now,
     limit: 1,
   });
   let latestEpisodeRows = await latestEpisodeRowsPromise;
@@ -35,15 +35,15 @@ export async function fetchContinueEpisode(
   let latestEpisode = latestEpisodeRows[0];
   if (
     latestWatchedTimeMs <
-    latestEpisode.eVideoContainer.durationSec *
+    latestEpisode.episodeVideoContainer.durationSec *
       NEXT_EPISODE_WATCH_TIME_THRESHOLD
   ) {
     return {
-      episodeId: latestEpisode.eEpisodeId,
-      name: latestEpisode.eName,
-      index: latestEpisode.eIndex,
-      videoDurationSec: latestEpisode.eVideoContainer.durationSec,
-      premierTimeMs: latestEpisode.ePremierTimeMs,
+      episodeId: latestEpisode.episodeEpisodeId,
+      name: latestEpisode.episodeName,
+      index: latestEpisode.episodeIndex,
+      videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
+      premierTimeMs: latestEpisode.episodePremierTimeMs,
       continueTimeMs: latestWatchedTimeMs,
     };
   }
@@ -53,11 +53,11 @@ export async function fetchContinueEpisode(
   }
   let nextEpisode = nextEpisodeRows[0];
   return {
-    episodeId: nextEpisode.eEpisodeId,
-    name: nextEpisode.eName,
-    index: nextEpisode.eIndex,
-    videoDurationSec: nextEpisode.eVideoContainer.durationSec,
-    premierTimeMs: nextEpisode.ePremierTimeMs,
+    episodeId: nextEpisode.episodeEpisodeId,
+    name: nextEpisode.episodeName,
+    index: nextEpisode.episodeIndex,
+    videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
+    premierTimeMs: nextEpisode.episodePremierTimeMs,
     continueTimeMs: 0,
   };
 }

@@ -62,10 +62,10 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     }
     let now = this.getNow();
     let rows = await getPublishedEpisodeForConsumer(this.database, {
-      eSeasonIdEq: body.seasonId,
-      sStateEq: SeasonState.PUBLISHED,
-      eEpisodeIdEq: body.episodeId,
-      ePublishTimeMsLt: now,
+      episodeSeasonIdEq: body.seasonId,
+      seasonStateEq: SeasonState.PUBLISHED,
+      episodeEpisodeIdEq: body.episodeId,
+      episodePublishTimeMsLt: now,
     });
     if (rows.length === 0) {
       throw newNotFoundError(
@@ -75,14 +75,14 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     let row = rows[0];
     return {
       episodeDetails: {
-        name: row.eName,
-        index: row.eIndex,
-        resolution: row.eVideoContainer.resolution,
-        videoDurationSec: row.eVideoContainer.durationSec,
-        premierTimeMs: row.ePremierTimeMs,
+        name: row.episodeName,
+        index: row.episodeIndex,
+        resolution: row.episodeVideoContainer.resolution,
+        videoDurationSec: row.episodeVideoContainer.durationSec,
+        premierTimeMs: row.episodePremierTimeMs,
         videoUrl:
-          row.ePremierTimeMs <= now
-            ? `${this.videoPublicAccessDomain}/${row.eVideoContainer.r2RootDirname}/${row.eVideoContainer.r2MasterPlaylistFilename}`
+          row.episodePremierTimeMs <= now
+            ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainer.r2RootDirname}/${row.episodeVideoContainer.r2MasterPlaylistFilename}`
             : undefined,
       },
     };

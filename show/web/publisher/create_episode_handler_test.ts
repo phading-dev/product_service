@@ -103,20 +103,20 @@ TEST_RUNNER.run({
         );
         assertThat(
           await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            sPublisherIdEq: "publisher1",
-            eSeasonIdEq: "season1",
-            eIndexGt: 0,
+            seasonPublisherIdEq: "publisher1",
+            episodeSeasonIdEq: "season1",
+            episodeIndexGt: 0,
             limit: 2,
           }),
           isArray([
             eqMessage(
               {
-                eSeasonId: "season1",
-                eEpisodeId: "episode1",
-                eIndex: 1,
-                eName: "Ep 1",
-                ePublishTimeMs: FAR_FUTURE_TIME_MS,
-                ePremierTimeMs: FAR_FUTURE_TIME_MS,
+                episodeSeasonId: "season1",
+                episodeEpisodeId: "episode1",
+                episodeIndex: 1,
+                episodeName: "Ep 1",
+                episodePublishTimeMs: FAR_FUTURE_TIME_MS,
+                episodePremierTimeMs: FAR_FUTURE_TIME_MS,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),

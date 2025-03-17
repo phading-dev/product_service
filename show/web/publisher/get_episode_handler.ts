@@ -54,9 +54,9 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
       );
     }
     let rows = await getSeasonAndEpisodeForPublisher(this.database, {
-      sPublisherIdEq: accountId,
-      eSeasonIdEq: body.seasonId,
-      eEpisodeIdEq: body.episodeId,
+      seasonPublisherIdEq: accountId,
+      episodeSeasonIdEq: body.seasonId,
+      episodeEpisodeIdEq: body.episodeId,
     });
     if (rows.length === 0) {
       throw newNotFoundError(
@@ -65,21 +65,21 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     }
     let row = rows[0];
     let videoContainer: VideoContainer;
-    if (row.eVideoContainerId) {
+    if (row.episodeVideoContainerId) {
       ({ videoContainer } = await this.serviceClient.send(
         newGetVideoContainerRequest({
-          containerId: row.eVideoContainerId,
+          containerId: row.episodeVideoContainerId,
         }),
       ));
     }
     return {
       episode: {
-        seasonName: row.sName,
-        episodeName: row.eName,
-        episodeIndex: row.eIndex,
+        seasonName: row.seasonName,
+        episodeName: row.episodeName,
+        episodeIndex: row.episodeIndex,
         videoContainer,
-        publishTimeMs: row.ePublishTimeMs,
-        premierTimeMs: row.ePremierTimeMs,
+        publishTimeMs: row.episodePublishTimeMs,
+        premierTimeMs: row.episodePremierTimeMs,
       },
     };
   }

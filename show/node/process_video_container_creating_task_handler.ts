@@ -101,8 +101,8 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     let accountId: string;
     await this.database.runTransactionAsync(async (transaction) => {
       let rows = await getSeasonAndEpisode(transaction, {
-        eSeasonIdEq: body.seasonId,
-        eEpisodeIdEq: body.episodeId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeEpisodeIdEq: body.episodeId,
       });
       if (rows.length === 0) {
         throw newBadRequestError(
@@ -110,12 +110,12 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
         );
       }
       let row = rows[0];
-      if (row.eVideoContainerId) {
+      if (row.episodeVideoContainerId) {
         throw newConflictError(
           `Video container for season ${body.seasonId} episode ${body.episodeId} is already created.`,
         );
       }
-      accountId = row.sPublisherId;
+      accountId = row.seasonPublisherId;
 
       let now = this.getNow();
       await transaction.batchUpdate([

@@ -113,39 +113,39 @@ TEST_RUNNER.run({
         );
         assertThat(
           await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            sPublisherIdEq: "publisher1",
-            eSeasonIdEq: "season1",
-            eIndexGt: 0,
+            seasonPublisherIdEq: "publisher1",
+            episodeSeasonIdEq: "season1",
+            episodeIndexGt: 0,
             limit: 10,
           }),
           isArray([
             eqMessage(
               {
-                eSeasonId: "season1",
-                eEpisodeId: "episode1",
-                eIndex: 1,
-                eName: "Ep 1",
-                eVideoContainerId: "videocontainer1",
+                episodeSeasonId: "season1",
+                episodeEpisodeId: "episode1",
+                episodeIndex: 1,
+                episodeName: "Ep 1",
+                episodeVideoContainerId: "videocontainer1",
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eSeasonId: "season1",
-                eEpisodeId: "episode3",
-                eIndex: 2,
-                eName: "Ep 3",
-                eVideoContainerId: "videocontainer3",
+                episodeSeasonId: "season1",
+                episodeEpisodeId: "episode3",
+                episodeIndex: 2,
+                episodeName: "Ep 3",
+                episodeVideoContainerId: "videocontainer3",
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
             eqMessage(
               {
-                eSeasonId: "season1",
-                eEpisodeId: "episode4",
-                eIndex: 3,
-                eName: "Ep 4",
-                eVideoContainerId: "videocontainer4",
+                episodeSeasonId: "season1",
+                episodeEpisodeId: "episode4",
+                episodeIndex: 3,
+                episodeName: "Ep 4",
+                episodeVideoContainerId: "videocontainer4",
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),
@@ -265,19 +265,19 @@ TEST_RUNNER.run({
         );
         assertThat(
           await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            sPublisherIdEq: "publisher1",
-            eSeasonIdEq: "season1",
-            eIndexGt: 0,
+            seasonPublisherIdEq: "publisher1",
+            episodeSeasonIdEq: "season1",
+            episodeIndexGt: 0,
             limit: 10,
           }),
           isArray([
             eqMessage(
               {
-                eSeasonId: "season1",
-                eEpisodeId: "episode1",
-                eIndex: 1,
-                eName: "Ep 1",
-                eVideoContainerId: "videocontainer1",
+                episodeSeasonId: "season1",
+                episodeEpisodeId: "episode1",
+                episodeIndex: 1,
+                episodeName: "Ep 1",
+                episodeVideoContainerId: "videocontainer1",
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
             ),

@@ -66,12 +66,11 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await checkPresenceOfEpisodeForPublisher(
-        transaction,
-        {sPublisherIdEq:accountId,
-        eSeasonIdEq:body.seasonId,
-        eEpisodeIdEq:body.episodeId,}
-      );
+      let rows = await checkPresenceOfEpisodeForPublisher(transaction, {
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeEpisodeIdEq: body.episodeId,
+      });
       if (rows.length === 0) {
         throw newNotFoundError(
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,

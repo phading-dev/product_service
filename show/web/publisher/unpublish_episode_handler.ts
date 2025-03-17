@@ -61,9 +61,9 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let rows = await checkPresenceOfEpisodeForPublisher(transaction, {
-        sPublisherIdEq: accountId,
-        eSeasonIdEq: body.seasonId,
-        eEpisodeIdEq: body.episodeId,
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+        episodeEpisodeIdEq: body.episodeId,
       });
       if (rows.length === 0) {
         throw newNotFoundError(

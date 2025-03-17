@@ -174,9 +174,9 @@ TEST_RUNNER.run({
         );
         assertThat(
           await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            sPublisherIdEq: "publisher1",
-            eSeasonIdEq: "season1",
-            eIndexGt: 0,
+            seasonPublisherIdEq: "publisher1",
+            episodeSeasonIdEq: "season1",
+            episodeIndexGt: 0,
             limit: 10,
           }),
           isArray([]),

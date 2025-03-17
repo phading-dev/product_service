@@ -65,18 +65,18 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     >;
     if (body.next) {
       rows = await listNextPublishedEpisodesForConsumer(this.database, {
-        eSeasonIdEq: body.seasonId,
-        sStateEq: SeasonState.PUBLISHED,
-        eIndexGt: body.indexCursor ?? 0,
-        ePublishTimeMsLt: this.getNow(),
+        episodeSeasonIdEq: body.seasonId,
+        seasonStateEq: SeasonState.PUBLISHED,
+        episodeIndexGt: body.indexCursor ?? 0,
+        episodePublishTimeMsLt: this.getNow(),
         limit: body.limit,
       });
     } else {
       rows = await listPrevPublishedEpisodesForConsumer(this.database, {
-        eSeasonIdEq: body.seasonId,
-        sStateEq: SeasonState.PUBLISHED,
-        eIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
-        ePublishTimeMsLt: this.getNow(),
+        episodeSeasonIdEq: body.seasonId,
+        seasonStateEq: SeasonState.PUBLISHED,
+        episodeIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        episodePublishTimeMsLt: this.getNow(),
         limit: body.limit,
       });
     }
@@ -86,16 +86,16 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
         let response = await this.serviceClient.send(
           newGetLatestWatchedTimeOfEpisodeRequest({
             watcherId: accountId,
-            seasonId: row.eSeasonId,
-            episodeId: row.eEpisodeId,
+            seasonId: row.episodeSeasonId,
+            episodeId: row.episodeEpisodeId,
           }),
         );
         episodes[i] = {
-          episodeId: row.eEpisodeId,
-          index: row.eIndex,
-          name: row.eName,
-          videoDurationSec: row.eVideoContainer.durationSec,
-          premierTimeMs: row.ePremierTimeMs,
+          episodeId: row.episodeEpisodeId,
+          index: row.episodeIndex,
+          name: row.episodeName,
+          videoDurationSec: row.episodeVideoContainer.durationSec,
+          premierTimeMs: row.episodePremierTimeMs,
           continueTimeMs: response.watchedTimeMs,
         };
       }),
@@ -103,7 +103,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     return {
       episodes,
       indexCursor:
-        rows.length < body.limit ? undefined : rows[rows.length - 1].eIndex,
+        rows.length < body.limit ? undefined : rows[rows.length - 1].episodeIndex,
     };
   }
 }
