@@ -37,7 +37,7 @@
     "@google-cloud/storage": "^7.15.2",
     "@phading/cluster": "^1.0.2",
     "@phading/constants": "^0.3.7",
-    "@phading/play_activity_service_interface": "^1.0.4",
+    "@phading/play_activity_service_interface": "^1.0.5",
     "@phading/product_service_interface": "^1.0.6",
     "@phading/user_session_service_interface": "^1.1.0",
     "@selfage/http_error": "^1.1.2",
