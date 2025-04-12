@@ -119,6 +119,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`,
           grade: seasonGradeRow.seasonGradeGrade,
           averageRating: seasonRow.seasonAverageRating,
+          ratingsCount: seasonRow.seasonRatingsCount,
         };
         let continueEpisode = await fetchContinueEpisodePromise;
         if (!continueEpisode) {

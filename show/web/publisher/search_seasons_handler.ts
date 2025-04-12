@@ -98,6 +98,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
             : undefined,
           totalEpisodes: row.seasonTotalEpisodes,
           lastChangeTimeMs: row.seasonLastChangeTimeMs,
+          ratingsCount: row.seasonRatingsCount,
           averageRating: row.seasonAverageRating,
         }),
       ),

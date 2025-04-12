@@ -38,6 +38,7 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
     coverImageUrl: `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
     totalEpisodes: row.seasonTotalEpisodes,
     averageRating: row.seasonAverageRating,
+    ratingsCount: row.seasonRatingsCount,
     grade: gradeRows[0].seasonGradeGrade,
   };
 }

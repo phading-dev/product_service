@@ -76,6 +76,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
             : undefined,
           totalEpisodes: row.seasonTotalEpisodes,
           lastChangeTimeMs: row.seasonLastChangeTimeMs,
+          ratingsCount: row.seasonRatingsCount,
           averageRating: row.seasonAverageRating,
         }),
       ),
