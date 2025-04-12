@@ -5,6 +5,7 @@ import {
   GET_SEASON_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
+  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
@@ -12,9 +13,11 @@ import {
   getSeason,
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
+  insertSeasonRecentPremierTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
   listNextEpisodesForPublisher,
+  listPendingSeasonRecentPremierTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { ArchiveSeasonHandler } from "./archive_season_handler";
@@ -64,6 +67,22 @@ async function cleanUpAll() {
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
       }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode2",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode3",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode4",
+      }),
     ]);
     await transaction.commit();
   });
@@ -83,6 +102,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               coverImageR2Filename: "cover1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -118,6 +138,12 @@ TEST_RUNNER.run({
               seasonId: "season1",
               episodeId: "episode3",
             }),
+            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+              seasonId: "season1",
+              episodeId: "episode2",
+              retryCount: 0,
+              executionTimeMs: 1000,
+            }),
           ]);
           await transaction.commit();
         });
@@ -149,6 +175,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.ARCHIVED,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -171,6 +198,16 @@ TEST_RUNNER.run({
             ),
           ]),
           "r2FileDeletingTasks",
+        );
+        assertThat(
+          await listPendingSeasonRecentPremierTimeUpdatingTasks(
+            SPANNER_DATABASE,
+            {
+              seasonRecentPremierTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+            },
+          ),
+          isArray([]),
+          "seasonRecentPremierTimeUpdatingTasks",
         );
         assertThat(
           await listNextEpisodesForPublisher(SPANNER_DATABASE, {
@@ -241,6 +278,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
               coverImageR2Filename: "cover1",
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

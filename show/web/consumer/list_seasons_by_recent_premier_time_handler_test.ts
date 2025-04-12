@@ -30,8 +30,9 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
-              recentPremierTimeMs: 10,
               averageRating: 4.5,
+              recentPremierTimeMs: 20,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -47,8 +48,9 @@ TEST_RUNNER.run({
               name: "name4",
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
-              recentPremierTimeMs: 40,
               averageRating: 3.5,
+              recentPremierTimeMs: 40,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -64,8 +66,9 @@ TEST_RUNNER.run({
               name: "name3",
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
-              recentPremierTimeMs: 30,
               averageRating: 3,
+              recentPremierTimeMs: 30,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -81,8 +84,9 @@ TEST_RUNNER.run({
               name: "name2",
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
-              recentPremierTimeMs: 20,
               averageRating: 0,
+              recentPremierTimeMs: 20,
+              createdTimeMs: 20,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -138,6 +142,7 @@ TEST_RUNNER.run({
                   },
                 ],
                 premierTimeCursor: 20,
+                createdTimeCursor: 20,
               },
               LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE,
             ),
@@ -149,7 +154,7 @@ TEST_RUNNER.run({
           // Execute
           let response = await handler.handle(
             "",
-            { premierTimeCursor: 20, limit: 2 },
+            { premierTimeCursor: 20, createdTimeCursor: 20, limit: 2 },
             "authStr",
           );
 

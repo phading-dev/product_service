@@ -1,8 +1,8 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  checkPresenceOfEpisodeForPublisher,
-  updateEpisodeNameStatement,
+  getEpisodeForPublisher,
+  updateEpisodeInfoStatement,
   updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
@@ -66,7 +66,7 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await checkPresenceOfEpisodeForPublisher(transaction, {
+      let rows = await getEpisodeForPublisher(transaction, {
         seasonPublisherIdEq: accountId,
         episodeSeasonIdEq: body.seasonId,
         episodeEpisodeIdEq: body.episodeId,
@@ -77,7 +77,7 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
         );
       }
       await transaction.batchUpdate([
-        updateEpisodeNameStatement({
+        updateEpisodeInfoStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
           setName: body.name,

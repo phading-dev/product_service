@@ -35,6 +35,7 @@ TEST_RUNNER.run({
               averageRating: 0,
               totalRatings: 0,
               ratingsCount: 0,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -69,6 +70,7 @@ TEST_RUNNER.run({
                 seasonRatingsCount: 1,
                 seasonAverageRating: 5,
                 seasonRatingUpdatedTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -121,6 +123,7 @@ TEST_RUNNER.run({
               averageRating: 5,
               totalRatings: 5,
               ratingsCount: 1,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -155,6 +158,7 @@ TEST_RUNNER.run({
                 seasonRatingsCount: 2,
                 seasonAverageRating: 4,
                 seasonRatingUpdatedTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -207,6 +211,7 @@ TEST_RUNNER.run({
               averageRating: 4,
               totalRatings: 8,
               ratingsCount: 2,
+              createdTimeMs: 1000,
             }),
             insertIndividualSeasonRatingStatement({
               raterId: "account1",
@@ -246,6 +251,7 @@ TEST_RUNNER.run({
                 seasonRatingsCount: 2,
                 seasonAverageRating: 3,
                 seasonRatingUpdatedTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),

@@ -1,12 +1,15 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
   getSeasonAndEpisodeForPublisher,
+  insertSeasonRecentPremierTimeUpdatingTaskStatement,
   publishEpisodeStatement,
   publishSeasonStatement,
-  updateSeasonPremierTimeStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { PublishEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -81,24 +84,37 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
       let now = this.getNow();
       let premierTimeMs = body.premierTimeMs ?? now;
       await transaction.batchUpdate([
+        ...(row.seasonState === SeasonState.DRAFT
+          ? [
+              publishSeasonStatement({
+                seasonSeasonIdEq: body.seasonId,
+                setState: SeasonState.PUBLISHED,
+                setLastChangeTimeMs: now,
+              }),
+            ]
+          : [
+              updateSeasonLastChangeTimeStatement({
+                seasonSeasonIdEq: body.seasonId,
+                setLastChangeTimeMs: now,
+              }),
+            ]),
         publishEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setPublishTimeMs: now,
           setPremierTimeMs: premierTimeMs,
+          setState: EpisodeState.PUBLISHED,
         }),
-        row.seasonState === SeasonState.DRAFT
-          ? publishSeasonStatement({
-              seasonSeasonIdEq: body.seasonId,
-              setState: SeasonState.PUBLISHED,
-              setRecentPremierTimeMs: premierTimeMs,
-              setLastChangeTimeMs: now,
-            })
-          : updateSeasonPremierTimeStatement({
-              seasonSeasonIdEq: body.seasonId,
-              setRecentPremierTimeMs: premierTimeMs,
-              setLastChangeTimeMs: now,
-            }),
+        deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+        }),
+        insertSeasonRecentPremierTimeUpdatingTaskStatement({
+          seasonId: body.seasonId,
+          episodeId: body.episodeId,
+          executionTimeMs: Math.max(now, premierTimeMs),
+          retryCount: 0,
+          createdTimeMs: now,
+        }),
       ]);
       await transaction.commit();
     });

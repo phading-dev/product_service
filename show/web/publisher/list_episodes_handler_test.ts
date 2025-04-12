@@ -6,6 +6,7 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { ListEpisodesHandler } from "./list_episodes_handler";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { LIST_EPISODES_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -25,6 +26,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -34,7 +36,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
-              publishTimeMs: 100,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -45,7 +47,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
             }),
             insertEpisodeStatement({
@@ -56,7 +58,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 180,
               },
-              publishTimeMs: 300,
+              state: EpisodeState.DRAFT,
               premierTimeMs: 3000,
             }),
           ]);
@@ -98,7 +100,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 60,
                   },
-                  publishTimeMs: 100,
+                  state: EpisodeState.PUBLISHED,
                   premierTimeMs: 1000,
                 },
                 {
@@ -108,7 +110,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 120,
                   },
-                  publishTimeMs: 200,
+                  state: EpisodeState.PUBLISHED,
                   premierTimeMs: 2000,
                 },
               ],
@@ -144,7 +146,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 180,
                   },
-                  publishTimeMs: 300,
+                  state: EpisodeState.DRAFT,
                   premierTimeMs: 3000,
                 },
               ],
@@ -172,6 +174,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -181,7 +184,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
-              publishTimeMs: 100,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -192,7 +195,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
             }),
             insertEpisodeStatement({
@@ -203,7 +206,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 180,
               },
-              publishTimeMs: 300,
+              state: EpisodeState.DRAFT,
               premierTimeMs: 3000,
             }),
           ]);
@@ -245,7 +248,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 180,
                   },
-                  publishTimeMs: 300,
+                  state: EpisodeState.DRAFT,
                   premierTimeMs: 3000,
                 },
                 {
@@ -255,7 +258,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 120,
                   },
-                  publishTimeMs: 200,
+                  state: EpisodeState.PUBLISHED,
                   premierTimeMs: 2000,
                 },
               ],
@@ -291,7 +294,7 @@ TEST_RUNNER.run({
                   videoContainer: {
                     durationSec: 60,
                   },
-                  publishTimeMs: 100,
+                  state: EpisodeState.PUBLISHED,
                   premierTimeMs: 1000,
                 },
               ],
@@ -319,6 +322,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -328,7 +332,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
-              publishTimeMs: 100,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
             }),
           ]);

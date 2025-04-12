@@ -17,7 +17,7 @@ import {
   SearchSeasonsRequestBody,
   SearchSeasonsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -85,8 +85,11 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
         this.database,
         {
           seasonFullTextSearch: body.query,
-          seasonFullTextScoreWhere: body.query,
+          seasonFullTextScoreWhereLt: body.query,
           seasonFullTextScoreLt: body.scoreCursor,
+          seasonFullTextScoreWhereEq: body.query,
+          seasonFullTextScoreEq: body.scoreCursor,
+          seasonCreatedTimeMsGt: body.createdTimeCursor,
           seasonFullTextScoreOrderBy: body.query,
           seasonStateEq: SeasonState.PUBLISHED,
           limit: body.limit,
@@ -113,6 +116,10 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
       scoreCursor:
         seasonRows.length === body.limit
           ? seasonRows[seasonRows.length - 1].seasonFullTextScore
+          : undefined,
+      createdTimeCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonCreatedTimeMs
           : undefined,
     };
   }

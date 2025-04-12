@@ -35,7 +35,11 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
 
   private static CLEAN_UP_ON_ERROR_DELAY_MS = 5 * 60 * 1000;
   private static ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-  private taskHandler: ProcessTaskHandlerWrapper;
+  private taskHandler = ProcessTaskHandlerWrapper.create(
+    this.descriptor,
+    5 * 60 * 1000,
+    24 * 60 * 60 * 1000,
+  );
 
   public constructor(
     private database: Database,
@@ -44,11 +48,6 @@ export class ProcessVideoContainerCreatingTaskHandler extends ProcessVideoContai
     private getNow: () => number,
   ) {
     super();
-    this.taskHandler = ProcessTaskHandlerWrapper.create(
-      this.descriptor,
-      5 * 60 * 1000,
-      24 * 60 * 60 * 1000,
-    );
   }
 
   public async handle(

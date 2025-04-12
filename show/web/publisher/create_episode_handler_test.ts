@@ -14,6 +14,7 @@ import {
 } from "../../../db/sql";
 import { CreateEpisodeHandler } from "./create_episode_handler";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CREATE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
@@ -38,6 +39,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               totalEpisodes: 0,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -75,7 +77,7 @@ TEST_RUNNER.run({
                 episodeId: "episode1",
                 index: 1,
                 name: "Ep 1",
-                publishTimeMs: FAR_FUTURE_TIME_MS,
+                state: EpisodeState.DRAFT,
                 premierTimeMs: FAR_FUTURE_TIME_MS,
               },
             },
@@ -95,6 +97,7 @@ TEST_RUNNER.run({
                 seasonState: SeasonState.DRAFT,
                 seasonTotalEpisodes: 1,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -115,7 +118,7 @@ TEST_RUNNER.run({
                 episodeEpisodeId: "episode1",
                 episodeIndex: 1,
                 episodeName: "Ep 1",
-                episodePublishTimeMs: FAR_FUTURE_TIME_MS,
+                episodeState: EpisodeState.DRAFT,
                 episodePremierTimeMs: FAR_FUTURE_TIME_MS,
               },
               LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
@@ -167,6 +170,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               totalEpisodes: MAX_NUM_OF_EPISODES_PER_SEASON,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -232,6 +236,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
               totalEpisodes: 0,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

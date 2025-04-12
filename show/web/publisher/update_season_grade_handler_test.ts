@@ -35,6 +35,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -89,6 +90,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.DRAFT,
                 seasonLastChangeTimeMs: 1577908800000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -135,6 +137,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -214,6 +217,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1577908800000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -270,6 +274,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -356,6 +361,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1577840400000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -412,6 +418,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",

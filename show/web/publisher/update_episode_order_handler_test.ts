@@ -31,6 +31,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 5,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -94,6 +95,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonTotalEpisodes: 5,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -171,6 +173,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 5,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -234,6 +237,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonTotalEpisodes: 5,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -311,6 +315,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 3,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -410,6 +415,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 3,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -509,6 +515,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 1000,
+              createdTimeMs: 1000,
             }),
             ...Array.from({ length: 1000 }, (_, i) =>
               insertEpisodeStatement({
@@ -594,6 +601,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 3,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -669,6 +677,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               totalEpisodes: 3,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",

@@ -12,7 +12,7 @@ import {
   ListSeasonsByRecentPremierTimeRequestBody,
   ListSeasonsByRecentPremierTimeResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -68,6 +68,8 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
       {
         seasonStateEq: SeasonState.PUBLISHED,
         seasonRecentPremierTimeMsLt: body.premierTimeCursor ?? now,
+        seasonRecentPremierTimeMsEq: body.premierTimeCursor ?? now,
+        seasonCreatedTimeMsLt: body.createdTimeCursor ?? now,
         limit: body.limit,
       },
     );
@@ -89,6 +91,10 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
       premierTimeCursor:
         seasonRows.length === body.limit
           ? seasonRows[seasonRows.length - 1].seasonRecentPremierTimeMs
+          : undefined,
+      createdTimeCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonCreatedTimeMs
           : undefined,
     };
   }

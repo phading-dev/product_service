@@ -39,6 +39,7 @@ TEST_RUNNER.run({
               recentPremierTimeMs: 100,
               description: "",
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -134,6 +135,7 @@ TEST_RUNNER.run({
               recentPremierTimeMs: 100,
               description: "something something",
               averageRating: 4.5,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -238,6 +240,7 @@ TEST_RUNNER.run({
               recentPremierTimeMs: 100,
               description: "something something",
               averageRating: 4.5,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

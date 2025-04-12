@@ -3,6 +3,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getPublishedEpisodeForConsumer } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetEpisodeDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
@@ -65,7 +66,7 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
       episodeSeasonIdEq: body.seasonId,
       seasonStateEq: SeasonState.PUBLISHED,
       episodeEpisodeIdEq: body.episodeId,
-      episodePublishTimeMsLt: now,
+      episodeStateEq: EpisodeState.PUBLISHED,
     });
     if (rows.length === 0) {
       throw newNotFoundError(

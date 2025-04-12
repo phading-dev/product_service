@@ -27,6 +27,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               name: "A name",
               description: "",
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -65,6 +66,7 @@ TEST_RUNNER.run({
                 seasonName: "A new name",
                 seasonDescription: "",
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -93,6 +95,7 @@ TEST_RUNNER.run({
               name: "Another name",
               description: "Initial description",
               lastChangeTimeMs: 100,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -132,6 +135,7 @@ TEST_RUNNER.run({
                 seasonName: "Updated name",
                 seasonDescription: "Updated description",
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),

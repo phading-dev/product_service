@@ -1,6 +1,7 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  deleteSeasonRecentPremierTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   getSeasonForPublisher,
@@ -86,6 +87,9 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
       let now = this.getNow();
       let statements: Array<Statement> = [
         deleteSeasonStatement({ seasonSeasonIdEq: body.seasonId }),
+        deleteSeasonRecentPremierTimeUpdatingTasksOfSeasonStatement({
+          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
+        }),
       ];
       if (season.seasonCoverImageR2Filename) {
         statements.push(

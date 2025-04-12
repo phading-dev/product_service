@@ -2,11 +2,15 @@ import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  checkPresenceOfEpisodeForPublisher,
+  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  getEpisodeForPublisher,
+  listRecentEpisodesByPremierTime,
   publishEpisodeStatement,
-  updateSeasonPremierTimeStatement,
+  updateSeasonLastChangeTimeStatement,
+  updateSeasonRecentPremierTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { UnpublishEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   UnpublishEpisodeRequestBody,
@@ -60,7 +64,7 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await checkPresenceOfEpisodeForPublisher(transaction, {
+      let rows = await getEpisodeForPublisher(transaction, {
         seasonPublisherIdEq: accountId,
         episodeSeasonIdEq: body.seasonId,
         episodeEpisodeIdEq: body.episodeId,
@@ -70,17 +74,40 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
           `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
         );
       }
+      let episode = rows[0];
+      if (episode.episodeState !== EpisodeState.PUBLISHED) {
+        throw newBadRequestError(`Episode ${body.episodeId} is not published.`);
+      }
+      let now = this.getNow();
       await transaction.batchUpdate([
+        updateSeasonLastChangeTimeStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setLastChangeTimeMs: now,
+        }),
         publishEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setPublishTimeMs: FAR_FUTURE_TIME_MS,
+          setState: EpisodeState.DRAFT,
           setPremierTimeMs: FAR_FUTURE_TIME_MS,
         }),
-        updateSeasonPremierTimeStatement({
+        deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+        }),
+      ]);
+
+      let recentEpisodes = await listRecentEpisodesByPremierTime(transaction, {
+        episodeSeasonIdEq: body.seasonId,
+        episodePremierTimeMsLt: now,
+        limit: 1,
+      });
+      await transaction.batchUpdate([
+        updateSeasonRecentPremierTimeStatement({
           seasonSeasonIdEq: body.seasonId,
-          setRecentPremierTimeMs: FAR_FUTURE_TIME_MS,
-          setLastChangeTimeMs: this.getNow(),
+          setRecentPremierTimeMs:
+            recentEpisodes.length > 0
+              ? recentEpisodes[0].episodePremierTimeMs
+              : FAR_FUTURE_TIME_MS,
         }),
       ]);
       await transaction.commit();

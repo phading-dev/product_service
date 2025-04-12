@@ -28,6 +28,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               totalEpisodes: 1,
               averageRating: 4.5,
+              createdTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -38,6 +39,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 200,
               totalEpisodes: 2,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -47,6 +49,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 300,
               totalEpisodes: 3,
               averageRating: 4,
+              createdTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -56,6 +59,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 400,
               totalEpisodes: 4,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

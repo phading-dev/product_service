@@ -28,6 +28,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -70,6 +71,7 @@ TEST_RUNNER.run({
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),

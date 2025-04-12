@@ -4,6 +4,7 @@ import {
   GET_COVER_IMAGE_DELETING_TASK_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
+  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
@@ -11,10 +12,12 @@ import {
   getSeason,
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
+  insertSeasonRecentPremierTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
   listNextEpisodesForPublisher,
   listPendingCoverImageDeletingTasks,
+  listPendingSeasonRecentPremierTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { DeleteSeasonHandler } from "./delete_season_handler";
@@ -62,6 +65,22 @@ async function cleanUpAll() {
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
       }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode2",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode3",
+      }),
+      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode4",
+      }),
     ]);
     await transaction.commit();
   });
@@ -71,7 +90,7 @@ TEST_RUNNER.run({
   name: "DeleteSeasonHandlerTest",
   cases: [
     {
-      name: "SeasonWithCoverImageWithEpisodesWithAndWithoutVideoContainer",
+      name: "SeasonWithCoverImageWithEpisodesWithRecentPremierTimeUpdatingTaskWithAndWithoutVideoContainer",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -83,6 +102,7 @@ TEST_RUNNER.run({
               totalEpisodes: 4,
               coverImageR2Filename: "cover1",
               description: "Description",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -118,6 +138,12 @@ TEST_RUNNER.run({
               seasonId: "season1",
               episodeId: "episode3",
             }),
+            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+              seasonId: "season1",
+              episodeId: "episode2",
+              retryCount: 0,
+              executionTimeMs: 1000,
+            }),
           ]);
           await transaction.commit();
         });
@@ -148,6 +174,16 @@ TEST_RUNNER.run({
           await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([]),
           "season",
+        );
+        assertThat(
+          await listPendingSeasonRecentPremierTimeUpdatingTasks(
+            SPANNER_DATABASE,
+            {
+              seasonRecentPremierTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+            },
+          ),
+          isArray([]),
+          "seasonRecentPremierTimeUpdatingTasks",
         );
         assertThat(
           await getCoverImageDeletingTask(SPANNER_DATABASE, {
@@ -232,6 +268,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -286,6 +323,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

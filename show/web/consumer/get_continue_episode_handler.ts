@@ -14,15 +14,12 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterface {
   public static create(): GetContinueEpisodeHandler {
-    return new GetContinueEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      Date.now(),
-    );
+    return new GetContinueEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT);
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private getNow: () => number,
   ) {
     super();
   }
@@ -60,7 +57,6 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       response.episodeId,
       response.episodeIndex,
       response.watchedTimeMs,
-      this.getNow(),
     );
     return {
       episode: continueEpisode,

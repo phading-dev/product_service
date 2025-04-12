@@ -9,12 +9,12 @@ import {
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
-import { EpisodeSummary } from "@phading/product_service_interface/show/web/publisher/episode_summary";
 import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
+import { EpisodeSummary } from "@phading/product_service_interface/show/web/publisher/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -83,12 +83,14 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
           name: row.episodeName,
           index: row.episodeIndex,
           videoContainer: row.episodeVideoContainer,
+          state: row.episodeState,
           premierTimeMs: row.episodePremierTimeMs,
-          publishTimeMs: row.episodePublishTimeMs,
         }),
       ),
       indexCursor:
-        rows.length < body.limit ? undefined : rows[rows.length - 1].episodeIndex,
+        rows.length < body.limit
+          ? undefined
+          : rows[rows.length - 1].episodeIndex,
     };
   }
 }

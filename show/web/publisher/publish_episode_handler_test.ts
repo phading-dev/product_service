@@ -1,16 +1,20 @@
 import "../../../local/env";
-import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_EPISODE_ROW,
+  GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
   GET_SEASON_ROW,
+  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   getEpisode,
   getSeason,
+  getSeasonRecentPremierTimeUpdatingTask,
   insertEpisodeStatement,
+  insertSeasonRecentPremierTimeUpdatingTaskStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { PublishEpisodeHandler } from "./publish_episode_handler";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
@@ -35,14 +39,14 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
               videoContainer: {},
-              publishTimeMs: FAR_FUTURE_TIME_MS,
-              premierTimeMs: FAR_FUTURE_TIME_MS,
+              state: EpisodeState.DRAFT,
             }),
           ]);
           await transaction.commit();
@@ -80,7 +84,8 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremierTimeMs: 1000,
+                seasonRecentPremierTimeMs: 100,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -99,7 +104,7 @@ TEST_RUNNER.run({
                 episodeEpisodeId: "episode1",
                 episodeIndex: 1,
                 episodeVideoContainer: {},
-                episodePublishTimeMs: 1000,
+                episodeState: EpisodeState.PUBLISHED,
                 episodePremierTimeMs: 1000,
               },
               GET_EPISODE_ROW,
@@ -107,18 +112,41 @@ TEST_RUNNER.run({
           ]),
           "episode",
         );
+        assertThat(
+          await getSeasonRecentPremierTimeUpdatingTask(SPANNER_DATABASE, {
+            seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+            seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+          }),
+          isArray([
+            eqMessage(
+              {
+                seasonRecentPremierTimeUpdatingTaskSeasonId: "season1",
+                seasonRecentPremierTimeUpdatingTaskEpisodeId: "episode1",
+                seasonRecentPremierTimeUpdatingTaskRetryCount: 0,
+                seasonRecentPremierTimeUpdatingTaskExecutionTimeMs: 1000,
+                seasonRecentPremierTimeUpdatingTaskCreatedTimeMs: 1000,
+              },
+              GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
+            ),
+          ]),
+          "task",
+        );
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+              seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+              seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+            }),
           ]);
           await transaction.commit();
         });
       },
     },
     {
-      name: "PublishWithPremierTimeAndSeasonAlreadyPublished",
+      name: "PublishWithPremierTimeAndSeasonAlreadyPublishedAndRecentPremierTimeUpdatingTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -129,14 +157,21 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
               videoContainer: {},
-              publishTimeMs: FAR_FUTURE_TIME_MS,
-              premierTimeMs: FAR_FUTURE_TIME_MS,
+              state: EpisodeState.PUBLISHED,
+              premierTimeMs: 200,
+            }),
+            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+              seasonId: "season1",
+              episodeId: "episode1",
+              retryCount: 0,
+              executionTimeMs: 3000,
             }),
           ]);
           await transaction.commit();
@@ -175,7 +210,8 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremierTimeMs: 2000,
+                seasonRecentPremierTimeMs: 100,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -194,7 +230,7 @@ TEST_RUNNER.run({
                 episodeEpisodeId: "episode1",
                 episodeIndex: 1,
                 episodeVideoContainer: {},
-                episodePublishTimeMs: 1000,
+                episodeState: EpisodeState.PUBLISHED,
                 episodePremierTimeMs: 2000,
               },
               GET_EPISODE_ROW,
@@ -202,11 +238,34 @@ TEST_RUNNER.run({
           ]),
           "episode",
         );
+        assertThat(
+          await getSeasonRecentPremierTimeUpdatingTask(SPANNER_DATABASE, {
+            seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+            seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+          }),
+          isArray([
+            eqMessage(
+              {
+                seasonRecentPremierTimeUpdatingTaskSeasonId: "season1",
+                seasonRecentPremierTimeUpdatingTaskEpisodeId: "episode1",
+                seasonRecentPremierTimeUpdatingTaskRetryCount: 0,
+                seasonRecentPremierTimeUpdatingTaskExecutionTimeMs: 2000,
+                seasonRecentPremierTimeUpdatingTaskCreatedTimeMs: 1000,
+              },
+              GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
+            ),
+          ]),
+          "task",
+        );
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteSeasonRecentPremierTimeUpdatingTaskStatement({
+              seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
+              seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+            }),
           ]);
           await transaction.commit();
         });
@@ -224,13 +283,13 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
-              publishTimeMs: FAR_FUTURE_TIME_MS,
-              premierTimeMs: FAR_FUTURE_TIME_MS,
+              state: EpisodeState.DRAFT,
             }),
           ]);
           await transaction.commit();
@@ -292,14 +351,14 @@ TEST_RUNNER.run({
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
               videoContainer: {},
-              publishTimeMs: FAR_FUTURE_TIME_MS,
-              premierTimeMs: FAR_FUTURE_TIME_MS,
+              state: EpisodeState.DRAFT,
             }),
           ]);
           await transaction.commit();

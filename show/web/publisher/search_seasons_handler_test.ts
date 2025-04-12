@@ -3,7 +3,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
 import { SearchSeasonsHandler } from "./search_seasons_handler";
 import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
-import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/publisher/season_summary";
+import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/publisher/summary";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -28,6 +28,7 @@ TEST_RUNNER.run({
               totalEpisodes: 1,
               lastChangeTimeMs: 1000,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -38,17 +39,19 @@ TEST_RUNNER.run({
               totalEpisodes: 1,
               lastChangeTimeMs: 2000,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season3",
               publisherId: "publisher1",
-              name: "Lyrics",
+              name: "Thrilling Eclipse",
               description:
-                "A thrilling adventure of discovering eclipse. A tale of courage and growth. Filled with twists, turns, and surprises.",
+                "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
               coverImageR2Filename: "cover3",
               totalEpisodes: 1,
               lastChangeTimeMs: 3000,
               averageRating: 0,
+              createdTimeMs: 2000,
             }),
             insertSeasonStatement({
               seasonId: "season4",
@@ -60,6 +63,7 @@ TEST_RUNNER.run({
               totalEpisodes: 1,
               lastChangeTimeMs: 4000,
               averageRating: 4.5,
+              createdTimeMs: 2000,
             }),
           ]);
           await transaction.commit();
@@ -119,6 +123,9 @@ TEST_RUNNER.run({
           "response 1 second season",
         );
         assertThat(response.scoreCursor, gt(0), "response 1 score cursor");
+        assertThat(
+          response.createdTimeCursor, eq(1000), "response 1 created time cursor", 
+        );
 
         // Execute
         response = await handler.handle(
@@ -127,6 +134,7 @@ TEST_RUNNER.run({
             query: "Thrilling Eclipse Lyrics",
             limit: 2,
             scoreCursor: response.scoreCursor,
+            createdTimeCursor: response.createdTimeCursor
           },
           "session1",
         );
@@ -139,7 +147,7 @@ TEST_RUNNER.run({
               seasons: [
                 {
                   seasonId: "season3",
-                  name: "Lyrics",
+                  name: "Thrilling Eclipse",
                   coverImageUrl: "https://test.com/cover3",
                   totalEpisodes: 1,
                   lastChangeTimeMs: 3000,

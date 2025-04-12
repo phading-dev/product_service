@@ -12,6 +12,7 @@ import {
   LIST_RECENTLY_WATCHED_SEASONS_REQUEST_BODY,
   ListRecentlyWatchedSeasonsResponse,
 } from "@phading/play_activity_service_interface/show/node/interface";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_CONTINUE_WATCHING_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
@@ -42,6 +43,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
               averageRating: 4.5,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -58,8 +60,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
-              publishTimeMs: 100,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -69,6 +71,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -85,8 +88,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
-              publishTimeMs: 200,
             }),
             insertEpisodeStatement({
               seasonId: "season2",
@@ -96,8 +99,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 180,
               },
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
-              publishTimeMs: 200,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -107,6 +110,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -123,6 +127,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
               averageRating: 0,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -139,8 +144,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 240,
               },
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 4000,
-              publishTimeMs: 400,
             }),
           ]);
           await transaction.commit();

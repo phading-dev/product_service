@@ -49,6 +49,7 @@ async function insertEpisode(episode: {
       insertSeasonStatement({
         seasonId: episode.seasonId,
         publisherId: "publisher1",
+        createdTimeMs: 1000,
       }),
       insertEpisodeStatement(episode),
       insertVideoContainerCreatingTaskStatement({

@@ -19,7 +19,7 @@ import {
 import {
   ContinueSeason,
   SeasonSummary,
-} from "@phading/product_service_interface/show/web/consumer/season_summary";
+} from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
@@ -77,19 +77,14 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         limit: body.limit,
       }),
     );
-    let nowDate = this.getNowDate();
-    let now = nowDate.valueOf();
-    let todayStr = toTodaISOString(nowDate);
+    let todayStr = toTodaISOString(this.getNowDate());
     let continues = new Array<ContinueSeason>(response.seasons.length);
     await Promise.all(
       response.seasons.map(async (recentSeason, i) => {
-        let seasonRowsPromise = getPublishedSeasonForConsumer(
-          this.database,
-          {
-            seasonSeasonIdEq: recentSeason.seasonId,
-            seasonStateEq: SeasonState.PUBLISHED,
-          },
-        );
+        let seasonRowsPromise = getPublishedSeasonForConsumer(this.database, {
+          seasonSeasonIdEq: recentSeason.seasonId,
+          seasonStateEq: SeasonState.PUBLISHED,
+        });
         let seasonGradeRowsPromise = getLastSeasonGrades(this.database, {
           seasonGradeSeasonIdEq: recentSeason.seasonId,
           seasonGradeEndDateGt: todayStr,
@@ -101,7 +96,6 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           recentSeason.latestEpisodeId,
           recentSeason.latestEpisodeIndex,
           recentSeason.latestWatchedTimeMs,
-          now,
         );
         let [seasonRows, seasonGradeRows] = await Promise.all([
           seasonRowsPromise,

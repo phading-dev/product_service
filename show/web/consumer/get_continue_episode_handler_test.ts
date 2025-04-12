@@ -10,6 +10,7 @@ import {
   GET_LATEST_WATCHED_EPISODE,
   GetLatestWatchedEpisodeResponse,
 } from "@phading/play_activity_service_interface/show/node/interface";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_CONTINUE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
@@ -35,6 +36,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -45,7 +47,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               premierTimeMs: 10,
-              publishTimeMs: 20,
+              state: EpisodeState.PUBLISHED,
             }),
           ]);
           await transaction.commit();
@@ -76,7 +78,6 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
         );
 
         // Execute

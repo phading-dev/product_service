@@ -39,6 +39,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               totalEpisodes: 4,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -105,6 +106,7 @@ TEST_RUNNER.run({
                 seasonState: SeasonState.PUBLISHED,
                 seasonTotalEpisodes: 3,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -202,6 +204,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               totalEpisodes: 2,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -257,6 +260,7 @@ TEST_RUNNER.run({
                 seasonState: SeasonState.PUBLISHED,
                 seasonTotalEpisodes: 1,
                 seasonLastChangeTimeMs: 1000,
+                seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -321,6 +325,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

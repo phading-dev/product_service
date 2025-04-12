@@ -4,8 +4,9 @@ import {
   listNextPublishedEpisodesForConsumer,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { EpisodeSummary } from "@phading/product_service_interface/show/web/consumer/episode_summary";
+import { EpisodeSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 
 export async function fetchContinueEpisode(
   database: Database,
@@ -13,19 +14,18 @@ export async function fetchContinueEpisode(
   episodeId: string,
   episodeIndex: number,
   latestWatchedTimeMs: number,
-  now: number,
 ): Promise<EpisodeSummary> {
   let latestEpisodeRowsPromise = getPublishedEpisodeForConsumer(database, {
     episodeSeasonIdEq: seasonId,
     seasonStateEq: SeasonState.PUBLISHED,
     episodeEpisodeIdEq: episodeId,
-    episodePublishTimeMsLt: now,
+    episodeStateEq: EpisodeState.PUBLISHED,
   });
   let nextEpisodeRowsPromise = listNextPublishedEpisodesForConsumer(database, {
     episodeSeasonIdEq: seasonId,
     seasonStateEq: SeasonState.PUBLISHED,
     episodeIndexGt: episodeIndex,
-    episodePublishTimeMsLt: now,
+    episodeStateEq: EpisodeState.PUBLISHED,
     limit: 1,
   });
   let latestEpisodeRows = await latestEpisodeRowsPromise;

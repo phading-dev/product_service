@@ -13,6 +13,7 @@ import {
   MAX_EPISODE_NAME_LENGTH,
   MAX_NUM_OF_EPISODES_PER_SEASON,
 } from "@phading/constants/show";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CreateEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -109,8 +110,8 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
           episodeId,
           index,
           name: body.episodeName,
+          state: EpisodeState.DRAFT,
           premierTimeMs: FAR_FUTURE_TIME_MS,
-          publishTimeMs: FAR_FUTURE_TIME_MS,
         }),
         insertVideoContainerCreatingTaskStatement({
           seasonId: body.seasonId,
@@ -127,8 +128,8 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
         episodeId,
         name: body.episodeName,
         index,
+        state: EpisodeState.DRAFT,
         premierTimeMs: FAR_FUTURE_TIME_MS,
-        publishTimeMs: FAR_FUTURE_TIME_MS,
       },
     };
   }

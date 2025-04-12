@@ -6,6 +6,7 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetEpisodeHandler } from "./get_episode_handler";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { GET_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import {
   FETCH_SESSION_AND_CHECK_CAPABILITY,
@@ -34,6 +35,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -41,7 +43,7 @@ TEST_RUNNER.run({
               index: 1,
               name: "Ep 1",
               videoContainerId: "videoContainer1",
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 300,
             }),
           ]);
@@ -104,7 +106,7 @@ TEST_RUNNER.run({
                     },
                   },
                 },
-                publishTimeMs: 200,
+                state: EpisodeState.PUBLISHED,
                 premierTimeMs: 300,
               },
             },
@@ -144,13 +146,14 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               index: 1,
               name: "Ep 1",
-              publishTimeMs: 200,
+              state: EpisodeState.DRAFT,
               premierTimeMs: 300,
             }),
           ]);
@@ -187,7 +190,7 @@ TEST_RUNNER.run({
                 seasonName: "Season 1",
                 episodeName: "Ep 1",
                 episodeIndex: 1,
-                publishTimeMs: 200,
+                state: EpisodeState.DRAFT,
                 premierTimeMs: 300,
               },
             },

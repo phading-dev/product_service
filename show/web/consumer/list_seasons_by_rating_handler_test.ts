@@ -31,7 +31,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover1",
               totalEpisodes: 1,
               averageRating: 5,
-              ratingUpdatedTimeMs: 1000,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -48,7 +48,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover4",
               totalEpisodes: 4,
               averageRating: 5,
-              ratingUpdatedTimeMs: 2000,
+              createdTimeMs: 2000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
@@ -65,7 +65,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover3",
               totalEpisodes: 3,
               averageRating: 3,
-              ratingUpdatedTimeMs: 3000,
+              createdTimeMs: 3000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
@@ -82,7 +82,7 @@ TEST_RUNNER.run({
               coverImageR2Filename: "cover2",
               totalEpisodes: 2,
               averageRating: 3,
-              ratingUpdatedTimeMs: 1000,
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
@@ -144,7 +144,7 @@ TEST_RUNNER.run({
                   },
                 ],
                 ratingCursor: 5,
-                updatedTimeCursor: 1000,
+                createdTimeCursor: 1000,
               },
               LIST_SEASONS_BY_RATING_RESPONSE,
             ),
@@ -158,7 +158,7 @@ TEST_RUNNER.run({
             "",
             {
               ratingCursor: 5,
-              updatedTimeCursor: 1000,
+              createdTimeCursor: 1000,
               limit: 2,
             },
             "authStr",

@@ -6,7 +6,7 @@ import {
   getLastSeasonGrades,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/season_summary";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 import { newInternalServerErrorError } from "@selfage/http_error";
 
 export async function getLatestSeasonGradeAndSummarizeSeason(

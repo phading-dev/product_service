@@ -11,6 +11,7 @@ import {
   GET_LATEST_WATCHED_TIME_OF_EPISODE_REQUEST_BODY,
   GetLatestWatchedTimeOfEpisodeResponse,
 } from "@phading/play_activity_service_interface/show/node/interface";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_EPISODES_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import {
@@ -34,6 +35,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -43,7 +45,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
-              publishTimeMs: 100,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -54,7 +56,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
             }),
             insertEpisodeStatement({
@@ -65,7 +67,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 180,
               },
-              publishTimeMs: 300,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 3000,
             }),
             insertEpisodeStatement({
@@ -76,8 +78,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 240,
               },
-              publishTimeMs: 123000,
-              premierTimeMs: 123000,
+              state: EpisodeState.DRAFT,
+              premierTimeMs: 4000,
             }),
           ]);
           await transaction.commit();
@@ -105,7 +107,6 @@ TEST_RUNNER.run({
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
         );
 
         // Execute
@@ -241,6 +242,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -250,7 +252,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 60,
               },
-              publishTimeMs: 100,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -261,7 +263,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
             }),
             insertEpisodeStatement({
@@ -272,7 +274,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 180,
               },
-              publishTimeMs: 300,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 3000,
             }),
             insertEpisodeStatement({
@@ -283,8 +285,8 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 240,
               },
-              publishTimeMs: 123000,
-              premierTimeMs: 123000,
+              state: EpisodeState.DRAFT,
+              premierTimeMs: 4000,
             }),
           ]);
           await transaction.commit();
@@ -312,7 +314,6 @@ TEST_RUNNER.run({
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
         );
 
         // Execute
@@ -448,6 +449,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.DRAFT,
+              createdTimeMs: 1000,
             }),
           ]);
           await transaction.commit();
@@ -462,7 +464,6 @@ TEST_RUNNER.run({
         let handler = new ListEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
         );
 
         // Execute

@@ -6,6 +6,7 @@ import {
   insertSeasonStatement,
 } from "../../../db/sql";
 import { GetEpisodeDetailsHandler } from "./get_episode_details_handler";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_EPISODE_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
@@ -28,6 +29,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -40,7 +42,7 @@ TEST_RUNNER.run({
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 300,
             }),
           ]);
@@ -109,6 +111,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -121,7 +124,7 @@ TEST_RUNNER.run({
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 2000,
             }),
           ]);
@@ -193,6 +196,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 100,
               recentPremierTimeMs: 100,
               totalEpisodes: 3,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -205,7 +209,7 @@ TEST_RUNNER.run({
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },
-              publishTimeMs: 2000,
+              state: EpisodeState.DRAFT,
               premierTimeMs: 300,
             }),
           ]);
@@ -266,6 +270,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               state: SeasonState.DRAFT,
+              createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode1",
@@ -278,7 +283,7 @@ TEST_RUNNER.run({
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },
-              publishTimeMs: 200,
+              state: EpisodeState.PUBLISHED,
               premierTimeMs: 300,
             }),
           ]);

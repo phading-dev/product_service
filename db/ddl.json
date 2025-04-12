@@ -30,7 +30,7 @@
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX)"
     }, {
       "name": "createdTimeMs",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimeMs FLOAT64"
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimeMs INT64 NOT NULL"
     }, {
       "name": "totalRatings",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN totalRatings FLOAT64"
@@ -47,22 +47,22 @@
       "name": "fullText",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremierTimeMs FLOAT64, description STRING(MAX), createdTimeMs FLOAT64, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremierTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimeMs",
-      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, lastChangeTimeMs DESC, state)"
+      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
     }, {
       "name": "ByRecentPremierTimeMs",
-      "createIndexDdl": "CREATE INDEX ByRecentPremierTimeMs ON Season(recentPremierTimeMs DESC, state)"
+      "createIndexDdl": "CREATE INDEX ByRecentPremierTimeMs ON Season(recentPremierTimeMs DESC, createdTimeMs DESC, state)"
     }, {
       "name": "ByAverageRating",
-      "createIndexDdl": "CREATE INDEX ByAverageRating ON Season(averageRating DESC, ratingUpdatedTimeMs DESC, state)"
+      "createIndexDdl": "CREATE INDEX ByAverageRating ON Season(state, averageRating DESC, createdTimeMs DESC)"
     }, {
       "name": "ByFullText",
-      "createIndexDdl": "CREATE SEARCH INDEX ByFullText ON Season(fullText) PARTITION BY state"
+      "createIndexDdl": "CREATE SEARCH INDEX ByFullText ON Season(fullText) PARTITION BY state ORDER BY createdTimeMs"
     }, {
       "name": "ByPublisherAndFullText",
-      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherAndFullText ON Season(fullText) PARTITION BY publisherId"
+      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherAndFullText ON Season(fullText) PARTITION BY publisherId ORDER BY createdTimeMs"
     }]
   }, {
     "name": "SeasonGrade",
@@ -108,16 +108,19 @@
       "name": "videoContainer",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoContainer BYTES(MAX)"
     }, {
+      "name": "state",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN state FLOAT64"
+    }, {
       "name": "premierTimeMs",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimeMs FLOAT64"
-    }, {
-      "name": "publishTimeMs",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN publishTimeMs FLOAT64"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainer BYTES(MAX), premierTimeMs FLOAT64, publishTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainer BYTES(MAX), state FLOAT64, premierTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
-      "createIndexDdl": "CREATE INDEX ByIndex ON Episode(index DESC)"
+      "createIndexDdl": "CREATE INDEX ByIndex ON Episode(seasonId, index DESC)"
+    }, {
+      "name": "ByPremierTimeMs",
+      "createIndexDdl": "CREATE INDEX ByPremierTimeMs ON Episode(seasonId, premierTimeMs DESC)"
     }]
   }, {
     "name": "IndividualSeasonRating",
@@ -214,6 +217,29 @@
     "indexes": [{
       "name": "CoverImageDeletingTaskByExecutionTimeMs",
       "createIndexDdl": "CREATE INDEX CoverImageDeletingTaskByExecutionTimeMs ON CoverImageDeletingTask(executionTimeMs)"
+    }]
+  }, {
+    "name": "SeasonRecentPremierTimeUpdatingTask",
+    "columns": [{
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "episodeId",
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
+    }, {
+      "name": "retryCount",
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN retryCount FLOAT64"
+    }, {
+      "name": "executionTimeMs",
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN executionTimeMs TIMESTAMP"
+    }, {
+      "name": "createdTimeMs",
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN createdTimeMs TIMESTAMP"
+    }],
+    "createTableDdl": "CREATE TABLE SeasonRecentPremierTimeUpdatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, retryCount FLOAT64, executionTimeMs TIMESTAMP, createdTimeMs TIMESTAMP) PRIMARY KEY (seasonId ASC, episodeId ASC)",
+    "indexes": [{
+      "name": "SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs ON SeasonRecentPremierTimeUpdatingTask(executionTimeMs)"
     }]
   }]
 }

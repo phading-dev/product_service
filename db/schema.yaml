@@ -32,8 +32,7 @@
           type: string
           nullable: true
         - name: createdTimeMs
-          type: float64
-          nullable: true
+          type: int53
         - name: totalRatings
           type: float64
           nullable: true
@@ -75,30 +74,36 @@
         - name: ByLastChangeTimeMs
           columns:
             - publisherId
+            - state
             - name: lastChangeTimeMs
               desc: true
-            - state
         - name: ByRecentPremierTimeMs
           columns:
             - name: recentPremierTimeMs
               desc: true
+            - name: createdTimeMs
+              desc: true
             - state
         - name: ByAverageRating
           columns:
+            - state
             - name: averageRating
               desc: true
-            - name: ratingUpdatedTimeMs
+            - name: createdTimeMs
               desc: true
-            - state
       searchIndexes:
         - name: ByFullText
           columns:
             - fullText
+          orderByColumns:
+            - createdTimeMs
           partitionByColumns:
             - state
         - name: ByPublisherAndFullText
           columns:
             - fullText
+          orderByColumns:
+            - createdTimeMs
           partitionByColumns:
             - publisherId
       insert: InsertSeason
@@ -153,10 +158,11 @@
           type: VideoContainer
           import: "@phading/product_service_interface/show/video_container"
           nullable: true
-        - name: premierTimeMs
-          type: float64
+        - name: state
+          type: EpisodeState
+          import: "@phading/product_service_interface/show/episode_state"
           nullable: true
-        - name: publishTimeMs
+        - name: premierTimeMs
           type: float64
           nullable: true
       primaryKeys:
@@ -168,7 +174,13 @@
       indexes:
         - name: ByIndex
           columns:
+            - seasonId
             - name: index
+              desc: true
+        - name: ByPremierTimeMs
+          columns:
+            - seasonId
+            - name: premierTimeMs
               desc: true
       insert: InsertEpisode
       delete: DeleteEpisode
@@ -267,9 +279,34 @@
       listPendingTasks: ListPendingCoverImageDeletingTasks
       getMetadata: GetCoverImageDeletingTaskMetadata
       updateMetadata: UpdateCoverImageDeletingTaskMetadata
+    - kind: TaskTable
+      name: SeasonRecentPremierTimeUpdatingTask
+      columns:
+        - name: seasonId
+          type: string
+        - name: episodeId
+          type: string
+      retryCountColumn: retryCount
+      executionTimeColumn: executionTimeMs
+      createdTimeColumn: createdTimeMs
+      primaryKeys:
+        - seasonId
+        - episodeId
+      executionTimeIndex: SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs
+      insert: InsertSeasonRecentPremierTimeUpdatingTask
+      delete: DeleteSeasonRecentPremierTimeUpdatingTask
+      get: GetSeasonRecentPremierTimeUpdatingTask
+      listPendingTasks: ListPendingSeasonRecentPremierTimeUpdatingTasks
+      getMetadata: GetSeasonRecentPremierTimeUpdatingTaskMetadata
+      updateMetadata: UpdateSeasonRecentPremierTimeUpdatingTaskMetadata
   deletes:
     - name: DeleteAllEpisodes
       table: Episode
+      where:
+        op: =
+        lColumn: seasonId
+    - name: DeleteSeasonRecentPremierTimeUpdatingTasksOfSeason
+      table: SeasonRecentPremierTimeUpdatingTask
       where:
         op: =
         lColumn: seasonId
@@ -305,16 +342,14 @@
         lColumn: seasonId
       set:
         - state
-        - recentPremierTimeMs
         - lastChangeTimeMs
-    - name: UpdateSeasonPremierTime
+    - name: UpdateSeasonRecentPremierTime
       table: Season
       where:
         op: =
         lColumn: seasonId
       set:
         - recentPremierTimeMs
-        - lastChangeTimeMs
     - name: UpdateSeasonNameAndDescription
       table: Season
       where:
@@ -419,9 +454,9 @@
           - op: =
             lColumn: episodeId
       set:
-        - publishTimeMs
+        - state
         - premierTimeMs
-    - name: UpdateEpisodeName
+    - name: UpdateEpisodeInfo
       table: Episode
       where:
         op: AND
@@ -448,6 +483,13 @@
         lColumn: seasonId
       get:
         - publisherId
+    - name: GetSeasonRecentPremierTime
+      from: Season
+      where:
+        op: =
+        lColumn: seasonId
+      get:
+        - recentPremierTimeMs
     - name: GetSeasonForPublisher
       from: Season
       where:
@@ -500,11 +542,13 @@
         - func: SCORE
           column: fullText
           desc: true
+        - createdTimeMs
       withLimit: true
       get:
         - columnGroup: main
         - func: SCORE
           column: fullText
+        - createdTimeMs
     - name: ContinuedSearchSeasonsForPublisher
       from: Season
       where:
@@ -514,18 +558,29 @@
             lColumn: publisherId
           - op: SEARCH
             lColumn: fullText
-          - op: <
-            func: SCORE
-            lColumn: fullText
+          - op: OR
+            exprs:
+              - op: <
+                func: SCORE
+                lColumn: fullText
+              - op: AND
+                exprs:
+                  - op: =
+                    func: SCORE
+                    lColumn: fullText
+                  - op: ">"
+                    lColumn: createdTimeMs
       orderBy:
         - func: SCORE
           column: fullText
           desc: true
+        - createdTimeMs
       withLimit: true
       get:
         - columnGroup: main
         - func: SCORE
           column: fullText
+        - createdTimeMs
     - name: ListPublishedSeasonsByPremierTimeForConsumer
       from: Season
       where:
@@ -533,14 +588,25 @@
         exprs:
           - op: =
             lColumn: state
-          - op: <
-            lColumn: recentPremierTimeMs
+          - op: OR
+            exprs:
+              - op: <
+                lColumn: recentPremierTimeMs
+              - op: AND
+                exprs:
+                  - op: =
+                    lColumn: recentPremierTimeMs
+                  - op: <
+                    lColumn: createdTimeMs
       orderBy:
         - column: recentPremierTimeMs
+          desc: true
+        - column: createdTimeMs
           desc: true
       withLimit: true
       get:
         - columnGroup: main
+        - createdTimeMs
     - name: ListPublishedSeasonsByRatingForConsumer
       from: Season
       where:
@@ -557,16 +623,16 @@
                   - op: =
                     lColumn: averageRating
                   - op: <
-                    lColumn: ratingUpdatedTimeMs
+                    lColumn: createdTimeMs
       orderBy:
         - column: averageRating
           desc: true
-        - column: ratingUpdatedTimeMs
+        - column: createdTimeMs
           desc: true
       withLimit: true
       get:
         - columnGroup: main
-        - ratingUpdatedTimeMs
+        - createdTimeMs
     - name: GetPublishedSeasonForConsumer
       from: Season
       where:
@@ -613,11 +679,13 @@
         - func: SCORE
           column: fullText
           desc: true
+        - createdTimeMs
       withLimit: true
       get:
         - columnGroup: main
         - func: SCORE
           column: fullText
+        - createdTimeMs
     - name: ContinuedSearchPublishedSeasonsForConsumer
       from: Season
       where:
@@ -627,18 +695,29 @@
             lColumn: state
           - op: SEARCH
             lColumn: fullText
-          - op: <
-            func: SCORE
-            lColumn: fullText
+          - op: OR
+            exprs:
+              - op: <
+                func: SCORE
+                lColumn: fullText
+              - op: AND
+                exprs:
+                  - op: =
+                    func: SCORE
+                    lColumn: fullText
+                  - op: ">"
+                    lColumn: createdTimeMs
       orderBy:
         - func: SCORE
           column: fullText
           desc: true
+        - createdTimeMs
       withLimit: true
       get:
         - columnGroup: main
         - func: SCORE
           column: fullText
+        - createdTimeMs
     # SeasonGrade
     - name: GetSeasonGrade
       from: SeasonGrade
@@ -679,7 +758,7 @@
           - op: =
             lColumn: episodeId
       get:
-        - publishTimeMs
+        - state
     - name: GetPublishedEpisodeForConsumer
       from: Episode
       as: e
@@ -704,8 +783,8 @@
           - op: =
             lColumn: episodeId
             lTable: e
-          - op: <
-            lColumn: publishTimeMs
+          - op: =
+            lColumn: state
             lTable: e
       get:
         - all: true
@@ -734,8 +813,8 @@
           - op: ">"
             lColumn: index
             lTable: e
-          - op: <
-            lColumn: publishTimeMs
+          - op: =
+            lColumn: state
             lTable: e
       orderBy:
         - column: index
@@ -768,8 +847,8 @@
           - op: "<"
             lColumn: index
             lTable: e
-          - op: <
-            lColumn: publishTimeMs
+          - op: =
+            lColumn: state
             lTable: e
       orderBy:
         - column: index
@@ -894,7 +973,22 @@
             lColumn: episodeId
             lTable: e
       get:
-        - publishTimeMs
+        - state
+    - name: ListRecentEpisodesByPremierTime
+      from: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: <
+            lColumn: premierTimeMs
+      orderBy:
+        - column: premierTimeMs
+          desc: true
+      withLimit: true
+      get:
+        - premierTimeMs
     - name: GetSeasonAndEpisode
       from: Episode
       as: e

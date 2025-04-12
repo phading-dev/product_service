@@ -27,6 +27,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
@@ -154,6 +155,7 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
+              createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",

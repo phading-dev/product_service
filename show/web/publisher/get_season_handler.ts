@@ -9,7 +9,7 @@ import {
   GetSeasonRequestBody,
   GetSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { NextGrade } from "@phading/product_service_interface/show/web/publisher/season_details";
+import { NextGrade } from "@phading/product_service_interface/show/web/publisher/details";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
