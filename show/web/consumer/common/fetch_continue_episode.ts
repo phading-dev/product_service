@@ -43,7 +43,7 @@ export async function fetchContinueEpisode(
       name: latestEpisode.episodeName,
       index: latestEpisode.episodeIndex,
       videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
-      premierTimeMs: latestEpisode.episodePremierTimeMs,
+      premiereTimeMs: latestEpisode.episodePremiereTimeMs,
       continueTimeMs: latestWatchedTimeMs,
     };
   }
@@ -57,7 +57,7 @@ export async function fetchContinueEpisode(
     name: nextEpisode.episodeName,
     index: nextEpisode.episodeIndex,
     videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
-    premierTimeMs: nextEpisode.episodePremierTimeMs,
+    premiereTimeMs: nextEpisode.episodePremiereTimeMs,
     continueTimeMs: 0,
   };
 }

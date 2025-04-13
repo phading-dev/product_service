@@ -1,9 +1,9 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   getSeasonAndEpisodeForPublisher,
-  insertSeasonRecentPremierTimeUpdatingTaskStatement,
+  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   publishEpisodeStatement,
   publishSeasonStatement,
   updateSeasonLastChangeTimeStatement,
@@ -82,7 +82,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
         );
       }
       let now = this.getNow();
-      let premierTimeMs = body.premierTimeMs ?? now;
+      let premiereTimeMs = body.premiereTimeMs ?? now;
       await transaction.batchUpdate([
         ...(row.seasonState === SeasonState.DRAFT
           ? [
@@ -101,17 +101,17 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
         publishEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setPremierTimeMs: premierTimeMs,
+          setPremiereTimeMs: premiereTimeMs,
           setState: EpisodeState.PUBLISHED,
         }),
-        deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+        deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
         }),
-        insertSeasonRecentPremierTimeUpdatingTaskStatement({
+        insertSeasonRecentPremiereTimeUpdatingTaskStatement({
           seasonId: body.seasonId,
           episodeId: body.episodeId,
-          executionTimeMs: Math.max(now, premierTimeMs),
+          executionTimeMs: Math.max(now, premiereTimeMs),
           retryCount: 0,
           createdTimeMs: now,
         }),

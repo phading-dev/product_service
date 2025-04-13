@@ -84,7 +84,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
           index: row.episodeIndex,
           videoContainer: row.episodeVideoContainer,
           state: row.episodeState,
-          premierTimeMs: row.episodePremierTimeMs,
+          premiereTimeMs: row.episodePremiereTimeMs,
         }),
       ),
       indexCursor:

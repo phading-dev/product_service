@@ -4,7 +4,7 @@ import {
   GET_COVER_IMAGE_DELETING_TASK_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
@@ -12,12 +12,12 @@ import {
   getSeason,
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
-  insertSeasonRecentPremierTimeUpdatingTaskStatement,
+  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
   listNextEpisodesForPublisher,
   listPendingCoverImageDeletingTasks,
-  listPendingSeasonRecentPremierTimeUpdatingTasks,
+  listPendingSeasonRecentPremiereTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { DeleteSeasonHandler } from "./delete_season_handler";
@@ -65,21 +65,21 @@ async function cleanUpAll() {
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
       }),
-      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
       }),
-      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode2",
+      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode2",
       }),
-      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode3",
+      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode3",
       }),
-      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode4",
+      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode4",
       }),
     ]);
     await transaction.commit();
@@ -90,7 +90,7 @@ TEST_RUNNER.run({
   name: "DeleteSeasonHandlerTest",
   cases: [
     {
-      name: "SeasonWithCoverImageWithEpisodesWithRecentPremierTimeUpdatingTaskWithAndWithoutVideoContainer",
+      name: "SeasonWithCoverImageWithEpisodesWithRecentPremiereTimeUpdatingTaskWithAndWithoutVideoContainer",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -138,7 +138,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               episodeId: "episode3",
             }),
-            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode2",
               retryCount: 0,
@@ -176,14 +176,14 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listPendingSeasonRecentPremierTimeUpdatingTasks(
+          await listPendingSeasonRecentPremiereTimeUpdatingTasks(
             SPANNER_DATABASE,
             {
-              seasonRecentPremierTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+              seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: 1000000,
             },
           ),
           isArray([]),
-          "seasonRecentPremierTimeUpdatingTasks",
+          "seasonRecentPremiereTimeUpdatingTasks",
         );
         assertThat(
           await getCoverImageDeletingTask(SPANNER_DATABASE, {

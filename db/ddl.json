@@ -23,8 +23,8 @@
       "name": "lastChangeTimeMs",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN lastChangeTimeMs FLOAT64"
     }, {
-      "name": "recentPremierTimeMs",
-      "addColumnDdl": "ALTER TABLE Season ADD COLUMN recentPremierTimeMs FLOAT64"
+      "name": "recentPremiereTimeMs",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN recentPremiereTimeMs FLOAT64"
     }, {
       "name": "description",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN description STRING(MAX)"
@@ -47,13 +47,13 @@
       "name": "fullText",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremierTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremiereTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimeMs",
       "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
     }, {
-      "name": "ByRecentPremierTimeMs",
-      "createIndexDdl": "CREATE INDEX ByRecentPremierTimeMs ON Season(recentPremierTimeMs DESC, createdTimeMs DESC, state)"
+      "name": "ByRecentPremiereTimeMs",
+      "createIndexDdl": "CREATE INDEX ByRecentPremiereTimeMs ON Season(recentPremiereTimeMs DESC, createdTimeMs DESC, state)"
     }, {
       "name": "ByAverageRating",
       "createIndexDdl": "CREATE INDEX ByAverageRating ON Season(state, averageRating DESC, createdTimeMs DESC)"
@@ -111,16 +111,16 @@
       "name": "state",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN state FLOAT64"
     }, {
-      "name": "premierTimeMs",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premierTimeMs FLOAT64"
+      "name": "premiereTimeMs",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premiereTimeMs FLOAT64"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainer BYTES(MAX), state FLOAT64, premierTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainer BYTES(MAX), state FLOAT64, premiereTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(seasonId, index DESC)"
     }, {
-      "name": "ByPremierTimeMs",
-      "createIndexDdl": "CREATE INDEX ByPremierTimeMs ON Episode(seasonId, premierTimeMs DESC)"
+      "name": "ByPremiereTimeMs",
+      "createIndexDdl": "CREATE INDEX ByPremiereTimeMs ON Episode(seasonId, premiereTimeMs DESC)"
     }]
   }, {
     "name": "IndividualSeasonRating",
@@ -219,27 +219,27 @@
       "createIndexDdl": "CREATE INDEX CoverImageDeletingTaskByExecutionTimeMs ON CoverImageDeletingTask(executionTimeMs)"
     }]
   }, {
-    "name": "SeasonRecentPremierTimeUpdatingTask",
+    "name": "SeasonRecentPremiereTimeUpdatingTask",
     "columns": [{
       "name": "seasonId",
-      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN seasonId STRING(MAX) NOT NULL"
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremiereTimeUpdatingTask ADD COLUMN seasonId STRING(MAX) NOT NULL"
     }, {
       "name": "episodeId",
-      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremiereTimeUpdatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
     }, {
       "name": "retryCount",
-      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN retryCount FLOAT64"
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremiereTimeUpdatingTask ADD COLUMN retryCount FLOAT64"
     }, {
       "name": "executionTimeMs",
-      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN executionTimeMs TIMESTAMP"
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremiereTimeUpdatingTask ADD COLUMN executionTimeMs TIMESTAMP"
     }, {
       "name": "createdTimeMs",
-      "addColumnDdl": "ALTER TABLE SeasonRecentPremierTimeUpdatingTask ADD COLUMN createdTimeMs TIMESTAMP"
+      "addColumnDdl": "ALTER TABLE SeasonRecentPremiereTimeUpdatingTask ADD COLUMN createdTimeMs TIMESTAMP"
     }],
-    "createTableDdl": "CREATE TABLE SeasonRecentPremierTimeUpdatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, retryCount FLOAT64, executionTimeMs TIMESTAMP, createdTimeMs TIMESTAMP) PRIMARY KEY (seasonId ASC, episodeId ASC)",
+    "createTableDdl": "CREATE TABLE SeasonRecentPremiereTimeUpdatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, retryCount FLOAT64, executionTimeMs TIMESTAMP, createdTimeMs TIMESTAMP) PRIMARY KEY (seasonId ASC, episodeId ASC)",
     "indexes": [{
-      "name": "SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs",
-      "createIndexDdl": "CREATE INDEX SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs ON SeasonRecentPremierTimeUpdatingTask(executionTimeMs)"
+      "name": "SeasonRecentPremiereTimeUpdatingTaskByExecutionTimeMs",
+      "createIndexDdl": "CREATE INDEX SeasonRecentPremiereTimeUpdatingTaskByExecutionTimeMs ON SeasonRecentPremiereTimeUpdatingTask(executionTimeMs)"
     }]
   }]
 }

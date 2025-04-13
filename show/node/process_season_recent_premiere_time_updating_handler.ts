@@ -1,17 +1,17 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
-  getSeasonRecentPremierTime,
-  getSeasonRecentPremierTimeUpdatingTaskMetadata,
-  listRecentEpisodesByPremierTime,
-  updateSeasonRecentPremierTimeStatement,
-  updateSeasonRecentPremierTimeUpdatingTaskMetadataStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
+  getSeasonRecentPremiereTime,
+  getSeasonRecentPremiereTimeUpdatingTaskMetadata,
+  listRecentEpisodesByPremiereTime,
+  updateSeasonRecentPremiereTimeStatement,
+  updateSeasonRecentPremiereTimeUpdatingTaskMetadataStatement,
 } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { ProcessSeasonRecentPremierTimeUpdatingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";
+import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandlerInterface } from "@phading/product_service_interface/show/node/handler";
 import {
-  ProcessSeasonRecentPremierTimeUpdatingTaskRequestBody,
-  ProcessSeasonRecentPremierTimeUpdatingTaskResponse,
+  ProcessSeasonRecentPremiereTimeUpdatingTaskRequestBody,
+  ProcessSeasonRecentPremiereTimeUpdatingTaskResponse,
 } from "@phading/product_service_interface/show/node/interface";
 import {
   newBadRequestError,
@@ -19,9 +19,9 @@ import {
 } from "@selfage/http_error";
 import { ProcessTaskHandlerWrapper } from "@selfage/service_handler/process_task_handler_wrapper";
 
-export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSeasonRecentPremierTimeUpdatingTaskHandlerInterface {
-  public static create(): ProcessSeasonRecentPremierTimeUpdatingTaskHandler {
-    return new ProcessSeasonRecentPremierTimeUpdatingTaskHandler(
+export class ProcessSeasonRecentPremiereTimeUpdatingTaskHandler extends ProcessSeasonRecentPremiereTimeUpdatingTaskHandlerInterface {
+  public static create(): ProcessSeasonRecentPremiereTimeUpdatingTaskHandler {
+    return new ProcessSeasonRecentPremiereTimeUpdatingTaskHandler(
       SPANNER_DATABASE,
       () => Date.now(),
     );
@@ -42,8 +42,8 @@ export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSe
 
   public async handle(
     loggingPrefix: string,
-    body: ProcessSeasonRecentPremierTimeUpdatingTaskRequestBody,
-  ): Promise<ProcessSeasonRecentPremierTimeUpdatingTaskResponse> {
+    body: ProcessSeasonRecentPremiereTimeUpdatingTaskRequestBody,
+  ): Promise<ProcessSeasonRecentPremiereTimeUpdatingTaskResponse> {
     loggingPrefix = `${loggingPrefix} Season recent premier time updating task for season ${body.seasonId} episode ${body.episodeId}:`;
     await this.taskHandler.wrap(
       loggingPrefix,
@@ -55,14 +55,14 @@ export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSe
 
   public async claimTask(
     loggingPrefix: string,
-    body: ProcessSeasonRecentPremierTimeUpdatingTaskRequestBody,
+    body: ProcessSeasonRecentPremiereTimeUpdatingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonRecentPremierTimeUpdatingTaskMetadata(
+      let rows = await getSeasonRecentPremiereTimeUpdatingTaskMetadata(
         transaction,
         {
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
         },
       );
       if (rows.length === 0) {
@@ -70,14 +70,15 @@ export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSe
       }
       let task = rows[0];
       await transaction.batchUpdate([
-        updateSeasonRecentPremierTimeUpdatingTaskMetadataStatement({
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
-          setRetryCount: task.seasonRecentPremierTimeUpdatingTaskRetryCount + 1,
+        updateSeasonRecentPremiereTimeUpdatingTaskMetadataStatement({
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+          setRetryCount:
+            task.seasonRecentPremiereTimeUpdatingTaskRetryCount + 1,
           setExecutionTimeMs:
             this.getNow() +
             this.taskHandler.getBackoffTime(
-              task.seasonRecentPremierTimeUpdatingTaskRetryCount,
+              task.seasonRecentPremiereTimeUpdatingTaskRetryCount,
             ),
         }),
       ]);
@@ -87,17 +88,17 @@ export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSe
 
   public async processTask(
     loggingPrefix: string,
-    body: ProcessSeasonRecentPremierTimeUpdatingTaskRequestBody,
+    body: ProcessSeasonRecentPremiereTimeUpdatingTaskRequestBody,
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
       let now = this.getNow();
       let [recentEpisodes, seasonRows] = await Promise.all([
-        listRecentEpisodesByPremierTime(transaction, {
+        listRecentEpisodesByPremiereTime(transaction, {
           episodeSeasonIdEq: body.seasonId,
-          episodePremierTimeMsLt: now,
+          episodePremiereTimeMsLt: now,
           limit: 1,
         }),
-        getSeasonRecentPremierTime(transaction, {
+        getSeasonRecentPremiereTime(transaction, {
           seasonSeasonIdEq: body.seasonId,
         }),
       ]);
@@ -114,17 +115,17 @@ export class ProcessSeasonRecentPremierTimeUpdatingTaskHandler extends ProcessSe
       let episode = recentEpisodes[0];
       let season = seasonRows[0];
       await transaction.batchUpdate([
-        ...(season.seasonRecentPremierTimeMs !== episode.episodePremierTimeMs
+        ...(season.seasonRecentPremiereTimeMs !== episode.episodePremiereTimeMs
           ? [
-              updateSeasonRecentPremierTimeStatement({
+              updateSeasonRecentPremiereTimeStatement({
                 seasonSeasonIdEq: body.seasonId,
-                setRecentPremierTimeMs: episode.episodePremierTimeMs,
+                setRecentPremiereTimeMs: episode.episodePremiereTimeMs,
               }),
             ]
           : []),
-        deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+        deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
         }),
       ]);
       await transaction.commit();

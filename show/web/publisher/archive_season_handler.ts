@@ -3,7 +3,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   archiveSeasonStatement,
   deleteAllEpisodesStatement,
-  deleteSeasonRecentPremierTimeUpdatingTasksOfSeasonStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
@@ -99,8 +99,8 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           executionTimeMs: now,
           createdTimeMs: now,
         }),
-        deleteSeasonRecentPremierTimeUpdatingTasksOfSeasonStatement({
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
+        deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
         }),
         deleteAllEpisodesStatement({
           episodeSeasonIdEq: body.seasonId,

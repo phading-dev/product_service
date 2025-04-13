@@ -1,19 +1,19 @@
 import "../../local/env";
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
-  GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_METADATA_ROW,
+  GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_METADATA_ROW,
   GET_SEASON_ROW,
   deleteEpisodeStatement,
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   getSeason,
-  getSeasonRecentPremierTimeUpdatingTask,
+  getSeasonRecentPremiereTimeUpdatingTask,
   insertEpisodeStatement,
-  insertSeasonRecentPremierTimeUpdatingTaskStatement,
+  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
-  listPendingSeasonRecentPremierTimeUpdatingTasks,
+  listPendingSeasonRecentPremiereTimeUpdatingTasks,
 } from "../../db/sql";
-import { ProcessSeasonRecentPremierTimeUpdatingTaskHandler } from "./process_season_recent_premier_time_updating_handler";
+import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./process_season_recent_premiere_time_updating_handler";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
@@ -36,9 +36,9 @@ async function cleanupAll() {
         episodeSeasonIdEq: "season1",
         episodeEpisodeIdEq: "episode3",
       }),
-      deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-        seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
       }),
     ]);
     await transaction.commit();
@@ -46,7 +46,7 @@ async function cleanupAll() {
 }
 
 TEST_RUNNER.run({
-  name: "ProcessSeasonRecentPremierTimeUpdatingTaskHandlerTest",
+  name: "ProcessSeasonRecentPremiereTimeUpdatingTaskHandlerTest",
   cases: [
     {
       name: "ProcessTask",
@@ -56,25 +56,25 @@ TEST_RUNNER.run({
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              recentPremierTimeMs: 9000,
+              recentPremiereTimeMs: 9000,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              premierTimeMs: 500,
+              premiereTimeMs: 500,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
-              premierTimeMs: 900,
+              premiereTimeMs: 900,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
-            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
               retryCount: 0,
@@ -83,7 +83,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ProcessSeasonRecentPremierTimeUpdatingTaskHandler(
+        let handler = new ProcessSeasonRecentPremiereTimeUpdatingTaskHandler(
           SPANNER_DATABASE,
           () => 1000,
         );
@@ -103,7 +103,7 @@ TEST_RUNNER.run({
             eqMessage(
               {
                 seasonSeasonId: "season1",
-                seasonRecentPremierTimeMs: 900,
+                seasonRecentPremiereTimeMs: 900,
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -112,10 +112,10 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listPendingSeasonRecentPremierTimeUpdatingTasks(
+          await listPendingSeasonRecentPremiereTimeUpdatingTasks(
             SPANNER_DATABASE,
             {
-              seasonRecentPremierTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+              seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: 1000000,
             },
           ),
           isArray([]),
@@ -127,22 +127,22 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "SamePremierTime",
+      name: "SamePremiereTime",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             insertSeasonStatement({
               seasonId: "season1",
-              recentPremierTimeMs: 900,
+              recentPremiereTimeMs: 900,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              premierTimeMs: 900,
+              premiereTimeMs: 900,
             }),
-            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
               retryCount: 0,
@@ -151,7 +151,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ProcessSeasonRecentPremierTimeUpdatingTaskHandler(
+        let handler = new ProcessSeasonRecentPremiereTimeUpdatingTaskHandler(
           SPANNER_DATABASE,
           () => 1000,
         );
@@ -171,7 +171,7 @@ TEST_RUNNER.run({
             eqMessage(
               {
                 seasonSeasonId: "season1",
-                seasonRecentPremierTimeMs: 900,
+                seasonRecentPremiereTimeMs: 900,
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -180,10 +180,10 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listPendingSeasonRecentPremierTimeUpdatingTasks(
+          await listPendingSeasonRecentPremiereTimeUpdatingTasks(
             SPANNER_DATABASE,
             {
-              seasonRecentPremierTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+              seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: 1000000,
             },
           ),
           isArray([]),
@@ -200,7 +200,7 @@ TEST_RUNNER.run({
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
               retryCount: 0,
@@ -209,7 +209,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ProcessSeasonRecentPremierTimeUpdatingTaskHandler(
+        let handler = new ProcessSeasonRecentPremiereTimeUpdatingTaskHandler(
           SPANNER_DATABASE,
           () => 1000,
         );
@@ -222,17 +222,17 @@ TEST_RUNNER.run({
 
         // Verify
         assertThat(
-          await getSeasonRecentPremierTimeUpdatingTask(SPANNER_DATABASE, {
-            seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-            seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+          await getSeasonRecentPremiereTimeUpdatingTask(SPANNER_DATABASE, {
+            seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+            seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRecentPremierTimeUpdatingTaskRetryCount: 1,
-                seasonRecentPremierTimeUpdatingTaskExecutionTimeMs: 301000,
+                seasonRecentPremiereTimeUpdatingTaskRetryCount: 1,
+                seasonRecentPremiereTimeUpdatingTaskExecutionTimeMs: 301000,
               },
-              GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_METADATA_ROW,
+              GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_METADATA_ROW,
             ),
           ]),
           "task",

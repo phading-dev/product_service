@@ -62,7 +62,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
             insertSeasonStatement({
               seasonId: "season2",
@@ -91,7 +91,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertEpisodeStatement({
               seasonId: "season2",
@@ -102,7 +102,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertSeasonStatement({
               seasonId: "season3",
@@ -149,7 +149,7 @@ TEST_RUNNER.run({
                 durationSec: 240,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 4000,
+              premiereTimeMs: 4000,
             }),
           ]);
           await transaction.commit();
@@ -244,7 +244,7 @@ TEST_RUNNER.run({
                     index: 1,
                     name: "S1E1",
                     videoDurationSec: 60,
-                    premierTimeMs: 1000,
+                    premiereTimeMs: 1000,
                     continueTimeMs: 30,
                   },
                 },
@@ -264,7 +264,7 @@ TEST_RUNNER.run({
                     index: 2,
                     name: "S2E2",
                     videoDurationSec: 180,
-                    premierTimeMs: 2000,
+                    premiereTimeMs: 2000,
                     continueTimeMs: 0,
                   },
                 },

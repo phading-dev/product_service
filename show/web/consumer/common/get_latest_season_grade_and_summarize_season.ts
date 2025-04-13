@@ -1,6 +1,6 @@
 import {
   ContinuedSearchPublishedSeasonsForConsumerRow,
-  ListPublishedSeasonsByPremierTimeForConsumerRow,
+  ListPublishedSeasonsByPremiereTimeForConsumerRow,
   ListPublishedSeasonsByRatingForConsumerRow,
   SearchPublishedSeasonsForConsumerRow,
   getLastSeasonGrades,
@@ -15,7 +15,7 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
   todayStr: string,
   row:
     | ListPublishedSeasonsByRatingForConsumerRow
-    | ListPublishedSeasonsByPremierTimeForConsumerRow
+    | ListPublishedSeasonsByPremiereTimeForConsumerRow
     | SearchPublishedSeasonsForConsumerRow
     | ContinuedSearchPublishedSeasonsForConsumerRow,
   i: number,

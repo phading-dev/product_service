@@ -80,9 +80,9 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
         index: row.episodeIndex,
         resolution: row.episodeVideoContainer.resolution,
         videoDurationSec: row.episodeVideoContainer.durationSec,
-        premierTimeMs: row.episodePremierTimeMs,
+        premiereTimeMs: row.episodePremiereTimeMs,
         videoUrl:
-          row.episodePremierTimeMs <= now
+          row.episodePremiereTimeMs <= now
             ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainer.r2RootDirname}/${row.episodeVideoContainer.r2MasterPlaylistFilename}`
             : undefined,
       },

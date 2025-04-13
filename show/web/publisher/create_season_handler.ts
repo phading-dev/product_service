@@ -77,7 +77,7 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
           name: body.name,
           totalEpisodes: 0,
           lastChangeTimeMs: now,
-          recentPremierTimeMs: FAR_FUTURE_TIME_MS,
+          recentPremiereTimeMs: FAR_FUTURE_TIME_MS,
           description: "",
           createdTimeMs: now,
           totalRatings: 0,

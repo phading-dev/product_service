@@ -25,7 +25,7 @@
         - name: lastChangeTimeMs
           type: float64
           nullable: true
-        - name: recentPremierTimeMs
+        - name: recentPremiereTimeMs
           type: float64
           nullable: true
         - name: description
@@ -55,7 +55,7 @@
             - coverImageR2Filename
             - totalEpisodes
             - lastChangeTimeMs
-            - recentPremierTimeMs
+            - recentPremiereTimeMs
             - ratingsCount
             - averageRating
         - name: rating
@@ -78,9 +78,9 @@
             - state
             - name: lastChangeTimeMs
               desc: true
-        - name: ByRecentPremierTimeMs
+        - name: ByRecentPremiereTimeMs
           columns:
-            - name: recentPremierTimeMs
+            - name: recentPremiereTimeMs
               desc: true
             - name: createdTimeMs
               desc: true
@@ -163,7 +163,7 @@
           type: EpisodeState
           import: "@phading/product_service_interface/show/episode_state"
           nullable: true
-        - name: premierTimeMs
+        - name: premiereTimeMs
           type: float64
           nullable: true
       primaryKeys:
@@ -178,10 +178,10 @@
             - seasonId
             - name: index
               desc: true
-        - name: ByPremierTimeMs
+        - name: ByPremiereTimeMs
           columns:
             - seasonId
-            - name: premierTimeMs
+            - name: premiereTimeMs
               desc: true
       insert: InsertEpisode
       delete: DeleteEpisode
@@ -281,7 +281,7 @@
       getMetadata: GetCoverImageDeletingTaskMetadata
       updateMetadata: UpdateCoverImageDeletingTaskMetadata
     - kind: TaskTable
-      name: SeasonRecentPremierTimeUpdatingTask
+      name: SeasonRecentPremiereTimeUpdatingTask
       columns:
         - name: seasonId
           type: string
@@ -293,21 +293,21 @@
       primaryKeys:
         - seasonId
         - episodeId
-      executionTimeIndex: SeasonRecentPremierTimeUpdatingTaskByExecutionTimeMs
-      insert: InsertSeasonRecentPremierTimeUpdatingTask
-      delete: DeleteSeasonRecentPremierTimeUpdatingTask
-      get: GetSeasonRecentPremierTimeUpdatingTask
-      listPendingTasks: ListPendingSeasonRecentPremierTimeUpdatingTasks
-      getMetadata: GetSeasonRecentPremierTimeUpdatingTaskMetadata
-      updateMetadata: UpdateSeasonRecentPremierTimeUpdatingTaskMetadata
+      executionTimeIndex: SeasonRecentPremiereTimeUpdatingTaskByExecutionTimeMs
+      insert: InsertSeasonRecentPremiereTimeUpdatingTask
+      delete: DeleteSeasonRecentPremiereTimeUpdatingTask
+      get: GetSeasonRecentPremiereTimeUpdatingTask
+      listPendingTasks: ListPendingSeasonRecentPremiereTimeUpdatingTasks
+      getMetadata: GetSeasonRecentPremiereTimeUpdatingTaskMetadata
+      updateMetadata: UpdateSeasonRecentPremiereTimeUpdatingTaskMetadata
   deletes:
     - name: DeleteAllEpisodes
       table: Episode
       where:
         op: =
         lColumn: seasonId
-    - name: DeleteSeasonRecentPremierTimeUpdatingTasksOfSeason
-      table: SeasonRecentPremierTimeUpdatingTask
+    - name: DeleteSeasonRecentPremiereTimeUpdatingTasksOfSeason
+      table: SeasonRecentPremiereTimeUpdatingTask
       where:
         op: =
         lColumn: seasonId
@@ -344,13 +344,13 @@
       set:
         - state
         - lastChangeTimeMs
-    - name: UpdateSeasonRecentPremierTime
+    - name: UpdateSeasonRecentPremiereTime
       table: Season
       where:
         op: =
         lColumn: seasonId
       set:
-        - recentPremierTimeMs
+        - recentPremiereTimeMs
     - name: UpdateSeasonNameAndDescription
       table: Season
       where:
@@ -456,7 +456,7 @@
             lColumn: episodeId
       set:
         - state
-        - premierTimeMs
+        - premiereTimeMs
     - name: UpdateEpisodeInfo
       table: Episode
       where:
@@ -484,13 +484,13 @@
         lColumn: seasonId
       get:
         - publisherId
-    - name: GetSeasonRecentPremierTime
+    - name: GetSeasonRecentPremiereTime
       from: Season
       where:
         op: =
         lColumn: seasonId
       get:
-        - recentPremierTimeMs
+        - recentPremiereTimeMs
     - name: GetSeasonForPublisher
       from: Season
       where:
@@ -582,7 +582,7 @@
         - func: SCORE
           column: fullText
         - createdTimeMs
-    - name: ListPublishedSeasonsByPremierTimeForConsumer
+    - name: ListPublishedSeasonsByPremiereTimeForConsumer
       from: Season
       where:
         op: AND
@@ -592,15 +592,15 @@
           - op: OR
             exprs:
               - op: <
-                lColumn: recentPremierTimeMs
+                lColumn: recentPremiereTimeMs
               - op: AND
                 exprs:
                   - op: =
-                    lColumn: recentPremierTimeMs
+                    lColumn: recentPremiereTimeMs
                   - op: <
                     lColumn: createdTimeMs
       orderBy:
-        - column: recentPremierTimeMs
+        - column: recentPremiereTimeMs
           desc: true
         - column: createdTimeMs
           desc: true
@@ -975,7 +975,7 @@
             lTable: e
       get:
         - state
-    - name: ListRecentEpisodesByPremierTime
+    - name: ListRecentEpisodesByPremiereTime
       from: Episode
       where:
         op: AND
@@ -983,13 +983,13 @@
           - op: =
             lColumn: seasonId
           - op: <
-            lColumn: premierTimeMs
+            lColumn: premiereTimeMs
       orderBy:
-        - column: premierTimeMs
+        - column: premiereTimeMs
           desc: true
       withLimit: true
       get:
-        - premierTimeMs
+        - premiereTimeMs
     - name: GetSeasonAndEpisode
       from: Episode
       as: e

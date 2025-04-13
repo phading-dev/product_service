@@ -43,7 +43,7 @@ TEST_RUNNER.run({
                 r2MasterPlaylistFilename: "master.m3u8",
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 300,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -82,7 +82,7 @@ TEST_RUNNER.run({
                 index: 1,
                 resolution: "1080p",
                 videoDurationSec: 60,
-                premierTimeMs: 300,
+                premiereTimeMs: 300,
                 videoUrl: "https://public.domain/root/master.m3u8",
               },
             },
@@ -103,7 +103,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "EpisodeBeforePremier",
+      name: "EpisodeBeforePremiere",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -125,7 +125,7 @@ TEST_RUNNER.run({
                 r2MasterPlaylistFilename: "master.m3u8",
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
           ]);
           await transaction.commit();
@@ -164,7 +164,7 @@ TEST_RUNNER.run({
                 index: 1,
                 resolution: "1080p",
                 videoDurationSec: 60,
-                premierTimeMs: 2000,
+                premiereTimeMs: 2000,
               },
             },
             GET_EPISODE_DETAILS_RESPONSE,
@@ -194,7 +194,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
+              recentPremiereTimeMs: 100,
               totalEpisodes: 3,
               createdTimeMs: 1000,
             }),
@@ -210,7 +210,7 @@ TEST_RUNNER.run({
                 r2MasterPlaylistFilename: "master.m3u8",
               },
               state: EpisodeState.DRAFT,
-              premierTimeMs: 300,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -284,7 +284,7 @@ TEST_RUNNER.run({
                 r2MasterPlaylistFilename: "master.m3u8",
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 300,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();

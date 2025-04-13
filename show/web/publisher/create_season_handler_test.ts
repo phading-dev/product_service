@@ -70,7 +70,7 @@ TEST_RUNNER.run({
                 seasonName: "Season 1",
                 seasonTotalEpisodes: 0,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremierTimeMs: FAR_FUTURE_TIME_MS,
+                seasonRecentPremiereTimeMs: FAR_FUTURE_TIME_MS,
                 seasonDescription: "",
                 seasonCreatedTimeMs: 1000,
                 seasonTotalRatings: 0,

@@ -37,7 +37,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -48,7 +48,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -59,7 +59,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.DRAFT,
-              premierTimeMs: 3000,
+              premiereTimeMs: 3000,
             }),
           ]);
           await transaction.commit();
@@ -101,7 +101,7 @@ TEST_RUNNER.run({
                     durationSec: 60,
                   },
                   state: EpisodeState.PUBLISHED,
-                  premierTimeMs: 1000,
+                  premiereTimeMs: 1000,
                 },
                 {
                   episodeId: "episode2",
@@ -111,7 +111,7 @@ TEST_RUNNER.run({
                     durationSec: 120,
                   },
                   state: EpisodeState.PUBLISHED,
-                  premierTimeMs: 2000,
+                  premiereTimeMs: 2000,
                 },
               ],
               indexCursor: 2,
@@ -147,7 +147,7 @@ TEST_RUNNER.run({
                     durationSec: 180,
                   },
                   state: EpisodeState.DRAFT,
-                  premierTimeMs: 3000,
+                  premiereTimeMs: 3000,
                 },
               ],
             },
@@ -185,7 +185,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
             insertEpisodeStatement({
               episodeId: "episode2",
@@ -196,7 +196,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertEpisodeStatement({
               episodeId: "episode3",
@@ -207,7 +207,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.DRAFT,
-              premierTimeMs: 3000,
+              premiereTimeMs: 3000,
             }),
           ]);
           await transaction.commit();
@@ -249,7 +249,7 @@ TEST_RUNNER.run({
                     durationSec: 180,
                   },
                   state: EpisodeState.DRAFT,
-                  premierTimeMs: 3000,
+                  premiereTimeMs: 3000,
                 },
                 {
                   episodeId: "episode2",
@@ -259,7 +259,7 @@ TEST_RUNNER.run({
                     durationSec: 120,
                   },
                   state: EpisodeState.PUBLISHED,
-                  premierTimeMs: 2000,
+                  premiereTimeMs: 2000,
                 },
               ],
               indexCursor: 2,
@@ -295,7 +295,7 @@ TEST_RUNNER.run({
                     durationSec: 60,
                   },
                   state: EpisodeState.PUBLISHED,
-                  premierTimeMs: 1000,
+                  premiereTimeMs: 1000,
                 },
               ],
             },
@@ -333,7 +333,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
           ]);
           await transaction.commit();

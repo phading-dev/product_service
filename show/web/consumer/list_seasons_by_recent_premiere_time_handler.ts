@@ -2,24 +2,24 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { listPublishedSeasonsByPremierTimeForConsumer } from "../../../db/sql";
+import { listPublishedSeasonsByPremiereTimeForConsumer } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListSeasonsByRecentPremierTimeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { ListSeasonsByRecentPremiereTimeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
-  ListSeasonsByRecentPremierTimeRequestBody,
-  ListSeasonsByRecentPremierTimeResponse,
+  ListSeasonsByRecentPremiereTimeRequestBody,
+  ListSeasonsByRecentPremiereTimeResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPremierTimeHandlerInterface {
-  public static create(): ListSeasonsByRecentPremierTimeHandler {
-    return new ListSeasonsByRecentPremierTimeHandler(
+export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentPremiereTimeHandlerInterface {
+  public static create(): ListSeasonsByRecentPremiereTimeHandler {
+    return new ListSeasonsByRecentPremiereTimeHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
@@ -38,9 +38,9 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
 
   public async handle(
     loggingPrefix: string,
-    body: ListSeasonsByRecentPremierTimeRequestBody,
+    body: ListSeasonsByRecentPremiereTimeRequestBody,
     sessionStr: string,
-  ): Promise<ListSeasonsByRecentPremierTimeResponse> {
+  ): Promise<ListSeasonsByRecentPremiereTimeResponse> {
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
@@ -63,12 +63,12 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
     let nowDate = this.getNowDate();
     let now = nowDate.valueOf();
     let todayStr = toTodaISOString(nowDate);
-    let seasonRows = await listPublishedSeasonsByPremierTimeForConsumer(
+    let seasonRows = await listPublishedSeasonsByPremiereTimeForConsumer(
       this.database,
       {
         seasonStateEq: SeasonState.PUBLISHED,
-        seasonRecentPremierTimeMsLt: body.premierTimeCursor ?? now,
-        seasonRecentPremierTimeMsEq: body.premierTimeCursor ?? now,
+        seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? now,
+        seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? now,
         seasonCreatedTimeMsLt: body.createdTimeCursor ?? now,
         limit: body.limit,
       },
@@ -88,9 +88,9 @@ export class ListSeasonsByRecentPremierTimeHandler extends ListSeasonsByRecentPr
     );
     return {
       seasons,
-      premierTimeCursor:
+      premiereTimeCursor:
         seasonRows.length === body.limit
-          ? seasonRows[seasonRows.length - 1].seasonRecentPremierTimeMs
+          ? seasonRows[seasonRows.length - 1].seasonRecentPremiereTimeMs
           : undefined,
       createdTimeCursor:
         seasonRows.length === body.limit

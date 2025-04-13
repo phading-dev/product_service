@@ -46,7 +46,7 @@ TEST_RUNNER.run({
               videoContainer: {
                 durationSec: 120,
               },
-              premierTimeMs: 10,
+              premiereTimeMs: 10,
               state: EpisodeState.PUBLISHED,
             }),
           ]);
@@ -97,7 +97,7 @@ TEST_RUNNER.run({
                 name: "episode1",
                 index: 1,
                 videoDurationSec: 120,
-                premierTimeMs: 10,
+                premiereTimeMs: 10,
                 continueTimeMs: 60,
               },
             },

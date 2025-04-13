@@ -2,12 +2,12 @@ import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   getEpisodeForPublisher,
-  listRecentEpisodesByPremierTime,
+  listRecentEpisodesByPremiereTime,
   publishEpisodeStatement,
   updateSeasonLastChangeTimeStatement,
-  updateSeasonRecentPremierTimeStatement,
+  updateSeasonRecentPremiereTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
@@ -88,25 +88,25 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
           setState: EpisodeState.DRAFT,
-          setPremierTimeMs: FAR_FUTURE_TIME_MS,
+          setPremiereTimeMs: FAR_FUTURE_TIME_MS,
         }),
-        deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-          seasonRecentPremierTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+        deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
+          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
         }),
       ]);
 
-      let recentEpisodes = await listRecentEpisodesByPremierTime(transaction, {
+      let recentEpisodes = await listRecentEpisodesByPremiereTime(transaction, {
         episodeSeasonIdEq: body.seasonId,
-        episodePremierTimeMsLt: now,
+        episodePremiereTimeMsLt: now,
         limit: 1,
       });
       await transaction.batchUpdate([
-        updateSeasonRecentPremierTimeStatement({
+        updateSeasonRecentPremiereTimeStatement({
           seasonSeasonIdEq: body.seasonId,
-          setRecentPremierTimeMs:
+          setRecentPremiereTimeMs:
             recentEpisodes.length > 0
-              ? recentEpisodes[0].episodePremierTimeMs
+              ? recentEpisodes[0].episodePremiereTimeMs
               : FAR_FUTURE_TIME_MS,
         }),
       ]);

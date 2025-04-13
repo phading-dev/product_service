@@ -93,7 +93,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
           index: row.episodeIndex,
           name: row.episodeName,
           videoDurationSec: row.episodeVideoContainer.durationSec,
-          premierTimeMs: row.episodePremierTimeMs,
+          premiereTimeMs: row.episodePremiereTimeMs,
           continueTimeMs: response.watchedTimeMs,
         };
       }),

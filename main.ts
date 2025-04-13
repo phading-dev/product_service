@@ -7,11 +7,11 @@ import { CheckPresenceOfSeasonHandler } from "./show/node/check_presence_of_seas
 import { GetSeasonGradeHandler } from "./show/node/get_season_grade_handler";
 import { GetSeasonPublisherHandler } from "./show/node/get_season_publisher_handler";
 import { ListCoverImageDeletingTasksHandler } from "./show/node/list_cover_image_deleting_tasks_handler";
-import { ListSeasonRecentPremierTimeUpdatingTaskHandler } from "./show/node/list_season_recent_premier_time_updating_task_handler";
+import { ListSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/list_season_recent_premiere_time_updating_task_handler";
 import { ListVideoContainerCreatingTasksHandler } from "./show/node/list_video_container_creating_tasks_handler";
 import { ListVideoContainerDeletingTasksHandler } from "./show/node/list_video_container_deleting_tasks_handler";
 import { ProcessCoverImageDeletingTaskHandler } from "./show/node/process_cover_image_deleting_task_handler";
-import { ProcessSeasonRecentPremierTimeUpdatingTaskHandler } from "./show/node/process_season_recent_premier_time_updating_handler";
+import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/process_season_recent_premiere_time_updating_handler";
 import { ProcessVideoContainerCreatingTaskHandler } from "./show/node/process_video_container_creating_task_handler";
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
 import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
@@ -79,11 +79,11 @@ async function main() {
     .add(GetSeasonGradeHandler.create())
     .add(GetSeasonPublisherHandler.create())
     .add(ListCoverImageDeletingTasksHandler.create())
-    .add(ListSeasonRecentPremierTimeUpdatingTaskHandler.create())
+    .add(ListSeasonRecentPremiereTimeUpdatingTaskHandler.create())
     .add(ListVideoContainerCreatingTasksHandler.create())
     .add(ListVideoContainerDeletingTasksHandler.create())
     .add(ProcessCoverImageDeletingTaskHandler.create())
-    .add(ProcessSeasonRecentPremierTimeUpdatingTaskHandler.create())
+    .add(ProcessSeasonRecentPremiereTimeUpdatingTaskHandler.create())
     .add(ProcessVideoContainerCreatingTaskHandler.create())
     .add(ProcessVideoContainerDeletingTaskHandler.create());
   service

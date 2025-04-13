@@ -46,7 +46,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -57,7 +57,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -68,7 +68,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 3000,
+              premiereTimeMs: 3000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -79,7 +79,7 @@ TEST_RUNNER.run({
                 durationSec: 240,
               },
               state: EpisodeState.DRAFT,
-              premierTimeMs: 4000,
+              premiereTimeMs: 4000,
             }),
           ]);
           await transaction.commit();
@@ -131,7 +131,7 @@ TEST_RUNNER.run({
                   name: "Ep 1",
                   index: 1,
                   videoDurationSec: 60,
-                  premierTimeMs: 1000,
+                  premiereTimeMs: 1000,
                   continueTimeMs: 60,
                 },
                 {
@@ -139,7 +139,7 @@ TEST_RUNNER.run({
                   name: "Ep 2",
                   index: 2,
                   videoDurationSec: 120,
-                  premierTimeMs: 2000,
+                  premiereTimeMs: 2000,
                   continueTimeMs: 60,
                 },
               ],
@@ -198,7 +198,7 @@ TEST_RUNNER.run({
                   name: "Ep 3",
                   index: 3,
                   videoDurationSec: 180,
-                  premierTimeMs: 3000,
+                  premiereTimeMs: 3000,
                   continueTimeMs: 60,
                 },
               ],
@@ -253,7 +253,7 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 1000,
+              premiereTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -264,7 +264,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 2000,
+              premiereTimeMs: 2000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -275,7 +275,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 3000,
+              premiereTimeMs: 3000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -286,7 +286,7 @@ TEST_RUNNER.run({
                 durationSec: 240,
               },
               state: EpisodeState.DRAFT,
-              premierTimeMs: 4000,
+              premiereTimeMs: 4000,
             }),
           ]);
           await transaction.commit();
@@ -338,7 +338,7 @@ TEST_RUNNER.run({
                   name: "Ep 3",
                   index: 3,
                   videoDurationSec: 180,
-                  premierTimeMs: 3000,
+                  premiereTimeMs: 3000,
                   continueTimeMs: 60,
                 },
                 {
@@ -346,7 +346,7 @@ TEST_RUNNER.run({
                   name: "Ep 2",
                   index: 2,
                   videoDurationSec: 120,
-                  premierTimeMs: 2000,
+                  premiereTimeMs: 2000,
                   continueTimeMs: 60,
                 },
               ],
@@ -405,7 +405,7 @@ TEST_RUNNER.run({
                   name: "Ep 1",
                   index: 1,
                   videoDurationSec: 60,
-                  premierTimeMs: 1000,
+                  premiereTimeMs: 1000,
                   continueTimeMs: 60,
                 },
               ],

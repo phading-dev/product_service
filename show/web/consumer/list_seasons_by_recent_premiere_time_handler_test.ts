@@ -5,9 +5,9 @@ import {
   insertSeasonGradeStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { ListSeasonsByRecentPremierTimeHandler } from "./list_seasons_by_recent_premier_time_handler";
+import { ListSeasonsByRecentPremiereTimeHandler } from "./list_seasons_by_recent_premiere_time_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -15,7 +15,7 @@ import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "ListSeasonsByRecentPremierTimeHandlerTest",
+  name: "ListSeasonsByRecentPremiereTimeHandlerTest",
   cases: [
     {
       name: "ListOneBatch_ListAgainButNoMore",
@@ -32,7 +32,7 @@ TEST_RUNNER.run({
               totalEpisodes: 1,
               ratingsCount: 2,
               averageRating: 4.5,
-              recentPremierTimeMs: 20,
+              recentPremiereTimeMs: 20,
               createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
@@ -51,7 +51,7 @@ TEST_RUNNER.run({
               totalEpisodes: 4,
               ratingsCount: 4,
               averageRating: 3.5,
-              recentPremierTimeMs: 40,
+              recentPremiereTimeMs: 40,
               createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
@@ -70,7 +70,7 @@ TEST_RUNNER.run({
               totalEpisodes: 3,
               ratingsCount: 1,
               averageRating: 3,
-              recentPremierTimeMs: 30,
+              recentPremiereTimeMs: 30,
               createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
@@ -89,7 +89,7 @@ TEST_RUNNER.run({
               totalEpisodes: 2,
               ratingsCount: 0,
               averageRating: 0,
-              recentPremierTimeMs: 20,
+              recentPremiereTimeMs: 20,
               createdTimeMs: 20,
             }),
             insertSeasonGradeStatement({
@@ -109,7 +109,7 @@ TEST_RUNNER.run({
             canConsume: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new ListSeasonsByRecentPremierTimeHandler(
+        let handler = new ListSeasonsByRecentPremiereTimeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
@@ -147,10 +147,10 @@ TEST_RUNNER.run({
                     averageRating: 0,
                   },
                 ],
-                premierTimeCursor: 20,
+                premiereTimeCursor: 20,
                 createdTimeCursor: 20,
               },
-              LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE,
             ),
             "response 1",
           );
@@ -160,7 +160,7 @@ TEST_RUNNER.run({
           // Execute
           let response = await handler.handle(
             "",
-            { premierTimeCursor: 20, createdTimeCursor: 20, limit: 2 },
+            { premiereTimeCursor: 20, createdTimeCursor: 20, limit: 2 },
             "authStr",
           );
 
@@ -182,7 +182,7 @@ TEST_RUNNER.run({
                   },
                 ],
               },
-              LIST_SEASONS_BY_RECENT_PREMIER_TIME_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE,
             ),
             "response 2",
           );

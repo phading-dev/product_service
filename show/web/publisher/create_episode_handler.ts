@@ -111,7 +111,7 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
           index,
           name: body.episodeName,
           state: EpisodeState.DRAFT,
-          premierTimeMs: FAR_FUTURE_TIME_MS,
+          premiereTimeMs: FAR_FUTURE_TIME_MS,
         }),
         insertVideoContainerCreatingTaskStatement({
           seasonId: body.seasonId,
@@ -129,7 +129,7 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
         name: body.episodeName,
         index,
         state: EpisodeState.DRAFT,
-        premierTimeMs: FAR_FUTURE_TIME_MS,
+        premiereTimeMs: FAR_FUTURE_TIME_MS,
       },
     };
   }

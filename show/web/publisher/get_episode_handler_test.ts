@@ -44,7 +44,7 @@ TEST_RUNNER.run({
               name: "Ep 1",
               videoContainerId: "videoContainer1",
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 300,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -107,7 +107,7 @@ TEST_RUNNER.run({
                   },
                 },
                 state: EpisodeState.PUBLISHED,
-                premierTimeMs: 300,
+                premiereTimeMs: 300,
               },
             },
             GET_EPISODE_RESPONSE,
@@ -154,7 +154,7 @@ TEST_RUNNER.run({
               index: 1,
               name: "Ep 1",
               state: EpisodeState.DRAFT,
-              premierTimeMs: 300,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -191,7 +191,7 @@ TEST_RUNNER.run({
                 episodeName: "Ep 1",
                 episodeIndex: 1,
                 state: EpisodeState.DRAFT,
-                premierTimeMs: 300,
+                premiereTimeMs: 300,
               },
             },
             GET_EPISODE_RESPONSE,

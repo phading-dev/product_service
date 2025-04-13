@@ -1,7 +1,7 @@
 import "../show/node/cache_video_container_test";
 import "../show/node/get_season_grade_handler_test";
 import "../show/node/process_cover_image_deleting_task_handler_test";
-import "../show/node/process_season_recent_premier_time_updating_handler_test";
+import "../show/node/process_season_recent_premiere_time_updating_handler_test";
 import "../show/node/process_video_container_creating_task_handler_test";
 import "../show/node/process_video_container_deleting_task_handler_test";
 import "../show/web/consumer/get_continue_episode_handler_test";
@@ -10,7 +10,7 @@ import "../show/web/consumer/get_season_details_handler_test";
 import "../show/web/consumer/list_continue_watching_seasons_handler_test";
 import "../show/web/consumer/list_episodes_handler_test";
 import "../show/web/consumer/list_seasons_by_rating_handler_test";
-import "../show/web/consumer/list_seasons_by_recent_premier_time_handler_test";
+import "../show/web/consumer/list_seasons_by_recent_premiere_time_handler_test";
 import "../show/web/consumer/rate_season_handler_test";
 import "../show/web/consumer/search_seasons_handler_test";
 import "../show/web/consumer/unrate_season_handler_test";

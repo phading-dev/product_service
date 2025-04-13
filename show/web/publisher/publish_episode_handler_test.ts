@@ -2,15 +2,15 @@ import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_EPISODE_ROW,
-  GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
+  GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_ROW,
   GET_SEASON_ROW,
-  deleteSeasonRecentPremierTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   getEpisode,
   getSeason,
-  getSeasonRecentPremierTimeUpdatingTask,
+  getSeasonRecentPremiereTimeUpdatingTask,
   insertEpisodeStatement,
-  insertSeasonRecentPremierTimeUpdatingTaskStatement,
+  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
 import { PublishEpisodeHandler } from "./publish_episode_handler";
@@ -28,7 +28,7 @@ TEST_RUNNER.run({
   name: "PublishEpisodeHandlerTest",
   cases: [
     {
-      name: "PublishWithoutPremierTimeAndAlsoPublishDraftSeason",
+      name: "PublishWithoutPremiereTimeAndAlsoPublishDraftSeason",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -38,7 +38,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
+              recentPremiereTimeMs: 100,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -84,7 +84,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremierTimeMs: 100,
+                seasonRecentPremiereTimeMs: 100,
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -105,7 +105,7 @@ TEST_RUNNER.run({
                 episodeIndex: 1,
                 episodeVideoContainer: {},
                 episodeState: EpisodeState.PUBLISHED,
-                episodePremierTimeMs: 1000,
+                episodePremiereTimeMs: 1000,
               },
               GET_EPISODE_ROW,
             ),
@@ -113,20 +113,20 @@ TEST_RUNNER.run({
           "episode",
         );
         assertThat(
-          await getSeasonRecentPremierTimeUpdatingTask(SPANNER_DATABASE, {
-            seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-            seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+          await getSeasonRecentPremiereTimeUpdatingTask(SPANNER_DATABASE, {
+            seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+            seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRecentPremierTimeUpdatingTaskSeasonId: "season1",
-                seasonRecentPremierTimeUpdatingTaskEpisodeId: "episode1",
-                seasonRecentPremierTimeUpdatingTaskRetryCount: 0,
-                seasonRecentPremierTimeUpdatingTaskExecutionTimeMs: 1000,
-                seasonRecentPremierTimeUpdatingTaskCreatedTimeMs: 1000,
+                seasonRecentPremiereTimeUpdatingTaskSeasonId: "season1",
+                seasonRecentPremiereTimeUpdatingTaskEpisodeId: "episode1",
+                seasonRecentPremiereTimeUpdatingTaskRetryCount: 0,
+                seasonRecentPremiereTimeUpdatingTaskExecutionTimeMs: 1000,
+                seasonRecentPremiereTimeUpdatingTaskCreatedTimeMs: 1000,
               },
-              GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
+              GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_ROW,
             ),
           ]),
           "task",
@@ -136,9 +136,9 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-              seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-              seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+            deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+              seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+              seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
             }),
           ]);
           await transaction.commit();
@@ -146,7 +146,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "PublishWithPremierTimeAndSeasonAlreadyPublishedAndRecentPremierTimeUpdatingTask",
+      name: "PublishWithPremiereTimeAndSeasonAlreadyPublishedAndRecentPremiereTimeUpdatingTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -156,7 +156,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
+              recentPremiereTimeMs: 100,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -165,9 +165,9 @@ TEST_RUNNER.run({
               index: 1,
               videoContainer: {},
               state: EpisodeState.PUBLISHED,
-              premierTimeMs: 200,
+              premiereTimeMs: 200,
             }),
-            insertSeasonRecentPremierTimeUpdatingTaskStatement({
+            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
               retryCount: 0,
@@ -195,7 +195,7 @@ TEST_RUNNER.run({
           {
             seasonId: "season1",
             episodeId: "episode1",
-            premierTimeMs: 2000,
+            premiereTimeMs: 2000,
           },
           "sessionStr",
         );
@@ -210,7 +210,7 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremierTimeMs: 100,
+                seasonRecentPremiereTimeMs: 100,
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -231,7 +231,7 @@ TEST_RUNNER.run({
                 episodeIndex: 1,
                 episodeVideoContainer: {},
                 episodeState: EpisodeState.PUBLISHED,
-                episodePremierTimeMs: 2000,
+                episodePremiereTimeMs: 2000,
               },
               GET_EPISODE_ROW,
             ),
@@ -239,20 +239,20 @@ TEST_RUNNER.run({
           "episode",
         );
         assertThat(
-          await getSeasonRecentPremierTimeUpdatingTask(SPANNER_DATABASE, {
-            seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-            seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+          await getSeasonRecentPremiereTimeUpdatingTask(SPANNER_DATABASE, {
+            seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+            seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
           }),
           isArray([
             eqMessage(
               {
-                seasonRecentPremierTimeUpdatingTaskSeasonId: "season1",
-                seasonRecentPremierTimeUpdatingTaskEpisodeId: "episode1",
-                seasonRecentPremierTimeUpdatingTaskRetryCount: 0,
-                seasonRecentPremierTimeUpdatingTaskExecutionTimeMs: 2000,
-                seasonRecentPremierTimeUpdatingTaskCreatedTimeMs: 1000,
+                seasonRecentPremiereTimeUpdatingTaskSeasonId: "season1",
+                seasonRecentPremiereTimeUpdatingTaskEpisodeId: "episode1",
+                seasonRecentPremiereTimeUpdatingTaskRetryCount: 0,
+                seasonRecentPremiereTimeUpdatingTaskExecutionTimeMs: 2000,
+                seasonRecentPremiereTimeUpdatingTaskCreatedTimeMs: 1000,
               },
-              GET_SEASON_RECENT_PREMIER_TIME_UPDATING_TASK_ROW,
+              GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_ROW,
             ),
           ]),
           "task",
@@ -262,9 +262,9 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRecentPremierTimeUpdatingTaskStatement({
-              seasonRecentPremierTimeUpdatingTaskSeasonIdEq: "season1",
-              seasonRecentPremierTimeUpdatingTaskEpisodeIdEq: "episode1",
+            deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+              seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+              seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
             }),
           ]);
           await transaction.commit();
@@ -282,7 +282,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
+              recentPremiereTimeMs: 100,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -350,7 +350,7 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
               lastChangeTimeMs: 100,
-              recentPremierTimeMs: 100,
+              recentPremiereTimeMs: 100,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({

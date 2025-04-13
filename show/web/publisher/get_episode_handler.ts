@@ -79,7 +79,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         episodeIndex: row.episodeIndex,
         videoContainer,
         state: row.episodeState,
-        premierTimeMs: row.episodePremierTimeMs,
+        premiereTimeMs: row.episodePremiereTimeMs,
       },
     };
   }
