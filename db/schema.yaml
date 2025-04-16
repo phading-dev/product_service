@@ -80,13 +80,29 @@
               desc: true
         - name: ByRecentPremiereTimeMs
           columns:
+            - state
             - name: recentPremiereTimeMs
               desc: true
             - name: createdTimeMs
               desc: true
+        - name: ByPublisherRecentPremiereTimeMs
+          columns:
+            - publisherId
             - state
+            - name: recentPremiereTimeMs
+              desc: true
+            - name: createdTimeMs
+              desc: true
         - name: ByAverageRating
           columns:
+            - state
+            - name: averageRating
+              desc: true
+            - name: createdTimeMs
+              desc: true
+        - name: ByPublisherAverageRating
+          columns:
+            - publisherId
             - state
             - name: averageRating
               desc: true
@@ -615,6 +631,62 @@
         exprs:
           - op: =
             lColumn: state
+          - op: OR
+            exprs:
+              - op: <
+                lColumn: averageRating
+              - op: AND
+                exprs:
+                  - op: =
+                    lColumn: averageRating
+                  - op: <
+                    lColumn: createdTimeMs
+      orderBy:
+        - column: averageRating
+          desc: true
+        - column: createdTimeMs
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - createdTimeMs
+    - name: ListPublishedSeasonsByPremiereTimeAndPublisherForConsumer
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: state
+          - op: =
+            lColumn: publisherId
+          - op: OR
+            exprs:
+              - op: <
+                lColumn: recentPremiereTimeMs
+              - op: AND
+                exprs:
+                  - op: =
+                    lColumn: recentPremiereTimeMs
+                  - op: <
+                    lColumn: createdTimeMs
+      orderBy:
+        - column: recentPremiereTimeMs
+          desc: true
+        - column: createdTimeMs
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+        - createdTimeMs
+    - name: ListPublishedSeasonsByRatingAndPublisherForConsumer
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: state
+          - op: =
+            lColumn: publisherId
           - op: OR
             exprs:
               - op: <

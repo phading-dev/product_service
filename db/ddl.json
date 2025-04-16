@@ -53,10 +53,16 @@
       "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
     }, {
       "name": "ByRecentPremiereTimeMs",
-      "createIndexDdl": "CREATE INDEX ByRecentPremiereTimeMs ON Season(recentPremiereTimeMs DESC, createdTimeMs DESC, state)"
+      "createIndexDdl": "CREATE INDEX ByRecentPremiereTimeMs ON Season(state, recentPremiereTimeMs DESC, createdTimeMs DESC)"
+    }, {
+      "name": "ByPublisherRecentPremiereTimeMs",
+      "createIndexDdl": "CREATE INDEX ByPublisherRecentPremiereTimeMs ON Season(publisherId, state, recentPremiereTimeMs DESC, createdTimeMs DESC)"
     }, {
       "name": "ByAverageRating",
       "createIndexDdl": "CREATE INDEX ByAverageRating ON Season(state, averageRating DESC, createdTimeMs DESC)"
+    }, {
+      "name": "ByPublisherAverageRating",
+      "createIndexDdl": "CREATE INDEX ByPublisherAverageRating ON Season(publisherId, state, averageRating DESC, createdTimeMs DESC)"
     }, {
       "name": "ByFullText",
       "createIndexDdl": "CREATE SEARCH INDEX ByFullText ON Season(fullText) PARTITION BY state ORDER BY createdTimeMs"

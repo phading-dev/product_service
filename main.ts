@@ -14,10 +14,16 @@ import { ProcessCoverImageDeletingTaskHandler } from "./show/node/process_cover_
 import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/process_season_recent_premiere_time_updating_handler";
 import { ProcessVideoContainerCreatingTaskHandler } from "./show/node/process_video_container_creating_task_handler";
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
+import { GetContinueEpisodeHandler } from "./show/web/consumer/get_continue_episode_handler";
 import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
+import { ListContinueWatchingSeasonsHandler } from "./show/web/consumer/list_continue_watching_seasons_handler";
 import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/consumer/list_episodes_handler";
+import { ListSeasonsByRatingAndPublisherHandler } from "./show/web/consumer/list_seasons_by_rating_and_publisher_handler";
+import { ListSeasonsByRatingHandler } from "./show/web/consumer/list_seasons_by_rating_handler";
+import { ListSeasonsByRecentPremiereTimeAndPublisherHandler } from "./show/web/consumer/list_seasons_by_recent_premiere_time_and_publisher_handler";
+import { ListSeasonsByRecentPremiereTimeHandler } from "./show/web/consumer/list_seasons_by_recent_premiere_time_handler";
 import { RateSeasonHandler } from "./show/web/consumer/rate_season_handler";
 import { SearchSeasonsHandler as SearchSeasonsForConsumerHandler } from "./show/web/consumer/search_seasons_handler";
 import { UnrateSeasonHandler } from "./show/web/consumer/unrate_season_handler";
@@ -88,13 +94,19 @@ async function main() {
     .add(ProcessVideoContainerDeletingTaskHandler.create());
   service
     .addHandlerRegister(PRODUCT_WEB_SERVICE)
+    .add(GetContinueEpisodeHandler.create())
     .add(GetEpisodeDetailsHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
     .add(GetSeasonDetailsHandler.create())
+    .add(ListContinueWatchingSeasonsHandler.create())
     .add(ListEpisodesForConsumerHandler.create())
+    .add(ListSeasonsByRatingAndPublisherHandler.create())
+    .add(ListSeasonsByRatingHandler.create())
+    .add(ListSeasonsByRecentPremiereTimeAndPublisherHandler.create())
+    .add(ListSeasonsByRecentPremiereTimeHandler.create())
     .add(RateSeasonHandler.create())
-    .add(UnrateSeasonHandler.create())
     .add(SearchSeasonsForConsumerHandler.create())
+    .add(UnrateSeasonHandler.create())
     .add(ArchiveSeasonHandler.create())
     .add(CancelMediaFormattingHandler.create())
     .add(CancelMediaUploadingHandler.create())
