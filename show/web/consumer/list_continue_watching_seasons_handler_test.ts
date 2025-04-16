@@ -245,8 +245,8 @@ TEST_RUNNER.run({
                     name: "S1E1",
                     videoDurationSec: 60,
                     premiereTimeMs: 1000,
-                    continueTimeMs: 30,
                   },
+                  continueTimeMs: 30,
                 },
                 {
                   season: {
@@ -265,8 +265,8 @@ TEST_RUNNER.run({
                     name: "S2E2",
                     videoDurationSec: 180,
                     premiereTimeMs: 2000,
-                    continueTimeMs: 0,
                   },
+                  continueTimeMs: 0,
                 },
               ],
             },

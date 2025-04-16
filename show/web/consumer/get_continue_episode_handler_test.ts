@@ -92,12 +92,14 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              episode: {
-                episodeId: "episode1",
-                name: "episode1",
-                index: 1,
-                videoDurationSec: 120,
-                premiereTimeMs: 10,
+              continue: {
+                episode: {
+                  episodeId: "episode1",
+                  name: "episode1",
+                  index: 1,
+                  videoDurationSec: 120,
+                  premiereTimeMs: 10,
+                },
                 continueTimeMs: 60,
               },
             },
@@ -117,6 +119,5 @@ TEST_RUNNER.run({
         });
       },
     },
-    // More cases are covered in ListContinueEpisodesHandlerTest.
   ],
 });

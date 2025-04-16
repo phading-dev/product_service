@@ -717,6 +717,38 @@
             lColumn: state
       get:
         - columnGroup: main
+    - name: GetPublishedSeasonAndEpisodeForConsumer
+      from: Season
+      as: s
+      join:
+        - type: INNER
+          with: Episode
+          as: e
+          on:
+            op: =
+            lColumn: seasonId
+            lTable: s
+            rColumn: seasonId
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+            lTable: s
+          - op: =
+            lColumn: state
+            lTable: s
+          - op: =
+            lColumn: episodeId
+            lTable: e
+          - op: =
+            lColumn: state
+            lTable: e
+      get:
+        - columnGroup: main
+          table: s
+        - all: true
+          table: e
     - name: GetPublishedSeasonAllForConsumer
       from: Season
       where:

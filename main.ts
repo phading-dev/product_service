@@ -17,6 +17,7 @@ import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_vi
 import { GetContinueEpisodeHandler } from "./show/web/consumer/get_continue_episode_handler";
 import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
+import { GetSeasonAndEpisodeSummaryHandler } from "./show/web/consumer/get_season_and_episode_summary_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
 import { ListContinueWatchingSeasonsHandler } from "./show/web/consumer/list_continue_watching_seasons_handler";
 import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/consumer/list_episodes_handler";
@@ -97,6 +98,7 @@ async function main() {
     .add(GetContinueEpisodeHandler.create())
     .add(GetEpisodeDetailsHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
+    .add(GetSeasonAndEpisodeSummaryHandler.create())
     .add(GetSeasonDetailsHandler.create())
     .add(ListContinueWatchingSeasonsHandler.create())
     .add(ListEpisodesForConsumerHandler.create())

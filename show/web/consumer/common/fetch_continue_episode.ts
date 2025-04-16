@@ -6,7 +6,7 @@ import {
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { EpisodeSummary } from "@phading/product_service_interface/show/web/consumer/summary";
+import { ContinueEpisode } from "@phading/product_service_interface/show/web/consumer/summary";
 
 export async function fetchContinueEpisode(
   database: Database,
@@ -14,7 +14,7 @@ export async function fetchContinueEpisode(
   episodeId: string,
   episodeIndex: number,
   latestWatchedTimeMs: number,
-): Promise<EpisodeSummary> {
+): Promise<ContinueEpisode> {
   let latestEpisodeRowsPromise = getPublishedEpisodeForConsumer(database, {
     episodeSeasonIdEq: seasonId,
     seasonStateEq: SeasonState.PUBLISHED,
@@ -39,11 +39,13 @@ export async function fetchContinueEpisode(
       NEXT_EPISODE_WATCH_TIME_THRESHOLD
   ) {
     return {
-      episodeId: latestEpisode.episodeEpisodeId,
-      name: latestEpisode.episodeName,
-      index: latestEpisode.episodeIndex,
-      videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
-      premiereTimeMs: latestEpisode.episodePremiereTimeMs,
+      episode: {
+        episodeId: latestEpisode.episodeEpisodeId,
+        name: latestEpisode.episodeName,
+        index: latestEpisode.episodeIndex,
+        videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
+        premiereTimeMs: latestEpisode.episodePremiereTimeMs,
+      },
       continueTimeMs: latestWatchedTimeMs,
     };
   }
@@ -53,11 +55,13 @@ export async function fetchContinueEpisode(
   }
   let nextEpisode = nextEpisodeRows[0];
   return {
-    episodeId: nextEpisode.episodeEpisodeId,
-    name: nextEpisode.episodeName,
-    index: nextEpisode.episodeIndex,
-    videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
-    premiereTimeMs: nextEpisode.episodePremiereTimeMs,
+    episode: {
+      episodeId: nextEpisode.episodeEpisodeId,
+      name: nextEpisode.episodeName,
+      index: nextEpisode.episodeIndex,
+      videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
+      premiereTimeMs: nextEpisode.episodePremiereTimeMs,
+    },
     continueTimeMs: 0,
   };
 }

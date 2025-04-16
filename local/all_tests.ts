@@ -6,6 +6,8 @@ import "../show/node/process_video_container_creating_task_handler_test";
 import "../show/node/process_video_container_deleting_task_handler_test";
 import "../show/web/consumer/get_continue_episode_handler_test";
 import "../show/web/consumer/get_episode_details_handler_test";
+import "../show/web/consumer/get_individual_season_rating_handler_test";
+import "../show/web/consumer/get_season_and_episode_summary_handler_test";
 import "../show/web/consumer/get_season_details_handler_test";
 import "../show/web/consumer/list_continue_watching_seasons_handler_test";
 import "../show/web/consumer/list_episodes_handler_test";

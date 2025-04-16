@@ -106,6 +106,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         grade,
         nextGrade,
         averageRating: row.seasonAverageRating,
+        ratingsCount: row.seasonRatingsCount,
       },
     };
   }

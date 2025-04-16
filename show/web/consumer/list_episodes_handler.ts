@@ -8,7 +8,6 @@ import {
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
-import { newGetLatestWatchedTimeOfEpisodeRequest } from "@phading/play_activity_service_interface/show/node/client";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
@@ -78,28 +77,16 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
         limit: body.limit,
       });
     }
-    let episodes = new Array<EpisodeSummary>();
-    await Promise.all(
-      rows.map(async (row, i) => {
-        let response = await this.serviceClient.send(
-          newGetLatestWatchedTimeOfEpisodeRequest({
-            watcherId: accountId,
-            seasonId: row.episodeSeasonId,
-            episodeId: row.episodeEpisodeId,
-          }),
-        );
-        episodes[i] = {
+    return {
+      episodes: rows.map(
+        (row): EpisodeSummary => ({
           episodeId: row.episodeEpisodeId,
           index: row.episodeIndex,
           name: row.episodeName,
           videoDurationSec: row.episodeVideoContainer.durationSec,
           premiereTimeMs: row.episodePremiereTimeMs,
-          continueTimeMs: response.watchedTimeMs,
-        };
-      }),
-    );
-    return {
-      episodes,
+        }),
+      ),
       indexCursor:
         rows.length < body.limit
           ? undefined

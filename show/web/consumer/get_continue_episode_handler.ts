@@ -59,7 +59,7 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       response.watchedTimeMs,
     );
     return {
-      episode: continueEpisode,
+      continue: continueEpisode,
     };
   }
 }

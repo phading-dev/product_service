@@ -127,7 +127,8 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         }
         continues[i] = {
           season: seasonSummary,
-          episode: continueEpisode,
+          episode: continueEpisode.episode,
+          continueTimeMs: continueEpisode.continueTimeMs,
         };
       }),
     );

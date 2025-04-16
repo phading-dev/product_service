@@ -3069,6 +3069,154 @@ export async function getPublishedSeasonForConsumer(
   return resRows;
 }
 
+export interface GetPublishedSeasonAndEpisodeForConsumerRow {
+  seasonSeasonId?: string,
+  seasonPublisherId?: string,
+  seasonState?: SeasonState,
+  seasonName?: string,
+  seasonCoverImageR2Filename?: string,
+  seasonTotalEpisodes?: number,
+  seasonLastChangeTimeMs?: number,
+  seasonRecentPremiereTimeMs?: number,
+  seasonRatingsCount?: number,
+  seasonAverageRating?: number,
+  episodeSeasonId?: string,
+  episodeEpisodeId?: string,
+  episodeIndex?: number,
+  episodeName?: string,
+  episodeVideoContainerId?: string,
+  episodeVideoContainer?: VideoContainer,
+  episodeState?: EpisodeState,
+  episodePremiereTimeMs?: number,
+}
+
+export let GET_PUBLISHED_SEASON_AND_EPISODE_FOR_CONSUMER_ROW: MessageDescriptor<GetPublishedSeasonAndEpisodeForConsumerRow> = {
+  name: 'GetPublishedSeasonAndEpisodeForConsumerRow',
+  fields: [{
+    name: 'seasonSeasonId',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonPublisherId',
+    index: 2,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonState',
+    index: 3,
+    enumType: SEASON_STATE,
+  }, {
+    name: 'seasonName',
+    index: 4,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonCoverImageR2Filename',
+    index: 5,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'seasonTotalEpisodes',
+    index: 6,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonLastChangeTimeMs',
+    index: 7,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRecentPremiereTimeMs',
+    index: 8,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingsCount',
+    index: 9,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonAverageRating',
+    index: 10,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'episodeSeasonId',
+    index: 11,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeEpisodeId',
+    index: 12,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeIndex',
+    index: 13,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'episodeName',
+    index: 14,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeVideoContainerId',
+    index: 15,
+    primitiveType: PrimitiveType.STRING,
+  }, {
+    name: 'episodeVideoContainer',
+    index: 16,
+    messageType: VIDEO_CONTAINER,
+  }, {
+    name: 'episodeState',
+    index: 17,
+    enumType: EPISODE_STATE,
+  }, {
+    name: 'episodePremiereTimeMs',
+    index: 18,
+    primitiveType: PrimitiveType.NUMBER,
+  }],
+};
+
+export async function getPublishedSeasonAndEpisodeForConsumer(
+  runner: Database | Transaction,
+  args: {
+    seasonSeasonIdEq: string,
+    seasonStateEq?: SeasonState,
+    episodeEpisodeIdEq: string,
+    episodeStateEq?: EpisodeState,
+  }
+): Promise<Array<GetPublishedSeasonAndEpisodeForConsumerRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (s.seasonId = @seasonSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
+      episodeEpisodeIdEq: args.episodeEpisodeIdEq,
+      episodeStateEq: args.episodeStateEq == null ? null : Spanner.float(args.episodeStateEq),
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
+      episodeEpisodeIdEq: { type: "string" },
+      episodeStateEq: { type: "float64" },
+    }
+  });
+  let resRows = new Array<GetPublishedSeasonAndEpisodeForConsumerRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
+      seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
+      seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      episodeSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      episodeEpisodeId: row.at(11).value == null ? undefined : row.at(11).value,
+      episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
+      episodeName: row.at(13).value == null ? undefined : row.at(13).value,
+      episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
+      episodeVideoContainer: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER),
+      episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
+      episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
+    });
+  }
+  return resRows;
+}
+
 export interface GetPublishedSeasonAllForConsumerRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
