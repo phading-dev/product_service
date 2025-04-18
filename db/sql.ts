@@ -1939,6 +1939,43 @@ export async function getSeasonPublisher(
   return resRows;
 }
 
+export interface GetSeasonNameRow {
+  seasonName?: string,
+}
+
+export let GET_SEASON_NAME_ROW: MessageDescriptor<GetSeasonNameRow> = {
+  name: 'GetSeasonNameRow',
+  fields: [{
+    name: 'seasonName',
+    index: 1,
+    primitiveType: PrimitiveType.STRING,
+  }],
+};
+
+export async function getSeasonName(
+  runner: Database | Transaction,
+  args: {
+    seasonSeasonIdEq: string,
+  }
+): Promise<Array<GetSeasonNameRow>> {
+  let [rows] = await runner.run({
+    sql: "SELECT Season.name FROM Season WHERE Season.seasonId = @seasonSeasonIdEq",
+    params: {
+      seasonSeasonIdEq: args.seasonSeasonIdEq,
+    },
+    types: {
+      seasonSeasonIdEq: { type: "string" },
+    }
+  });
+  let resRows = new Array<GetSeasonNameRow>();
+  for (let row of rows) {
+    resRows.push({
+      seasonName: row.at(0).value == null ? undefined : row.at(0).value,
+    });
+  }
+  return resRows;
+}
+
 export interface GetSeasonRecentPremiereTimeRow {
   seasonRecentPremiereTimeMs?: number,
 }

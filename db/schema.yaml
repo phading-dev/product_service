@@ -500,6 +500,13 @@
         lColumn: seasonId
       get:
         - publisherId
+    - name: GetSeasonName
+      from: Season
+      where:
+        op: =
+        lColumn: seasonId
+      get:
+        - name
     - name: GetSeasonRecentPremiereTime
       from: Season
       where:

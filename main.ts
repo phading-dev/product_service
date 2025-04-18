@@ -19,6 +19,7 @@ import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_detail
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
 import { GetSeasonAndEpisodeSummaryHandler } from "./show/web/consumer/get_season_and_episode_summary_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
+import { GetSeasonNameHandler } from "./show/web/consumer/get_season_name_handler";
 import { ListContinueWatchingSeasonsHandler } from "./show/web/consumer/list_continue_watching_seasons_handler";
 import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/consumer/list_episodes_handler";
 import { ListSeasonsByRatingAndPublisherHandler } from "./show/web/consumer/list_seasons_by_rating_and_publisher_handler";
@@ -100,6 +101,7 @@ async function main() {
     .add(GetIndividualSeasonRatingHandler.create())
     .add(GetSeasonAndEpisodeSummaryHandler.create())
     .add(GetSeasonDetailsHandler.create())
+    .add(GetSeasonNameHandler.create())
     .add(ListContinueWatchingSeasonsHandler.create())
     .add(ListEpisodesForConsumerHandler.create())
     .add(ListSeasonsByRatingAndPublisherHandler.create())
