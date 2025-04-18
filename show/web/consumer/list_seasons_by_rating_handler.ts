@@ -1,5 +1,4 @@
 import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
-import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listPublishedSeasonsByRatingForConsumer } from "../../../db/sql";
@@ -17,6 +16,7 @@ import { SeasonSummary } from "@phading/product_service_interface/show/web/consu
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterface {
   public static create(): ListSeasonsByRatingHandler {
@@ -63,7 +63,10 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
     }
     let nowDate = this.getNowDate();
     let now = nowDate.valueOf();
-    let todayStr = toTodaISOString(nowDate);
+    let todayStr = TzDate.fromDate(
+      nowDate,
+      ENV_VARS.timezoneNegativeOffset,
+    ).toLocalDateISOString();
     let ratingCursor =
       body.ratingCursor ?? VALID_RATINGS[VALID_RATINGS.length - 1] + 1;
     let rows = await listPublishedSeasonsByRatingForConsumer(this.database, {

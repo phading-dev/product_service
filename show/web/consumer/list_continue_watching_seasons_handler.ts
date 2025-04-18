@@ -1,5 +1,4 @@
 import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
-import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -27,6 +26,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeasonsHandlerInterface {
   public static create(): ListContinueWatchingSeasonsHandler {
@@ -77,7 +77,10 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         limit: body.limit,
       }),
     );
-    let todayStr = toTodaISOString(this.getNowDate());
+    let todayStr = TzDate.fromDate(
+      this.getNowDate(),
+      ENV_VARS.timezoneNegativeOffset,
+    ).toLocalDateISOString();
     let continues = new Array<ContinueSeason>(response.seasons.length);
     await Promise.all(
       response.seasons.map(async (recentSeason, i) => {

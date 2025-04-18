@@ -1,15 +1,14 @@
-import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getLastSeasonGrades, getSeasonAllForPublisher } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
+import { NextGrade } from "@phading/product_service_interface/show/web/publisher/details";
 import { GetSeasonHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   GetSeasonRequestBody,
   GetSeasonResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { NextGrade } from "@phading/product_service_interface/show/web/publisher/details";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
@@ -17,6 +16,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class GetSeasonHandler extends GetSeasonHandlerInterface {
   public static create(): GetSeasonHandler {
@@ -58,7 +58,10 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         `Account ${accountId} not allowed to get season details.`,
       );
     }
-    let todayStr = toTodaISOString(this.getNowDate());
+    let todayStr = TzDate.fromDate(
+      this.getNowDate(),
+      ENV_VARS.timezoneNegativeOffset,
+    ).toLocalDateISOString();
     let [seasonRows, seasonGradeRows] = await Promise.all([
       getSeasonAllForPublisher(this.database, {
         seasonPublisherIdEq: accountId,

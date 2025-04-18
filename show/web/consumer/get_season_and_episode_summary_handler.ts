@@ -1,4 +1,3 @@
-import { toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -22,6 +21,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummaryHandlerInterface {
   public static create(): GetSeasonAndEpisodeSummaryHandler {
@@ -66,7 +66,10 @@ export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummar
         `Account ${accountId} not allowed to get season and episode summary.`,
       );
     }
-    let todayStr = toTodaISOString(this.getNowDate());
+    let todayStr = TzDate.fromDate(
+      this.getNowDate(),
+      ENV_VARS.timezoneNegativeOffset,
+    ).toLocalDateISOString();
     let [summaryRows, gradeRows] = await Promise.all([
       getPublishedSeasonAndEpisodeForConsumer(this.database, {
         seasonSeasonIdEq: body.seasonId,

@@ -1,5 +1,4 @@
 import { FAR_FUTURE_DATE } from "../../../common/constants";
-import { toDateUtc, toTodaISOString } from "../../../common/date_helper";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -11,6 +10,7 @@ import {
   updateSeasonGradeStatement,
   updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import {
   MAX_GRADE,
@@ -30,6 +30,7 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface {
   public static create(): UpdateSeasonGradeHandler {
@@ -78,7 +79,10 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let todayStr = toTodaISOString(this.getNowDate());
+      let today = TzDate.fromDate(
+        this.getNowDate(),
+        ENV_VARS.timezoneNegativeOffset,
+      );
       let [seasonRows, seasonGradeRows] = await Promise.all([
         getSeasonForPublisher(transaction, {
           seasonPublisherIdEq: accountId,
@@ -86,7 +90,7 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
         }),
         getLastSeasonGrades(transaction, {
           seasonGradeSeasonIdEq: body.seasonId,
-          seasonGradeEndDateGt: todayStr,
+          seasonGradeEndDateGt: today.toLocalDateISOString(),
           limit: 2,
         }),
       ]);
@@ -128,17 +132,22 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
             `"effectiveDate" is required when updating grade for the published season ${body.seasonId}.`,
           );
         }
-        let effectiveDate = toDateUtc(body.effectiveDate);
-        if (isNaN(effectiveDate.valueOf())) {
+        if (
+          isNaN(
+            TzDate.fromLocalDateString(
+              body.effectiveDate,
+              ENV_VARS.timezoneNegativeOffset,
+            ).toTimestampMs(),
+          )
+        ) {
           throw newBadRequestError(
             `"effectiveDate" is not a valid date when updating grade for the published season ${body.seasonId}.`,
           );
         }
-        let minDate = toDateUtc(todayStr);
-        minDate.setDate(minDate.getDate() + MIN_GRADE_EFFECTIVE_GAP_DAY);
-        if (effectiveDate < minDate) {
+        let minDate = today.clone().addDays(MIN_GRADE_EFFECTIVE_GAP_DAY);
+        if (body.effectiveDate < minDate.toLocalDateISOString()) {
           throw newBadRequestError(
-            `"effectiveDate" ${body.effectiveDate} must be at least ${MIN_GRADE_EFFECTIVE_GAP_DAY} days apart from today ${todayStr} when updating grade for the published season ${body.seasonId}.`,
+            `"effectiveDate" ${body.effectiveDate} must be at least ${MIN_GRADE_EFFECTIVE_GAP_DAY} days apart from today ${today.toLocalDateISOString()} when updating grade for the published season ${body.seasonId}.`,
           );
         }
 
@@ -148,9 +157,9 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
           );
         } else if (seasonGradeRows.length === 1) {
           let seasonGrade = seasonGradeRows[0];
-          if (seasonGrade.seasonGradeStartDate > todayStr) {
+          if (seasonGrade.seasonGradeStartDate > today.toLocalDateISOString()) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${seasonGrade.seasonGradeGradeId}'s start date ${seasonGrade.seasonGradeStartDate} should be smaller than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${seasonGrade.seasonGradeGradeId}'s start date ${seasonGrade.seasonGradeStartDate} should be smaller than today ${today.toLocalDateISOString()}.`,
             );
           }
           await transaction.batchUpdate([
@@ -173,14 +182,16 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
           ]);
         } else {
           let [laterGrade, currentGrade] = seasonGradeRows;
-          if (currentGrade.seasonGradeStartDate > todayStr) {
+          if (
+            currentGrade.seasonGradeStartDate > today.toLocalDateISOString()
+          ) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${currentGrade.seasonGradeGradeId}'s start date ${currentGrade.seasonGradeStartDate} should be smaller than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${currentGrade.seasonGradeGradeId}'s start date ${currentGrade.seasonGradeStartDate} should be smaller than today ${today.toLocalDateISOString()}.`,
             );
           }
-          if (laterGrade.seasonGradeStartDate <= todayStr) {
+          if (laterGrade.seasonGradeStartDate <= today.toLocalDateISOString()) {
             throw newInternalServerErrorError(
-              `Season ${body.seasonId} has invalid grades. Grade ${laterGrade.seasonGradeGradeId}'s start date ${laterGrade.seasonGradeStartDate} should be larger than today ${todayStr}.`,
+              `Season ${body.seasonId} has invalid grades. Grade ${laterGrade.seasonGradeGradeId}'s start date ${laterGrade.seasonGradeStartDate} should be larger than today ${today.toLocalDateISOString()}.`,
             );
           }
           await transaction.batchUpdate([
