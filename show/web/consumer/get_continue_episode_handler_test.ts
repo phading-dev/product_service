@@ -119,5 +119,93 @@ TEST_RUNNER.run({
         });
       },
     },
+    {
+      name: "NoLatestEpisode_StartFromFirstEpisode",
+      async execute() {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season1",
+              episodeId: "episode1",
+              index: 1,
+              name: "episode1",
+              videoContainer: {
+                durationSec: 120,
+              },
+              premiereTimeMs: 10,
+              state: EpisodeState.PUBLISHED,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsume: true,
+                  },
+                } as FetchSessionAndCheckCapabilityResponse;
+              case GET_LATEST_WATCHED_EPISODE:
+                this.request = request;
+                return {} as GetLatestWatchedEpisodeResponse;
+            }
+          }
+        })();
+        let handler = new GetContinueEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          { seasonId: "season1" },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continue: {
+                episode: {
+                  episodeId: "episode1",
+                  name: "episode1",
+                  index: 1,
+                  videoDurationSec: 120,
+                  premiereTimeMs: 10,
+                },
+                continueTimeMs: 0,
+              },
+            },
+            GET_CONTINUE_EPISODE_RESPONSE,
+          ),
+          "GetContinueEpisodeResponse",
+        );
+      },
+      async tearDown() {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
+            }),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
   ],
 });
