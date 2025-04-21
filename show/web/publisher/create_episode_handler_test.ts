@@ -1,19 +1,17 @@
 import "../../../local/env";
-import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  GET_EPISODE_ROW,
   GET_SEASON_ROW,
   GET_VIDEO_CONTAINER_CREATING_TASK_ROW,
-  LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
+  getEpisode,
   getSeason,
   getVideoContainerCreatingTask,
   insertSeasonStatement,
-  listNextEpisodesForPublisher,
 } from "../../../db/sql";
 import { CreateEpisodeHandler } from "./create_episode_handler";
-import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CREATE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
@@ -38,7 +36,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
-              totalEpisodes: 0,
               createdTimeMs: 1000,
             }),
           ]);
@@ -75,10 +72,8 @@ TEST_RUNNER.run({
             {
               episode: {
                 episodeId: "episode1",
-                index: 1,
                 name: "Ep 1",
                 state: EpisodeState.DRAFT,
-                premiereTimeMs: FAR_FUTURE_TIME_MS,
               },
             },
             CREATE_EPISODE_RESPONSE,
@@ -95,7 +90,6 @@ TEST_RUNNER.run({
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.DRAFT,
-                seasonTotalEpisodes: 1,
                 seasonLastChangeTimeMs: 1000,
                 seasonCreatedTimeMs: 1000,
               },
@@ -105,26 +99,22 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            seasonPublisherIdEq: "publisher1",
+          await getEpisode(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            episodeIndexGt: 0,
-            limit: 2,
+            episodeEpisodeIdEq: "episode1",
           }),
           isArray([
             eqMessage(
               {
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
-                episodeIndex: 1,
                 episodeName: "Ep 1",
                 episodeState: EpisodeState.DRAFT,
-                episodePremiereTimeMs: FAR_FUTURE_TIME_MS,
               },
-              LIST_NEXT_EPISODES_FOR_PUBLISHER_ROW,
+              GET_EPISODE_ROW,
             ),
           ]),
-          "episodes",
+          "episode",
         );
         assertThat(
           await getVideoContainerCreatingTask(SPANNER_DATABASE, {
@@ -160,72 +150,6 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "TooManyEpisodes",
-      execute: async () => {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.DRAFT,
-              totalEpisodes: MAX_NUM_OF_EPISODES_PER_SEASON,
-              createdTimeMs: 1000,
-            }),
-          ]);
-          await transaction.commit();
-        });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher1",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new CreateEpisodeHandler(
-          SPANNER_DATABASE,
-          serviceClientMock,
-          () => 1000,
-          () => "episode1",
-        );
-
-        // Execute
-        let error = await assertReject(
-          handler.handle(
-            "",
-            {
-              seasonId: "season1",
-              episodeName: "Ep 1",
-            },
-            "sessionStr",
-          ),
-        );
-
-        // Verify
-        assertThat(
-          error,
-          eqHttpError(
-            newBadRequestError(
-              `Season season1 already has maximum number of episodes.`,
-            ),
-          ),
-          "error",
-        );
-      },
-      tearDown: async () => {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: "season1",
-              videoContainerCreatingTaskEpisodeIdEq: "episode1",
-            }),
-          ]);
-          await transaction.commit();
-        });
-      },
-    },
-    {
       name: "SeasonArchived",
       execute: async () => {
         // Prepare
@@ -235,7 +159,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
-              totalEpisodes: 0,
               createdTimeMs: 1000,
             }),
           ]);

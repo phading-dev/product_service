@@ -8,9 +8,7 @@ import {
 import { ListSeasonsByRecentPremiereTimeHandler } from "./list_seasons_by_recent_premiere_time_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
-import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
@@ -29,7 +27,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name1",
               coverImageR2Filename: "cover1",
-              totalEpisodes: 1,
               ratingsCount: 2,
               averageRating: 4.5,
               recentPremiereTimeMs: 20,
@@ -48,7 +45,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name4",
               coverImageR2Filename: "cover4",
-              totalEpisodes: 4,
               ratingsCount: 4,
               averageRating: 3.5,
               recentPremiereTimeMs: 40,
@@ -67,7 +63,6 @@ TEST_RUNNER.run({
               state: SeasonState.ARCHIVED,
               name: "name3",
               coverImageR2Filename: "cover3",
-              totalEpisodes: 3,
               ratingsCount: 1,
               averageRating: 3,
               recentPremiereTimeMs: 30,
@@ -86,7 +81,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name2",
               coverImageR2Filename: "cover2",
-              totalEpisodes: 2,
               ratingsCount: 0,
               averageRating: 0,
               recentPremiereTimeMs: 20,
@@ -102,23 +96,15 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsByRecentPremiereTimeHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://test.com",
           () => new Date(1000),
         );
 
         {
           // Execute
-          let response = await handler.handle("", { limit: 2 }, "authStr");
+          let response = await handler.handle("", { limit: 2 });
 
           // Verify
           assertThat(
@@ -131,7 +117,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher4",
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
-                    totalEpisodes: 4,
                     grade: 10,
                     ratingsCount: 4,
                     averageRating: 3.5,
@@ -141,7 +126,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher2",
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
-                    totalEpisodes: 2,
                     grade: 40,
                     ratingsCount: 0,
                     averageRating: 0,
@@ -158,11 +142,11 @@ TEST_RUNNER.run({
 
         {
           // Execute
-          let response = await handler.handle(
-            "",
-            { premiereTimeCursor: 20, createdTimeCursor: 20, limit: 2 },
-            "authStr",
-          );
+          let response = await handler.handle("", {
+            premiereTimeCursor: 20,
+            createdTimeCursor: 20,
+            limit: 2,
+          });
 
           // Verify
           assertThat(
@@ -175,7 +159,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher1",
                     name: "name1",
                     coverImageUrl: "https://test.com/cover1",
-                    totalEpisodes: 1,
                     grade: 5,
                     ratingsCount: 2,
                     averageRating: 4.5,

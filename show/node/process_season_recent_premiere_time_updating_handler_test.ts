@@ -4,7 +4,7 @@ import {
   GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_METADATA_ROW,
   GET_SEASON_ROW,
   deleteEpisodeStatement,
-  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
   getSeason,
   getSeasonRecentPremiereTimeUpdatingTask,
@@ -36,9 +36,8 @@ async function cleanupAll() {
         episodeSeasonIdEq: "season1",
         episodeEpisodeIdEq: "episode3",
       }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+      deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
         seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
       }),
     ]);
     await transaction.commit();
@@ -77,6 +76,7 @@ TEST_RUNNER.run({
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -92,6 +92,7 @@ TEST_RUNNER.run({
         await handler.processTask("", {
           seasonId: "season1",
           episodeId: "episode1",
+          premiereTimeMs: 1000,
         });
 
         // Verify
@@ -145,6 +146,7 @@ TEST_RUNNER.run({
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -160,6 +162,7 @@ TEST_RUNNER.run({
         await handler.processTask("", {
           seasonId: "season1",
           episodeId: "episode1",
+          premiereTimeMs: 1000,
         });
 
         // Verify
@@ -203,6 +206,7 @@ TEST_RUNNER.run({
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -218,6 +222,7 @@ TEST_RUNNER.run({
         await handler.claimTask("", {
           seasonId: "season1",
           episodeId: "episode1",
+          premiereTimeMs: 1000,
         });
 
         // Verify
@@ -225,6 +230,7 @@ TEST_RUNNER.run({
           await getSeasonRecentPremiereTimeUpdatingTask(SPANNER_DATABASE, {
             seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
             seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
+            seasonRecentPremiereTimeUpdatingTaskPremiereTimeMsEq: 1000,
           }),
           isArray([
             eqMessage(

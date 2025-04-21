@@ -2,21 +2,21 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  ContinuedSearchPublishedSeasonsForConsumerRow,
-  SearchPublishedSeasonsForConsumerRow,
-  continuedSearchPublishedSeasonsForConsumer,
-  searchPublishedSeasonsForConsumer,
+  ContinuedSearchPublishedSeasonsRow,
+  SearchPublishedSeasonsRow,
+  continuedSearchPublishedSeasons,
+  searchPublishedSeasons,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
 import {
   SearchSeasonsRequestBody,
   SearchSeasonsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
@@ -69,11 +69,10 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
       );
     }
     let seasonRows: Array<
-      | SearchPublishedSeasonsForConsumerRow
-      | ContinuedSearchPublishedSeasonsForConsumerRow
+      SearchPublishedSeasonsRow | ContinuedSearchPublishedSeasonsRow
     >;
     if (!body.scoreCursor) {
-      seasonRows = await searchPublishedSeasonsForConsumer(this.database, {
+      seasonRows = await searchPublishedSeasons(this.database, {
         seasonFullTextSearch: body.query,
         seasonFullTextScoreOrderBy: body.query,
         seasonStateEq: SeasonState.PUBLISHED,
@@ -81,21 +80,18 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
         seasonFullTextScoreSelect: body.query,
       });
     } else {
-      seasonRows = await continuedSearchPublishedSeasonsForConsumer(
-        this.database,
-        {
-          seasonFullTextSearch: body.query,
-          seasonFullTextScoreWhereLt: body.query,
-          seasonFullTextScoreLt: body.scoreCursor,
-          seasonFullTextScoreWhereEq: body.query,
-          seasonFullTextScoreEq: body.scoreCursor,
-          seasonCreatedTimeMsGt: body.createdTimeCursor,
-          seasonFullTextScoreOrderBy: body.query,
-          seasonStateEq: SeasonState.PUBLISHED,
-          limit: body.limit,
-          seasonFullTextScoreSelect: body.query,
-        },
-      );
+      seasonRows = await continuedSearchPublishedSeasons(this.database, {
+        seasonFullTextSearch: body.query,
+        seasonFullTextScoreWhereLt: body.query,
+        seasonFullTextScoreLt: body.scoreCursor,
+        seasonFullTextScoreWhereEq: body.query,
+        seasonFullTextScoreEq: body.scoreCursor,
+        seasonCreatedTimeMsGt: body.createdTimeCursor,
+        seasonFullTextScoreOrderBy: body.query,
+        seasonStateEq: SeasonState.PUBLISHED,
+        limit: body.limit,
+        seasonFullTextScoreSelect: body.query,
+      });
     }
     let todayStr = TzDate.fromDate(
       this.getNowDate(),

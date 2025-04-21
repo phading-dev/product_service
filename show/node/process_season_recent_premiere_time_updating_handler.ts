@@ -1,7 +1,6 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
 import {
   deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
-  getSeasonRecentPremiereTime,
   getSeasonRecentPremiereTimeUpdatingTaskMetadata,
   listRecentEpisodesByPremiereTime,
   updateSeasonRecentPremiereTimeStatement,
@@ -63,6 +62,8 @@ export class ProcessSeasonRecentPremiereTimeUpdatingTaskHandler extends ProcessS
         {
           seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
           seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+          seasonRecentPremiereTimeUpdatingTaskPremiereTimeMsEq:
+            body.premiereTimeMs,
         },
       );
       if (rows.length === 0) {
@@ -73,6 +74,8 @@ export class ProcessSeasonRecentPremiereTimeUpdatingTaskHandler extends ProcessS
         updateSeasonRecentPremiereTimeUpdatingTaskMetadataStatement({
           seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
           seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+          seasonRecentPremiereTimeUpdatingTaskPremiereTimeMsEq:
+            body.premiereTimeMs,
           setRetryCount:
             task.seasonRecentPremiereTimeUpdatingTaskRetryCount + 1,
           setExecutionTimeMs:
@@ -92,40 +95,27 @@ export class ProcessSeasonRecentPremiereTimeUpdatingTaskHandler extends ProcessS
   ): Promise<void> {
     await this.database.runTransactionAsync(async (transaction) => {
       let now = this.getNow();
-      let [recentEpisodes, seasonRows] = await Promise.all([
-        listRecentEpisodesByPremiereTime(transaction, {
-          episodeSeasonIdEq: body.seasonId,
-          episodePremiereTimeMsLt: now,
-          limit: 1,
-        }),
-        getSeasonRecentPremiereTime(transaction, {
-          seasonSeasonIdEq: body.seasonId,
-        }),
-      ]);
+      let recentEpisodes = await listRecentEpisodesByPremiereTime(transaction, {
+        episodeSeasonIdEq: body.seasonId,
+        episodePremiereTimeMsLe: now,
+        limit: 1,
+      });
       if (recentEpisodes.length === 0) {
         throw newInternalServerErrorError(
           `Season ${body.seasonId} has no premier episodes found at ${now}.`,
         );
       }
-      if (seasonRows.length === 0) {
-        throw newInternalServerErrorError(
-          `Season ${body.seasonId} is not found.`,
-        );
-      }
       let episode = recentEpisodes[0];
-      let season = seasonRows[0];
       await transaction.batchUpdate([
-        ...(season.seasonRecentPremiereTimeMs !== episode.episodePremiereTimeMs
-          ? [
-              updateSeasonRecentPremiereTimeStatement({
-                seasonSeasonIdEq: body.seasonId,
-                setRecentPremiereTimeMs: episode.episodePremiereTimeMs,
-              }),
-            ]
-          : []),
+        updateSeasonRecentPremiereTimeStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setRecentPremiereTimeMs: episode.episodePremiereTimeMs,
+        }),
         deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
           seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
           seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
+          seasonRecentPremiereTimeUpdatingTaskPremiereTimeMsEq:
+            body.premiereTimeMs,
         }),
       ]);
       await transaction.commit();

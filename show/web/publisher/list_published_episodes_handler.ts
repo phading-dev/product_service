@@ -2,26 +2,27 @@ import { MAX_LIST_EPISODES_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  ListNextEpisodesForPublisherRow,
-  ListPrevEpisodesForPublisherRow,
-  listNextEpisodesForPublisher,
-  listPrevEpisodesForPublisher,
+  ListNextPublishedEpisodesForPublisherRow,
+  ListPrevPublishedEpisodesForPublisherRow,
+  listNextPublishedEpisodesForPublisher,
+  listPrevPublishedEpisodesForPublisher,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
-import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
+import { ListPublishedEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  ListEpisodesRequestBody,
-  ListEpisodesResponse,
+  ListPublishedEpisodesRequestBody,
+  ListPublishedEpisodesResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { EpisodeSummary } from "@phading/product_service_interface/show/web/publisher/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
-  public static create(): ListEpisodesHandler {
-    return new ListEpisodesHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+export class ListPublishedEpisodesHandler extends ListPublishedEpisodesHandlerInterface {
+  public static create(): ListPublishedEpisodesHandler {
+    return new ListPublishedEpisodesHandler(SPANNER_DATABASE, SERVICE_CLIENT);
   }
 
   public constructor(
@@ -33,9 +34,9 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
 
   public async handle(
     loggingPrefix: string,
-    body: ListEpisodesRequestBody,
+    body: ListPublishedEpisodesRequestBody,
     sessionStr: string,
-  ): Promise<ListEpisodesResponse> {
+  ): Promise<ListPublishedEpisodesResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
@@ -55,24 +56,28 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to get more episodes.`,
+        `Account ${accountId} is not allowed to get more episodes.`,
       );
     }
     let rows: Array<
-      ListNextEpisodesForPublisherRow | ListPrevEpisodesForPublisherRow
+      | ListNextPublishedEpisodesForPublisherRow
+      | ListPrevPublishedEpisodesForPublisherRow
     >;
     if (body.next) {
-      rows = await listNextEpisodesForPublisher(this.database, {
+      rows = await listNextPublishedEpisodesForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
         episodeSeasonIdEq: body.seasonId,
+        episodeStateEq: EpisodeState.PUBLISHED,
         episodeIndexGt: body.indexCursor ?? 0,
         limit: body.limit,
       });
     } else {
-      rows = await listPrevEpisodesForPublisher(this.database, {
+      rows = await listPrevPublishedEpisodesForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
         episodeSeasonIdEq: body.seasonId,
-        episodeIndexLt: body.indexCursor ?? MAX_NUM_OF_EPISODES_PER_SEASON + 1,
+        episodeStateEq: EpisodeState.PUBLISHED,
+        episodeIndexLt:
+          body.indexCursor ?? MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON + 1,
         limit: body.limit,
       });
     }
@@ -80,10 +85,10 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
       episodes: rows.map(
         (row): EpisodeSummary => ({
           episodeId: row.episodeEpisodeId,
+          state: row.episodeState,
           name: row.episodeName,
           index: row.episodeIndex,
           videoContainer: row.episodeVideoContainer,
-          state: row.episodeState,
           premiereTimeMs: row.episodePremiereTimeMs,
         }),
       ),

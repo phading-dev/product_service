@@ -5,13 +5,16 @@ import {
   deleteVideoContainerCreatingTaskStatement,
   getSeasonAndEpisodeForPublisher,
   insertVideoContainerDeletingTaskStatement,
-  listNextEpisodesForPublisher,
+  listNextPublishedEpisodesForPublisher,
   updateEpisodeIndexStatement,
-  updateSeasonTotalEpisodesStatement,
+  updateSeasonLastChangeTimeStatement,
+  updateSeasonTotalPublishedEpisodesStatement,
 } from "../../../db/sql";
+import { updateSeasonRecentPremiereTime } from "./common/update_season_recent_premiere_time";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
-import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { DeleteEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   DeleteEpisodeRequestBody,
@@ -78,11 +81,6 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
       let seasonAndEpisode = rows[0];
       let now = this.getNow();
       let statements: Array<Statement> = [
-        updateSeasonTotalEpisodesStatement({
-          seasonSeasonIdEq: body.seasonId,
-          setTotalEpisodes: seasonAndEpisode.seasonTotalEpisodes - 1,
-          setLastChangeTimeMs: now,
-        }),
         deleteEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
@@ -106,22 +104,52 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
         );
       }
 
-      let nextEpisodes = await listNextEpisodesForPublisher(transaction, {
-        seasonPublisherIdEq: accountId,
-        episodeSeasonIdEq: body.seasonId,
-        episodeIndexGt: seasonAndEpisode.episodeIndex,
-        limit: MAX_NUM_OF_EPISODES_PER_SEASON,
-      });
-      for (let episode of nextEpisodes) {
+      if (seasonAndEpisode.episodeState === EpisodeState.DRAFT) {
         statements.push(
-          updateEpisodeIndexStatement({
-            episodeSeasonIdEq: episode.episodeSeasonId,
-            episodeEpisodeIdEq: episode.episodeEpisodeId,
-            setIndex: episode.episodeIndex - 1,
+          updateSeasonLastChangeTimeStatement({
+            seasonSeasonIdEq: body.seasonId,
+            setLastChangeTimeMs: now,
           }),
         );
+      } else {
+        statements.push(
+          updateSeasonTotalPublishedEpisodesStatement({
+            seasonSeasonIdEq: body.seasonId,
+            setTotalPublishedEpisodes:
+              seasonAndEpisode.seasonTotalPublishedEpisodes - 1,
+            setLastChangeTimeMs: now,
+          }),
+        );
+        let nextEpisodes = await listNextPublishedEpisodesForPublisher(
+          transaction,
+          {
+            episodeSeasonIdEq: body.seasonId,
+            seasonPublisherIdEq: accountId,
+            episodeStateEq: EpisodeState.PUBLISHED,
+            episodeIndexGt: seasonAndEpisode.episodeIndex,
+            limit: MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON,
+          },
+        );
+        for (let episode of nextEpisodes) {
+          statements.push(
+            updateEpisodeIndexStatement({
+              episodeSeasonIdEq: episode.episodeSeasonId,
+              episodeEpisodeIdEq: episode.episodeEpisodeId,
+              setIndex: episode.episodeIndex - 1,
+            }),
+          );
+        }
       }
       await transaction.batchUpdate(statements);
+
+      if (seasonAndEpisode.episodeState === EpisodeState.PUBLISHED) {
+        await updateSeasonRecentPremiereTime(
+          transaction,
+          body.seasonId,
+          body.episodeId,
+          now,
+        );
+      }
       await transaction.commit();
     });
     return {};

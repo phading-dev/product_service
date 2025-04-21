@@ -96,7 +96,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
           coverImageUrl: row.seasonCoverImageR2Filename
             ? `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
             : undefined,
-          totalEpisodes: row.seasonTotalEpisodes,
+          totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
           lastChangeTimeMs: row.seasonLastChangeTimeMs,
           ratingsCount: row.seasonRatingsCount,
           averageRating: row.seasonAverageRating,

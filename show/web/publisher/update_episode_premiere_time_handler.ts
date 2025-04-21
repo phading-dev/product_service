@@ -1,30 +1,28 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getSeasonAndEpisodeForPublisher,
-  publishEpisodeStatement,
-  updateSeasonTotalPublishedEpisodesStatement,
+  getEpisodeForPublisher,
+  updateEpisodePremiereTimeStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { updateSeasonRecentPremiereTime } from "./common/update_season_recent_premiere_time";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
-import { UnpublishEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { UpdateEpisodePremiereTimeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  UnpublishEpisodeRequestBody,
-  UnpublishEpisodeResponse,
+  UpdateEpisodePremiereTimeRequestBody,
+  UpdateEpisodePremiereTimeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
-import {
-  newBadRequestError,
-  newNotFoundError,
-  newUnauthorizedError,
-} from "@selfage/http_error";
+import { newBadRequestError, newNotFoundError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
-  public static create(): UnpublishEpisodeHandler {
-    return new UnpublishEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      Date.now(),
+export class UpdateEpisodePremiereTimeHandler extends UpdateEpisodePremiereTimeHandlerInterface {
+  public static create(): UpdateEpisodePremiereTimeHandler {
+    return new UpdateEpisodePremiereTimeHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => Date.now(),
     );
   }
 
@@ -38,18 +36,21 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
 
   public async handle(
     loggingPrefix: string,
-    body: UnpublishEpisodeRequestBody,
-    sessionStr: string,
-  ): Promise<UnpublishEpisodeResponse> {
+    body: UpdateEpisodePremiereTimeRequestBody,
+    authStr: string,
+  ): Promise<UpdateEpisodePremiereTimeResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
+    if (!body.premiereTimeMs) {
+      throw newBadRequestError(`"premiereTimeMs" is required.`);
+    }
     let { accountId, capabilities } = await this.serviceClient.send(
       newFetchSessionAndCheckCapabilityRequest({
-        signedSession: sessionStr,
+        signedSession: authStr,
         capabilitiesMask: {
           checkCanPublish: true,
         },
@@ -57,39 +58,36 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to unpublish episode.`,
+        `Account ${accountId} is not allowed to update episode premiere time.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let rows = await getSeasonAndEpisodeForPublisher(transaction, {
-        seasonPublisherIdEq: accountId,
+      let episodeRows = await getEpisodeForPublisher(transaction, {
         episodeSeasonIdEq: body.seasonId,
+        seasonPublisherIdEq: accountId,
         episodeEpisodeIdEq: body.episodeId,
       });
-      if (rows.length === 0) {
+      if (episodeRows.length === 0) {
         throw newNotFoundError(
-          `Season ${body.seasonId} or episode ${body.episodeId} is not found.`,
+          `Season ${body.seasonId} episode ${body.episodeId} is not found.`,
         );
       }
-      let row = rows[0];
-      if (row.episodeState !== EpisodeState.PUBLISHED) {
+      let episodeRow = episodeRows[0];
+      if (episodeRow.episodeState !== EpisodeState.PUBLISHED) {
         throw newBadRequestError(
-          `Season ${body.seasonId} episode ${body.episodeId} is not published.`,
+          `Season ${body.seasonId} episode ${body.episodeId} is not in published state.`,
         );
       }
       let now = this.getNow();
       await transaction.batchUpdate([
-        updateSeasonTotalPublishedEpisodesStatement({
-          seasonSeasonIdEq: body.seasonId,
-          setTotalPublishedEpisodes: row.seasonTotalPublishedEpisodes - 1,
-          setLastChangeTimeMs: now,
-        }),
-        publishEpisodeStatement({
+        updateEpisodePremiereTimeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setState: EpisodeState.DRAFT,
-          setIndex: undefined,
-          setPremiereTimeMs: undefined,
+          setPremiereTimeMs: body.premiereTimeMs,
+        }),
+        updateSeasonLastChangeTimeStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setLastChangeTimeMs: now,
         }),
       ]);
       await updateSeasonRecentPremiereTime(
@@ -97,6 +95,7 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
         body.seasonId,
         body.episodeId,
         now,
+        body.premiereTimeMs,
       );
       await transaction.commit();
     });

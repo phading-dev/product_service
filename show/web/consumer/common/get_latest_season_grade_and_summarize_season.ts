@@ -1,12 +1,12 @@
 import {
-  ContinuedSearchPublishedSeasonsForConsumerRow,
-  ListPublishedSeasonsByPremiereTimeForConsumerRow,
-  ListPublishedSeasonsByRatingForConsumerRow,
-  SearchPublishedSeasonsForConsumerRow,
+  ContinuedSearchPublishedSeasonsRow,
+  ListPublishedSeasonsByPremiereTimeRow,
+  ListPublishedSeasonsByRatingRow,
+  SearchPublishedSeasonsRow,
   getLastSeasonGrades,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/summary";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
 import { newInternalServerErrorError } from "@selfage/http_error";
 
 export async function getLatestSeasonGradeAndSummarizeSeason(
@@ -14,10 +14,10 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
   coverImagePublicAccessDomain: string,
   todayStr: string,
   row:
-    | ListPublishedSeasonsByRatingForConsumerRow
-    | ListPublishedSeasonsByPremiereTimeForConsumerRow
-    | SearchPublishedSeasonsForConsumerRow
-    | ContinuedSearchPublishedSeasonsForConsumerRow,
+    | ListPublishedSeasonsByRatingRow
+    | ListPublishedSeasonsByPremiereTimeRow
+    | SearchPublishedSeasonsRow
+    | ContinuedSearchPublishedSeasonsRow,
   i: number,
   seasons: Array<SeasonSummary>,
 ): Promise<void> {
@@ -36,7 +36,6 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
     publisherId: row.seasonPublisherId,
     name: row.seasonName,
     coverImageUrl: `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
-    totalEpisodes: row.seasonTotalEpisodes,
     averageRating: row.seasonAverageRating,
     ratingsCount: row.seasonRatingsCount,
     grade: gradeRows[0].seasonGradeGrade,

@@ -2,7 +2,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getIndividualSeasonRating,
-  getPublishedSeasonRatingForConsumer,
+  getPublishedSeasonRating,
   insertIndividualSeasonRatingStatement,
   updateIndividualSeasonRatingStatement,
   updateSeasonRatingStatement,
@@ -68,7 +68,7 @@ export class RateSeasonHandler extends RateSeasonHandlerInterface {
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let [seasonRows, individualRows] = await Promise.all([
-        getPublishedSeasonRatingForConsumer(transaction, {
+        getPublishedSeasonRating(transaction, {
           seasonSeasonIdEq: body.seasonId,
           seasonStateEq: SeasonState.PUBLISHED,
         }),

@@ -1,24 +1,21 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  GET_EPISODE_ROW,
-  GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_ROW,
-  GET_SEASON_ROW,
-  deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
+  GET_EPISODE_ROW,
+  GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_METADATA_ROW,
+  GET_SEASON_ROW,
   getEpisode,
   getSeason,
   getSeasonRecentPremiereTimeUpdatingTaskMetadata,
   insertEpisodeStatement,
-  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
   listPendingSeasonRecentPremiereTimeUpdatingTasks,
 } from "../../../db/sql";
-import { PublishEpisodeHandler } from "./publish_episode_handler";
+import { UpdateEpisodePremiereTimeHandler } from "./update_episode_premiere_time_handler";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
-import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
+import { newBadRequestError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -26,10 +23,10 @@ import { assertReject, assertThat, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "PublishEpisodeHandlerTest",
+  name: "UpdateEpisodePremiereTimeHandlerTest",
   cases: [
     {
-      name: "PublishWithoutPremiereTimeAndAlsoPublishDraftSeason",
+      name: "UpdateWithPremiereTimeInThePast",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -37,17 +34,14 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.DRAFT,
-              totalPublishedEpisodes: 0,
-              lastChangeTimeMs: 100,
-              recentPremiereTimeMs: 100,
               createdTimeMs: 10,
+              recentPremiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
-              state: EpisodeState.DRAFT,
+              state: EpisodeState.PUBLISHED,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -59,7 +53,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new PublishEpisodeHandler(
+        let handler = new UpdateEpisodePremiereTimeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
@@ -71,6 +65,7 @@ TEST_RUNNER.run({
           {
             seasonId: "season1",
             episodeId: "episode1",
+            premiereTimeMs: 400,
           },
           "sessionStr",
         );
@@ -83,11 +78,9 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonState: SeasonState.PUBLISHED,
-                seasonTotalPublishedEpisodes: 1,
-                seasonLastChangeTimeMs: 1000,
-                seasonRecentPremiereTimeMs: 1000,
                 seasonCreatedTimeMs: 10,
+                seasonLastChangeTimeMs: 1000,
+                seasonRecentPremiereTimeMs: 400,
               },
               GET_SEASON_ROW,
             ),
@@ -104,10 +97,8 @@ TEST_RUNNER.run({
               {
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
-                episodeIndex: 1,
-                episodeVideoContainer: {},
                 episodeState: EpisodeState.PUBLISHED,
-                episodePremiereTimeMs: 1000,
+                episodePremiereTimeMs: 400,
               },
               GET_EPISODE_ROW,
             ),
@@ -122,23 +113,22 @@ TEST_RUNNER.run({
             },
           ),
           isArray([]),
-          "task",
+          "tasks",
         );
       },
-      tearDown: async () => {
+      async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
-              seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();
         });
-      },
+      }
     },
     {
-      name: "PublishWithFuturePremiereTimeAndSeasonAlreadyPublishedAndRecentPremiereTimeUpdatingTask",
+      name: "UpdateWithPremiereTimeInTheFuture",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -146,24 +136,14 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              totalPublishedEpisodes: 1,
-              lastChangeTimeMs: 100,
-              recentPremiereTimeMs: 100,
               createdTimeMs: 10,
+              recentPremiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
-              state: EpisodeState.DRAFT,
-            }),
-            insertSeasonRecentPremiereTimeUpdatingTaskStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              premiereTimeMs: 3000,
-              retryCount: 0,
-              executionTimeMs: 3000,
+              state: EpisodeState.PUBLISHED,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -175,7 +155,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new PublishEpisodeHandler(
+        let handler = new UpdateEpisodePremiereTimeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
@@ -200,11 +180,9 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonState: SeasonState.PUBLISHED,
-                seasonTotalPublishedEpisodes: 2,
-                seasonLastChangeTimeMs: 1000,
-                seasonRecentPremiereTimeMs: 100,
                 seasonCreatedTimeMs: 10,
+                seasonLastChangeTimeMs: 1000,
+                seasonRecentPremiereTimeMs: 300,
               },
               GET_SEASON_ROW,
             ),
@@ -221,8 +199,6 @@ TEST_RUNNER.run({
               {
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
-                episodeIndex: 2,
-                episodeVideoContainer: {},
                 episodeState: EpisodeState.PUBLISHED,
                 episodePremiereTimeMs: 2000,
               },
@@ -246,26 +222,25 @@ TEST_RUNNER.run({
                 seasonRecentPremiereTimeUpdatingTaskRetryCount: 0,
                 seasonRecentPremiereTimeUpdatingTaskExecutionTimeMs: 2000,
               },
-              GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_ROW,
+              GET_SEASON_RECENT_PREMIERE_TIME_UPDATING_TASK_METADATA_ROW,
             ),
           ]),
-          "task",
+          "tasks",
         );
       },
-      tearDown: async () => {
+      async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
-              seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();
         });
-      },
+      }
     },
     {
-      name: "VideoContainerNotAvailable",
+      name: "EpisodeNotPublished",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -273,16 +248,14 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.DRAFT,
-              totalPublishedEpisodes: 0,
-              lastChangeTimeMs: 100,
-              recentPremiereTimeMs: 100,
               createdTimeMs: 10,
+              recentPremiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               state: EpisodeState.DRAFT,
+              premiereTimeMs: 300,
             }),
           ]);
           await transaction.commit();
@@ -294,7 +267,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new PublishEpisodeHandler(
+        let handler = new UpdateEpisodePremiereTimeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
@@ -307,6 +280,7 @@ TEST_RUNNER.run({
             {
               seasonId: "season1",
               episodeId: "episode1",
+              premiereTimeMs: 400,
             },
             "sessionStr",
           ),
@@ -317,158 +291,22 @@ TEST_RUNNER.run({
           error,
           eqHttpError(
             newBadRequestError(
-              "Video container is not committed yet for season season1 episode episode1.",
+              "Season season1 episode episode1 is not in published state.",
             ),
           ),
           "error",
         );
       },
-      tearDown: async () => {
+      async tearDown() {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-          ]);
-          await transaction.commit();
-        });
-      },
-    },
-    {
-      name: "AlreadyReachedMaxPublishedEpisodes",
-      execute: async () => {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
-              totalPublishedEpisodes: 1000,
-              lastChangeTimeMs: 100,
-              recentPremiereTimeMs: 100,
-              createdTimeMs: 10,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              videoContainer: {},
-              state: EpisodeState.DRAFT,
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season1",
             }),
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher1",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new PublishEpisodeHandler(
-          SPANNER_DATABASE,
-          serviceClientMock,
-          () => 1000,
-        );
-
-        // Execute
-        let error = await assertReject(
-          handler.handle(
-            "",
-            {
-              seasonId: "season1",
-              episodeId: "episode1",
-            },
-            "sessionStr",
-          ),
-        );
-
-        // Verify
-        assertThat(
-          error,
-          eqHttpError(
-            newBadRequestError(
-              "Season season1 has reached maximum number of published episodes.",
-            ),
-          ),
-          "error",
-        );
-      },
-      tearDown: async () => {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-          ]);
-          await transaction.commit();
-        });
-      },
-    },
-    {
-      name: "EpisodeNotOwned",
-      execute: async () => {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              publisherId: "publisher1",
-              state: SeasonState.DRAFT,
-              totalPublishedEpisodes: 0,
-              lastChangeTimeMs: 100,
-              recentPremiereTimeMs: 100,
-              createdTimeMs: 10,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              videoContainer: {},
-              state: EpisodeState.DRAFT,
-            }),
-          ]);
-          await transaction.commit();
-        });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher2",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new PublishEpisodeHandler(
-          SPANNER_DATABASE,
-          serviceClientMock,
-          () => 1000,
-        );
-
-        // Execute
-        let error = await assertReject(
-          handler.handle(
-            "",
-            {
-              seasonId: "season1",
-              episodeId: "episode1",
-            },
-            "sessionStr",
-          ),
-        );
-
-        // Verify
-        assertThat(
-          error,
-          eqHttpError(
-            newNotFoundError(
-              "Season season1 or episode episode1 is not found.",
-            ),
-          ),
-          "error",
-        );
-      },
-      tearDown: async () => {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-          ]);
-          await transaction.commit();
-        });
-      },
+      }
     },
   ],
 });

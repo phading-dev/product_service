@@ -2,15 +2,15 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getEpisodeForPublisher,
-  updateEpisodeInfoStatement,
+  updateEpisodeNameStatement,
   updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { MAX_EPISODE_NAME_LENGTH } from "@phading/constants/show";
-import { UpdateEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { UpdateEpisodeNameHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  UpdateEpisodeRequestBody,
-  UpdateEpisodeResponse,
+  UpdateEpisodeNameRequestBody,
+  UpdateEpisodeNameResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
@@ -20,9 +20,9 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
-  public static create(): UpdateEpisodeHandler {
-    return new UpdateEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+export class UpdateEpisodeNameHandler extends UpdateEpisodeNameHandlerInterface {
+  public static create(): UpdateEpisodeNameHandler {
+    return new UpdateEpisodeNameHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
       Date.now(),
     );
   }
@@ -37,9 +37,9 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
 
   public async handle(
     loggingPrefix: string,
-    body: UpdateEpisodeRequestBody,
+    body: UpdateEpisodeNameRequestBody,
     sessionStr: string,
-  ): Promise<UpdateEpisodeResponse> {
+  ): Promise<UpdateEpisodeNameResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
@@ -62,7 +62,7 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to update episode draft.`,
+        `Account ${accountId} is not allowed to update episode draft.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
@@ -77,7 +77,7 @@ export class UpdateEpisodeHandler extends UpdateEpisodeHandlerInterface {
         );
       }
       await transaction.batchUpdate([
-        updateEpisodeInfoStatement({
+        updateEpisodeNameStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
           setName: body.name,

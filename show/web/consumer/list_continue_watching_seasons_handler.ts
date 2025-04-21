@@ -1,24 +1,30 @@
-import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
+import {
+  MAX_LIST_SEASONS_ITEMS,
+  NEXT_EPISODE_WATCH_TIME_THRESHOLD,
+} from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getPublishedSeasonForConsumer,
+  getPublishedEpisode,
+  getPublishedSeason,
+  listNextPublishedEpisodes,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
-import { fetchContinueEpisode } from "./common/fetch_continue_episode";
 import { Database } from "@google-cloud/spanner";
 import { newListRecentlyWatchedSeasonsRequest } from "@phading/play_activity_service_interface/show/node/client";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ListContinueWatchingSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import {
+  ContinueSeason,
+  Episode,
+  SeasonSummary,
+} from "@phading/product_service_interface/show/web/consumer/info";
 import {
   ListContinueWatchingSeasonsRequestBody,
   ListContinueWatchingSeasonsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import {
-  ContinueSeason,
-  SeasonSummary,
-} from "@phading/product_service_interface/show/web/consumer/summary";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
@@ -84,7 +90,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     let continues = new Array<ContinueSeason>(response.seasons.length);
     await Promise.all(
       response.seasons.map(async (recentSeason, i) => {
-        let seasonRowsPromise = getPublishedSeasonForConsumer(this.database, {
+        let seasonRowsPromise = getPublishedSeason(this.database, {
           seasonSeasonIdEq: recentSeason.seasonId,
           seasonStateEq: SeasonState.PUBLISHED,
         });
@@ -93,41 +99,36 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           seasonGradeEndDateGt: todayStr,
           limit: 1,
         });
-        let fetchContinueEpisodePromise = fetchContinueEpisode(
-          this.database,
+        let getContinueEpisodePromise = this.getContinueEpisode(
           recentSeason.seasonId,
           recentSeason.latestEpisodeId,
-          recentSeason.latestEpisodeIndex,
           recentSeason.latestWatchedTimeMs,
         );
-        let [seasonRows, seasonGradeRows] = await Promise.all([
-          seasonRowsPromise,
-          seasonGradeRowsPromise,
-        ]);
+        let seasonRows = await seasonRowsPromise;
         if (seasonRows.length === 0) {
           return;
         }
+        let seasonRow = seasonRows[0];
+        let seasonGradeRows = await seasonGradeRowsPromise;
         if (seasonGradeRows.length === 0) {
           throw newInternalServerErrorError(
             `Season ${recentSeason.seasonId} today ${todayStr} has no grade.`,
           );
         }
-        let seasonRow = seasonRows[0];
         let seasonGradeRow = seasonGradeRows[0];
+        let continueEpisode = await getContinueEpisodePromise;
+        if (!continueEpisode) {
+          return;
+        }
         let seasonSummary: SeasonSummary = {
           seasonId: seasonRow.seasonSeasonId,
           name: seasonRow.seasonName,
           publisherId: seasonRow.seasonPublisherId,
-          totalEpisodes: seasonRow.seasonTotalEpisodes,
           coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`,
           grade: seasonGradeRow.seasonGradeGrade,
           averageRating: seasonRow.seasonAverageRating,
           ratingsCount: seasonRow.seasonRatingsCount,
         };
-        let continueEpisode = await fetchContinueEpisodePromise;
-        if (!continueEpisode) {
-          return;
-        }
         continues[i] = {
           season: seasonSummary,
           episode: continueEpisode.episode,
@@ -137,6 +138,66 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     );
     return {
       continues: continues.filter((c) => c),
+    };
+  }
+
+  private async getContinueEpisode(
+    seasonId: string,
+    latestEpisodeId: string,
+    latestWatchedTimeMs: number,
+  ): Promise<{
+    episode: Episode;
+    continueTimeMs: number;
+  }> {
+    let latestEpisodeRows = await getPublishedEpisode(this.database, {
+      episodeSeasonIdEq: seasonId,
+      seasonStateEq: SeasonState.PUBLISHED,
+      episodeEpisodeIdEq: latestEpisodeId,
+      episodeStateEq: EpisodeState.PUBLISHED,
+    });
+    if (latestEpisodeRows.length === 0) {
+      return undefined;
+    }
+    let latestEpisode = latestEpisodeRows[0];
+    if (
+      latestWatchedTimeMs <
+      latestEpisode.episodeVideoContainer.durationSec *
+        NEXT_EPISODE_WATCH_TIME_THRESHOLD
+    ) {
+      return {
+        episode: {
+          episodeId: latestEpisode.episodeEpisodeId,
+          name: latestEpisode.episodeName,
+          index: latestEpisode.episodeIndex,
+          videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
+          resolution: latestEpisode.episodeVideoContainer.resolution,
+          premiereTimeMs: latestEpisode.episodePremiereTimeMs,
+        },
+        continueTimeMs: latestWatchedTimeMs,
+      };
+    }
+
+    let nextEpisodeRows = await listNextPublishedEpisodes(this.database, {
+      episodeSeasonIdEq: seasonId,
+      seasonStateEq: SeasonState.PUBLISHED,
+      episodeIndexGt: latestEpisode.episodeIndex,
+      episodeStateEq: EpisodeState.PUBLISHED,
+      limit: 1,
+    });
+    if (nextEpisodeRows.length === 0) {
+      return undefined;
+    }
+    let nextEpisode = nextEpisodeRows[0];
+    return {
+      episode: {
+        episodeId: nextEpisode.episodeEpisodeId,
+        name: nextEpisode.episodeName,
+        index: nextEpisode.episodeIndex,
+        videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
+        resolution: nextEpisode.episodeVideoContainer.resolution,
+        premiereTimeMs: nextEpisode.episodePremiereTimeMs,
+      },
+      continueTimeMs: 0,
     };
   }
 }

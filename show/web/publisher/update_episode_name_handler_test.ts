@@ -9,7 +9,7 @@ import {
   insertEpisodeStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { UpdateEpisodeHandler } from "./update_episode_handler";
+import { UpdateEpisodeNameHandler } from "./update_episode_name_handler";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -17,7 +17,7 @@ import { assertThat, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "UpdateEpisodeHandlerTest",
+  name: "UpdateEpisodeNameHandlerTest",
   cases: [
     {
       name: "Success",
@@ -45,7 +45,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new UpdateEpisodeHandler(
+        let handler = new UpdateEpisodeNameHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,

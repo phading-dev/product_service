@@ -57,7 +57,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to list seasons.`,
+        `Account ${accountId} is not allowed to list seasons.`,
       );
     }
     let rows = await listSeasonsForPublisher(this.database, {
@@ -74,7 +74,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
           coverImageUrl: row.seasonCoverImageR2Filename
             ? `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
             : undefined,
-          totalEpisodes: row.seasonTotalEpisodes,
+          totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
           lastChangeTimeMs: row.seasonLastChangeTimeMs,
           ratingsCount: row.seasonRatingsCount,
           averageRating: row.seasonAverageRating,

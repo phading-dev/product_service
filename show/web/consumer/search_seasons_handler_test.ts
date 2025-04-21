@@ -7,8 +7,8 @@ import {
 } from "../../../db/sql";
 import { SearchSeasonsHandler } from "./search_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
+import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/consumer/info";
 import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/consumer/summary";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -32,7 +32,6 @@ TEST_RUNNER.run({
               description:
                 "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
               coverImageR2Filename: "cover1",
-              totalEpisodes: 1,
               ratingsCount: 0,
               averageRating: 0,
               createdTimeMs: 1000,
@@ -51,7 +50,6 @@ TEST_RUNNER.run({
               name: "Happy sand",
               description: "A sand in a desert.",
               coverImageR2Filename: "cover2",
-              totalEpisodes: 1,
               ratingsCount: 0,
               averageRating: 0,
               createdTimeMs: 1000,
@@ -71,7 +69,6 @@ TEST_RUNNER.run({
               description:
                 "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
               coverImageR2Filename: "cover3",
-              totalEpisodes: 1,
               ratingsCount: 0,
               averageRating: 0,
               createdTimeMs: 3000,
@@ -91,7 +88,6 @@ TEST_RUNNER.run({
               description:
                 "Epic season with thrilling narratives. A heartwarming tale of courage and growth. Packed with twists, turns, and surprises.",
               coverImageR2Filename: "cover4",
-              totalEpisodes: 1,
               ratingsCount: 6,
               averageRating: 4.5,
               createdTimeMs: 4000,
@@ -141,7 +137,6 @@ TEST_RUNNER.run({
               name: "Thrilling Eclipse Lyrics",
               coverImageUrl: "https://test.com/cover4",
               grade: 5,
-              totalEpisodes: 1,
               ratingsCount: 6,
               averageRating: 4.5,
             },
@@ -158,7 +153,6 @@ TEST_RUNNER.run({
               name: "Thrilling Eclipse",
               coverImageUrl: "https://test.com/cover1",
               grade: 5,
-              totalEpisodes: 1,
               ratingsCount: 0,
               averageRating: 0,
             },
@@ -192,7 +186,6 @@ TEST_RUNNER.run({
                   name: "Thrilling Eclipse",
                   coverImageUrl: "https://test.com/cover3",
                   grade: 5,
-                  totalEpisodes: 1,
                   averageRating: 0,
                   ratingsCount: 0,
                 },

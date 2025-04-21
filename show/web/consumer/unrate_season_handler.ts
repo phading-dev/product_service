@@ -3,7 +3,7 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteIndividualSeasonRatingStatement,
   getIndividualSeasonRating,
-  getPublishedSeasonRatingForConsumer,
+  getPublishedSeasonRating,
   updateSeasonRatingStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
@@ -59,7 +59,7 @@ export class UnrateSeasonHandler extends UnrateSeasonHandlerInterface {
     }
     await this.database.runTransactionAsync(async (transaction) => {
       let [seasonRows, individualRows] = await Promise.all([
-        getPublishedSeasonRatingForConsumer(transaction, {
+        getPublishedSeasonRating(transaction, {
           seasonSeasonIdEq: body.seasonId,
           seasonStateEq: SeasonState.PUBLISHED,
         }),

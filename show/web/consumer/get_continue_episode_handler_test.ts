@@ -24,126 +24,86 @@ import { ClientRequestInterface } from "@selfage/service_descriptor/client_reque
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
+async function insertEpisodes() {
+  await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+    await transaction.batchUpdate([
+      insertSeasonStatement({
+        seasonId: "season1",
+        state: SeasonState.PUBLISHED,
+        createdTimeMs: 1000,
+      }),
+      insertEpisodeStatement({
+        seasonId: "season1",
+        episodeId: "episode1",
+        index: 1,
+        name: "Episode 1",
+        videoContainer: {
+          durationSec: 120,
+          resolution: "1080p",
+        },
+        premiereTimeMs: 100,
+        state: EpisodeState.PUBLISHED,
+      }),
+      insertEpisodeStatement({
+        seasonId: "season1",
+        episodeId: "episode2",
+        index: 2,
+        name: "Episode 2",
+        videoContainer: {
+          durationSec: 150,
+          resolution: "1080p",
+        },
+        premiereTimeMs: 200,
+        state: EpisodeState.PUBLISHED,
+      }),
+      insertEpisodeStatement({
+        seasonId: "season1",
+        episodeId: "episode3",
+        index: 3,
+        name: "Episode 3",
+        videoContainer: {
+          durationSec: 180,
+          resolution: "1080p",
+        },
+        premiereTimeMs: 300,
+        state: EpisodeState.PUBLISHED,
+      }),
+      insertEpisodeStatement({
+        seasonId: "season1",
+        episodeId: "episode4",
+        index: 4,
+        name: "Episode 4",
+        videoContainer: {
+          durationSec: 200,
+          resolution: "1080p",
+        },
+        premiereTimeMs: 400,
+        state: EpisodeState.DRAFT,
+      }),
+    ]);
+    await transaction.commit();
+  });
+}
+
+async function deleteSeason() {
+  await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+    await transaction.batchUpdate([
+      deleteSeasonStatement({
+        seasonSeasonIdEq: "season1",
+      }),
+    ]);
+    await transaction.commit();
+  });
+}
+
 TEST_RUNNER.run({
   name: "GetContinueEpisodeHandlerTest",
   cases: [
     {
-      name: "GetLatestEpisode",
+      name: "NoEpisodeWatched_StartFromFirstEpisode",
       async execute() {
         // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              state: SeasonState.PUBLISHED,
-              createdTimeMs: 1000,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              index: 1,
-              name: "episode1",
-              videoContainer: {
-                durationSec: 120,
-              },
-              premiereTimeMs: 10,
-              state: EpisodeState.PUBLISHED,
-            }),
-          ]);
-          await transaction.commit();
-        });
-        let serviceClientMock = new (class extends NodeServiceClientMock {
-          public async send(
-            request: ClientRequestInterface<any>,
-            options?: NodeClientOptions,
-          ): Promise<any> {
-            switch (request.descriptor) {
-              case FETCH_SESSION_AND_CHECK_CAPABILITY:
-                return {
-                  accountId: "account1",
-                  capabilities: {
-                    canConsume: true,
-                  },
-                } as FetchSessionAndCheckCapabilityResponse;
-              case GET_LATEST_WATCHED_EPISODE:
-                this.request = request;
-                return {
-                  episodeId: "episode1",
-                  episodeIndex: 1,
-                  watchedTimeMs: 60,
-                } as GetLatestWatchedEpisodeResponse;
-            }
-          }
-        })();
-        let handler = new GetContinueEpisodeHandler(
-          SPANNER_DATABASE,
-          serviceClientMock,
-        );
-
-        // Execute
-        let response = await handler.handle(
-          "",
-          { seasonId: "season1" },
-          "session1",
-        );
-
-        // Verify
-        assertThat(
-          response,
-          eqMessage(
-            {
-              continue: {
-                episode: {
-                  episodeId: "episode1",
-                  name: "episode1",
-                  index: 1,
-                  videoDurationSec: 120,
-                  premiereTimeMs: 10,
-                },
-                continueTimeMs: 60,
-              },
-            },
-            GET_CONTINUE_EPISODE_RESPONSE,
-          ),
-          "GetContinueEpisodeResponse",
-        );
-      },
-      async tearDown() {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({
-              seasonSeasonIdEq: "season1",
-            }),
-          ]);
-          await transaction.commit();
-        });
-      },
-    },
-    {
-      name: "NoLatestEpisode_StartFromFirstEpisode",
-      async execute() {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              state: SeasonState.PUBLISHED,
-              createdTimeMs: 1000,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              index: 1,
-              name: "episode1",
-              videoContainer: {
-                durationSec: 120,
-              },
-              premiereTimeMs: 10,
-              state: EpisodeState.PUBLISHED,
-            }),
-          ]);
-          await transaction.commit();
-        });
+        await insertEpisodes();
         let serviceClientMock = new (class extends NodeServiceClientMock {
           public async send(
             request: ClientRequestInterface<any>,
@@ -183,12 +143,14 @@ TEST_RUNNER.run({
               continue: {
                 episode: {
                   episodeId: "episode1",
-                  name: "episode1",
+                  name: "Episode 1",
                   index: 1,
                   videoDurationSec: 120,
-                  premiereTimeMs: 10,
+                  resolution: "1080p",
+                  premiereTimeMs: 100,
                 },
                 continueTimeMs: 0,
+                rewatching: false,
               },
             },
             GET_CONTINUE_EPISODE_RESPONSE,
@@ -197,14 +159,270 @@ TEST_RUNNER.run({
         );
       },
       async tearDown() {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({
-              seasonSeasonIdEq: "season1",
-            }),
-          ]);
-          await transaction.commit();
-        });
+        await deleteSeason();
+      },
+    },
+    {
+      name: "LatestWatchedEpisodeNotPublished_StartFromFirstEpisode",
+      async execute() {
+        // Prepare
+        await insertEpisodes();
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsume: true,
+                  },
+                } as FetchSessionAndCheckCapabilityResponse;
+              case GET_LATEST_WATCHED_EPISODE:
+                this.request = request;
+                return {
+                  episodeId: "episode4",
+                } as GetLatestWatchedEpisodeResponse;
+            }
+          }
+        })();
+        let handler = new GetContinueEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          { seasonId: "season1" },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continue: {
+                episode: {
+                  episodeId: "episode1",
+                  name: "Episode 1",
+                  index: 1,
+                  videoDurationSec: 120,
+                  resolution: "1080p",
+                  premiereTimeMs: 100,
+                },
+                continueTimeMs: 0,
+                rewatching: false,
+              },
+            },
+            GET_CONTINUE_EPISODE_RESPONSE,
+          ),
+          "GetContinueEpisodeResponse",
+        );
+      },
+      async tearDown() {
+        await deleteSeason();
+      },
+    },
+    {
+      name: "ContinueFromLatestWatchedEpisode",
+      async execute() {
+        // Prepare
+        await insertEpisodes();
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsume: true,
+                  },
+                } as FetchSessionAndCheckCapabilityResponse;
+              case GET_LATEST_WATCHED_EPISODE:
+                this.request = request;
+                return {
+                  episodeId: "episode2",
+                  watchedTimeMs: 60,
+                } as GetLatestWatchedEpisodeResponse;
+            }
+          }
+        })();
+        let handler = new GetContinueEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          { seasonId: "season1" },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continue: {
+                episode: {
+                  episodeId: "episode2",
+                  name: "Episode 2",
+                  index: 2,
+                  videoDurationSec: 150,
+                  resolution: "1080p",
+                  premiereTimeMs: 200,
+                },
+                continueTimeMs: 60,
+                rewatching: false,
+              },
+            },
+            GET_CONTINUE_EPISODE_RESPONSE,
+          ),
+          "GetContinueEpisodeResponse",
+        );
+      },
+      async tearDown() {
+        await deleteSeason();
+      },
+    },
+    {
+      name: "LatestWatchedEpisodeCompleted_ContinueAtTheNextEpisode",
+      async execute() {
+        // Prepare
+        await insertEpisodes();
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsume: true,
+                  },
+                } as FetchSessionAndCheckCapabilityResponse;
+              case GET_LATEST_WATCHED_EPISODE:
+                this.request = request;
+                return {
+                  episodeId: "episode2",
+                  watchedTimeMs: 136,
+                } as GetLatestWatchedEpisodeResponse;
+            }
+          }
+        })();
+        let handler = new GetContinueEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          { seasonId: "season1" },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continue: {
+                episode: {
+                  episodeId: "episode3",
+                  name: "Episode 3",
+                  index: 3,
+                  videoDurationSec: 180,
+                  resolution: "1080p",
+                  premiereTimeMs: 300,
+                },
+                continueTimeMs: 0,
+                rewatching: false,
+              },
+            },
+            GET_CONTINUE_EPISODE_RESPONSE,
+          ),
+          "GetContinueEpisodeResponse",
+        );
+      },
+      async tearDown() {
+        await deleteSeason();
+      },
+    },
+    {
+      name: "LatestWatchedEpisodeCompleted_NoNextEpisode_StartFromFirstEpisode",
+      async execute() {
+        // Prepare
+        await insertEpisodes();
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+            options?: NodeClientOptions,
+          ): Promise<any> {
+            switch (request.descriptor) {
+              case FETCH_SESSION_AND_CHECK_CAPABILITY:
+                return {
+                  accountId: "account1",
+                  capabilities: {
+                    canConsume: true,
+                  },
+                } as FetchSessionAndCheckCapabilityResponse;
+              case GET_LATEST_WATCHED_EPISODE:
+                this.request = request;
+                return {
+                  episodeId: "episode3",
+                  watchedTimeMs: 179,
+                } as GetLatestWatchedEpisodeResponse;
+            }
+          }
+        })();
+        let handler = new GetContinueEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          { seasonId: "season1" },
+          "session1",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              continue: {
+                episode: {
+                  episodeId: "episode1",
+                  name: "Episode 1",
+                  index: 1,
+                  videoDurationSec: 120,
+                  resolution: "1080p",
+                  premiereTimeMs: 100,
+                },
+                continueTimeMs: 0,
+                rewatching: true,
+              },
+            },
+            GET_CONTINUE_EPISODE_RESPONSE,
+          ),
+          "GetContinueEpisodeResponse",
+        );
+      },
+      async tearDown() {
+        await deleteSeason();
       },
     },
   ],

@@ -1,18 +1,14 @@
 import crypto = require("crypto");
-import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonForPublisher,
   insertEpisodeStatement,
   insertVideoContainerCreatingTaskStatement,
-  updateSeasonTotalEpisodesStatement,
+  updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import {
-  MAX_EPISODE_NAME_LENGTH,
-  MAX_NUM_OF_EPISODES_PER_SEASON,
-} from "@phading/constants/show";
+import { MAX_EPISODE_NAME_LENGTH } from "@phading/constants/show";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CreateEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
@@ -75,7 +71,6 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
       );
     }
     let episodeId: string;
-    let index: number;
     await this.database.runTransactionAsync(async (transaction) => {
       let rows = await getSeasonForPublisher(transaction, {
         seasonPublisherIdEq: accountId,
@@ -90,28 +85,18 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
           `Season ${body.seasonId} is archived and cannot create new episode.`,
         );
       }
-      if (season.seasonTotalEpisodes >= MAX_NUM_OF_EPISODES_PER_SEASON) {
-        throw newBadRequestError(
-          `Season ${body.seasonId} already has maximum number of episodes.`,
-        );
-      }
       let now = this.getNow();
       episodeId = this.generateUuid();
-      let totalEpisodes = season.seasonTotalEpisodes + 1;
-      index = totalEpisodes;
       await transaction.batchUpdate([
-        updateSeasonTotalEpisodesStatement({
+        updateSeasonLastChangeTimeStatement({
           seasonSeasonIdEq: body.seasonId,
-          setTotalEpisodes: totalEpisodes,
           setLastChangeTimeMs: now,
         }),
         insertEpisodeStatement({
           seasonId: body.seasonId,
           episodeId,
-          index,
           name: body.episodeName,
           state: EpisodeState.DRAFT,
-          premiereTimeMs: FAR_FUTURE_TIME_MS,
         }),
         insertVideoContainerCreatingTaskStatement({
           seasonId: body.seasonId,
@@ -127,9 +112,7 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
       episode: {
         episodeId,
         name: body.episodeName,
-        index,
         state: EpisodeState.DRAFT,
-        premiereTimeMs: FAR_FUTURE_TIME_MS,
       },
     };
   }

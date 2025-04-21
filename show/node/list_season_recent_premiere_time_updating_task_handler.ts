@@ -38,6 +38,7 @@ export class ListSeasonRecentPremiereTimeUpdatingTaskHandler extends ListSeasonR
         (task): ProcessSeasonRecentPremiereTimeUpdatingTaskRequestBody => ({
           seasonId: task.seasonRecentPremiereTimeUpdatingTaskSeasonId,
           episodeId: task.seasonRecentPremiereTimeUpdatingTaskEpisodeId,
+          premiereTimeMs: task.seasonRecentPremiereTimeUpdatingTaskPremiereTimeMs,
         }),
       ),
     };

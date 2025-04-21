@@ -8,9 +8,7 @@ import {
 import { ListSeasonsByRatingHandler } from "./list_seasons_by_rating_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
-import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
@@ -29,7 +27,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name1",
               coverImageR2Filename: "cover1",
-              totalEpisodes: 1,
               ratingsCount: 1,
               averageRating: 5,
               createdTimeMs: 1000,
@@ -47,7 +44,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name4",
               coverImageR2Filename: "cover4",
-              totalEpisodes: 4,
               ratingsCount: 4,
               averageRating: 5,
               createdTimeMs: 2000,
@@ -65,7 +61,6 @@ TEST_RUNNER.run({
               state: SeasonState.ARCHIVED,
               name: "name3",
               coverImageR2Filename: "cover3",
-              totalEpisodes: 3,
               ratingsCount: 3,
               averageRating: 3,
               createdTimeMs: 3000,
@@ -83,7 +78,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name2",
               coverImageR2Filename: "cover2",
-              totalEpisodes: 2,
               ratingsCount: 2,
               averageRating: 3,
               createdTimeMs: 1000,
@@ -98,16 +92,8 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsByRatingHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://test.com",
           () => new Date(1000),
         );
@@ -119,7 +105,6 @@ TEST_RUNNER.run({
             {
               limit: 2,
             },
-            "authStr",
           );
 
           // Verify
@@ -133,7 +118,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher4",
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
-                    totalEpisodes: 4,
                     grade: 44,
                     ratingsCount: 4,
                     averageRating: 5,
@@ -143,7 +127,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher1",
                     name: "name1",
                     coverImageUrl: "https://test.com/cover1",
-                    totalEpisodes: 1,
                     grade: 11,
                     ratingsCount: 1,
                     averageRating: 5,
@@ -167,7 +150,6 @@ TEST_RUNNER.run({
               createdTimeCursor: 1000,
               limit: 2,
             },
-            "authStr",
           );
 
           // Verify
@@ -181,7 +163,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher2",
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
-                    totalEpisodes: 2,
                     grade: 22,
                     ratingsCount: 2,
                     averageRating: 3,

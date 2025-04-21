@@ -5,7 +5,7 @@ import {
   GET_SEASON_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
-  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
@@ -16,7 +16,7 @@ import {
   insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
-  listNextEpisodesForPublisher,
+  listAllVideoContainersForPublisher,
   listPendingSeasonRecentPremiereTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
@@ -67,21 +67,8 @@ async function cleanUpAll() {
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
       }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+      deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
         seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode2",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode3",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode4",
       }),
     ]);
     await transaction.commit();
@@ -141,6 +128,7 @@ TEST_RUNNER.run({
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode2",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -210,11 +198,9 @@ TEST_RUNNER.run({
           "seasonRecentPremiereTimeUpdatingTasks",
         );
         assertThat(
-          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            seasonPublisherIdEq: "publisher1",
+          await listAllVideoContainersForPublisher(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            episodeIndexGt: 0,
-            limit: 10,
+            seasonPublisherIdEq: "publisher1",
           }),
           isArray([]),
           "episodes",

@@ -4,7 +4,7 @@ import {
   GET_COVER_IMAGE_DELETING_TASK_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
-  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
+  deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
@@ -15,7 +15,7 @@ import {
   insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
-  listNextEpisodesForPublisher,
+  listAllVideoContainersForPublisher,
   listPendingCoverImageDeletingTasks,
   listPendingSeasonRecentPremiereTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
@@ -65,21 +65,8 @@ async function cleanUpAll() {
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
       }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
+      deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
         seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode2",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode3",
-      }),
-      deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-        seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-        seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode4",
       }),
     ]);
     await transaction.commit();
@@ -99,7 +86,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
-              totalEpisodes: 4,
               coverImageR2Filename: "cover1",
               description: "Description",
               createdTimeMs: 1000,
@@ -108,26 +94,22 @@ TEST_RUNNER.run({
               seasonId: "season1",
               episodeId: "episode1",
               name: "Ep 1",
-              index: 1,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               name: "Ep 2",
-              index: 2,
               videoContainerId: "videoContainer2",
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               name: "Ep 3",
-              index: 3,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode4",
               name: "Ep 4",
-              index: 4,
               videoContainerId: "videoContainer4",
             }),
             insertVideoContainerCreatingTaskStatement({
@@ -141,6 +123,7 @@ TEST_RUNNER.run({
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode2",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -203,11 +186,9 @@ TEST_RUNNER.run({
           "coverImageDeletingTasks",
         );
         assertThat(
-          await listNextEpisodesForPublisher(SPANNER_DATABASE, {
-            seasonPublisherIdEq: "publisher1",
+          await listAllVideoContainersForPublisher(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            episodeIndexGt: 0,
-            limit: 10,
+            seasonPublisherIdEq: "publisher1",
           }),
           isArray([]),
           "episodes",

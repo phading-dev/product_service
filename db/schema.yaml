@@ -19,7 +19,7 @@
         - name: coverImageR2Filename
           type: string
           nullable: true
-        - name: totalEpisodes
+        - name: totalPublishedEpisodes
           type: float64
           nullable: true
         - name: lastChangeTimeMs
@@ -53,7 +53,7 @@
             - state
             - name
             - coverImageR2Filename
-            - totalEpisodes
+            - totalPublishedEpisodes
             - lastChangeTimeMs
             - recentPremiereTimeMs
             - ratingsCount
@@ -192,6 +192,7 @@
         - name: ByIndex
           columns:
             - seasonId
+            - state
             - name: index
               desc: true
         - name: ByPremiereTimeMs
@@ -303,12 +304,15 @@
           type: string
         - name: episodeId
           type: string
+        - name: premiereTimeMs
+          type: float64
       retryCountColumn: retryCount
       executionTimeColumn: executionTimeMs
       createdTimeColumn: createdTimeMs
       primaryKeys:
         - seasonId
         - episodeId
+        - premiereTimeMs
       executionTimeIndex: SeasonRecentPremiereTimeUpdatingTaskByExecutionTimeMs
       insert: InsertSeasonRecentPremiereTimeUpdatingTask
       delete: DeleteSeasonRecentPremiereTimeUpdatingTask
@@ -327,6 +331,15 @@
       where:
         op: =
         lColumn: seasonId
+    - name: DeleteSeasonRecentPremiereTimeUpdatingTasksOfEpisode
+      table: SeasonRecentPremiereTimeUpdatingTask
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
   updates:
     - name: UpdateSeasonLastChangeTime
       table: Season
@@ -344,13 +357,13 @@
         - state
         - coverImageR2Filename
         - lastChangeTimeMs
-    - name: UpdateSeasonTotalEpisodes
+    - name: UpdateSeasonTotalPublishedEpisodes
       table: Season
       where:
         op: =
         lColumn: seasonId
       set:
-        - totalEpisodes
+        - totalPublishedEpisodes
         - lastChangeTimeMs
     - name: PublishSeason
       table: Season
@@ -359,6 +372,7 @@
         lColumn: seasonId
       set:
         - state
+        - totalPublishedEpisodes
         - lastChangeTimeMs
     - name: UpdateSeasonRecentPremiereTime
       table: Season
@@ -472,8 +486,9 @@
             lColumn: episodeId
       set:
         - state
+        - index
         - premiereTimeMs
-    - name: UpdateEpisodeInfo
+    - name: UpdateEpisodeName
       table: Episode
       where:
         op: AND
@@ -484,6 +499,17 @@
             lColumn: episodeId
       set:
         - name
+    - name: UpdateEpisodePremiereTime
+      table: Episode
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: seasonId
+          - op: =
+            lColumn: episodeId
+      set:
+        - premiereTimeMs
   selects:
     # Season
     - name: CheckPresenceOfSeason
@@ -605,7 +631,7 @@
         - func: SCORE
           column: fullText
         - createdTimeMs
-    - name: ListPublishedSeasonsByPremiereTimeForConsumer
+    - name: ListPublishedSeasonsByPremiereTime
       from: Season
       where:
         op: AND
@@ -631,7 +657,7 @@
       get:
         - columnGroup: main
         - createdTimeMs
-    - name: ListPublishedSeasonsByRatingForConsumer
+    - name: ListPublishedSeasonsByRating
       from: Season
       where:
         op: AND
@@ -657,7 +683,7 @@
       get:
         - columnGroup: main
         - createdTimeMs
-    - name: ListPublishedSeasonsByPremiereTimeAndPublisherForConsumer
+    - name: ListPublishedSeasonsByPremiereTimeAndPublisher
       from: Season
       where:
         op: AND
@@ -685,7 +711,7 @@
       get:
         - columnGroup: main
         - createdTimeMs
-    - name: ListPublishedSeasonsByRatingAndPublisherForConsumer
+    - name: ListPublishedSeasonsByRatingAndPublisher
       from: Season
       where:
         op: AND
@@ -713,7 +739,7 @@
       get:
         - columnGroup: main
         - createdTimeMs
-    - name: GetPublishedSeasonForConsumer
+    - name: GetPublishedSeason
       from: Season
       where:
         op: AND
@@ -724,7 +750,7 @@
             lColumn: state
       get:
         - columnGroup: main
-    - name: GetPublishedSeasonAndEpisodeForConsumer
+    - name: GetPublishedSeasonAndEpisode
       from: Season
       as: s
       join:
@@ -756,7 +782,7 @@
           table: s
         - all: true
           table: e
-    - name: GetPublishedSeasonAllForConsumer
+    - name: GetPublishedSeasonAll
       from: Season
       where:
         op: AND
@@ -767,7 +793,7 @@
             lColumn: state
       get:
         - all: true
-    - name: GetPublishedSeasonRatingForConsumer
+    - name: GetPublishedSeasonRating
       from: Season
       where:
         op: AND
@@ -778,7 +804,7 @@
             lColumn: state
       get:
         - columnGroup: rating
-    - name: SearchPublishedSeasonsForConsumer
+    - name: SearchPublishedSeasons
       from: Season
       where:
         op: AND
@@ -798,7 +824,7 @@
         - func: SCORE
           column: fullText
         - createdTimeMs
-    - name: ContinuedSearchPublishedSeasonsForConsumer
+    - name: ContinuedSearchPublishedSeasons
       from: Season
       where:
         op: AND
@@ -871,7 +897,7 @@
             lColumn: episodeId
       get:
         - state
-    - name: GetPublishedEpisodeForConsumer
+    - name: GetPublishedEpisode
       from: Episode
       as: e
       join:
@@ -901,7 +927,7 @@
       get:
         - all: true
           table: e
-    - name: ListNextPublishedEpisodesForConsumer
+    - name: ListNextPublishedEpisodes
       from: Episode
       as: e
       join:
@@ -935,7 +961,7 @@
       get:
         - all: true
           table: e
-    - name: ListPrevPublishedEpisodesForConsumer
+    - name: ListPrevPublishedEpisodes
       from: Episode
       as: e
       join:
@@ -970,7 +996,7 @@
       get:
         - all: true
           table: e
-    - name: ListPrevEpisodesForPublisher
+    - name: ListPrevPublishedEpisodesForPublisher
       from: Episode
       as: e
       join:
@@ -990,6 +1016,9 @@
             lTable: s
           - op: =
             lColumn: seasonId
+            lTable: e
+          - op: =
+            lColumn: state
             lTable: e
           - op: "<"
             lColumn: index
@@ -1002,7 +1031,7 @@
       get:
         - all: true
           table: e
-    - name: ListNextEpisodesForPublisher
+    - name: ListNextPublishedEpisodesForPublisher
       from: Episode
       as: e
       join:
@@ -1023,6 +1052,9 @@
           - op: =
             lColumn: seasonId
             lTable: e
+          - op: =
+            lColumn: state
+            lTable: e
           - op: ">"
             lColumn: index
             lTable: e
@@ -1032,6 +1064,69 @@
       withLimit: true
       get:
         - all: true
+          table: e
+    - name: ListDraftEpisodesForPublisher
+      from: Episode
+      as: e
+      join:
+        - type: INNER
+          with: Season
+          as: s
+          on:
+            op: =
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: publisherId
+            lTable: s
+          - op: =
+            lColumn: seasonId
+            lTable: e
+          - op: =
+            lColumn: state
+            lTable: e
+      orderBy:
+        - column: seasonId
+          table: e
+        - column: episodeId
+          table: e
+      get:
+        - all: true
+          table: e
+    - name: ListAllVideoContainersForPublisher
+      from: Episode
+      as: e
+      join:
+        - type: INNER
+          with: Season
+          as: s
+          on:
+            op: =
+            lColumn: seasonId
+            lTable: e
+            rColumn: seasonId
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: publisherId
+            lTable: s
+          - op: =
+            lColumn: seasonId
+            lTable: e
+      orderBy:
+        - column: seasonId
+          table: e
+        - column: episodeId
+          table: e
+      get:
+        - column: episodeId
+          table: e
+        - column: videoContainerId
           table: e
     - name: GetEpisodeForPublisher
       from: Episode
@@ -1093,7 +1188,7 @@
         exprs:
           - op: =
             lColumn: seasonId
-          - op: <
+          - op: <=
             lColumn: premiereTimeMs
       orderBy:
         - column: premiereTimeMs

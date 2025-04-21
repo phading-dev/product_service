@@ -1,33 +1,28 @@
-import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getLastSeasonGrades,
-  getPublishedSeasonAndEpisodeForConsumer,
+  getPublishedSeasonAndEpisode,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { GetSeasonAndEpisodeSummaryHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { GetEpisodeWithSeasonSummaryHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
-  GetSeasonAndEpisodeSummaryRequestBody,
-  GetSeasonAndEpisodeSummaryResponse,
+  GetEpisodeWithSeasonSummaryRequestBody,
+  GetEpisodeWithSeasonSummaryResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
-import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
   newInternalServerErrorError,
   newNotFoundError,
-  newUnauthorizedError,
 } from "@selfage/http_error";
-import { NodeServiceClient } from "@selfage/node_service_client";
 import { TzDate } from "@selfage/tz_date";
 
-export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummaryHandlerInterface {
-  public static create(): GetSeasonAndEpisodeSummaryHandler {
-    return new GetSeasonAndEpisodeSummaryHandler(
+export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSummaryHandlerInterface {
+  public static create(): GetEpisodeWithSeasonSummaryHandler {
+    return new GetEpisodeWithSeasonSummaryHandler(
       SPANNER_DATABASE,
-      SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
       () => new Date(),
     );
@@ -35,7 +30,6 @@ export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummar
 
   public constructor(
     private database: Database,
-    private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
     private getNowDate: () => Date,
   ) {
@@ -44,34 +38,20 @@ export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummar
 
   public async handle(
     loggingPrefix: string,
-    body: GetSeasonAndEpisodeSummaryRequestBody,
-    authStr: string,
-  ): Promise<GetSeasonAndEpisodeSummaryResponse> {
+    body: GetEpisodeWithSeasonSummaryRequestBody,
+  ): Promise<GetEpisodeWithSeasonSummaryResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let { accountId, capabilities } = await this.serviceClient.send(
-      newFetchSessionAndCheckCapabilityRequest({
-        signedSession: authStr,
-        capabilitiesMask: {
-          checkCanConsume: true,
-        },
-      }),
-    );
-    if (!capabilities.canConsume) {
-      throw newUnauthorizedError(
-        `Account ${accountId} not allowed to get season and episode summary.`,
-      );
-    }
     let todayStr = TzDate.fromDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
     let [summaryRows, gradeRows] = await Promise.all([
-      getPublishedSeasonAndEpisodeForConsumer(this.database, {
+      getPublishedSeasonAndEpisode(this.database, {
         seasonSeasonIdEq: body.seasonId,
         seasonStateEq: SeasonState.PUBLISHED,
         episodeEpisodeIdEq: body.episodeId,
@@ -101,7 +81,6 @@ export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummar
           name: summaryRows[0].seasonName,
           coverImageUrl: `${this.coverImagePublicAccessDomain}/${summaryRows[0].seasonCoverImageR2Filename}`,
           grade: gradeRows[0].seasonGradeGrade,
-          totalEpisodes: summaryRows[0].seasonTotalEpisodes,
           averageRating: summaryRows[0].seasonAverageRating,
           ratingsCount: summaryRows[0].seasonRatingsCount,
         },
@@ -110,6 +89,7 @@ export class GetSeasonAndEpisodeSummaryHandler extends GetSeasonAndEpisodeSummar
           index: summaryRows[0].episodeIndex,
           name: summaryRows[0].episodeName,
           videoDurationSec: summaryRows[0].episodeVideoContainer.durationSec,
+          resolution: summaryRows[0].episodeVideoContainer.resolution,
           premiereTimeMs: summaryRows[0].episodePremiereTimeMs,
         },
       },

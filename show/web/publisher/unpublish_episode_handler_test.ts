@@ -1,10 +1,8 @@
 import "../../../local/env";
-import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_EPISODE_ROW,
   GET_SEASON_ROW,
-  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   deleteSeasonStatement,
   getEpisode,
   getSeason,
@@ -33,12 +31,15 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              totalPublishedEpisodes: 1,
               createdTimeMs: 1000,
+              recentPremiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               state: EpisodeState.PUBLISHED,
+              index: 1,
               premiereTimeMs: 300,
             }),
           ]);
@@ -75,8 +76,8 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
+                seasonTotalPublishedEpisodes: 0,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremiereTimeMs: FAR_FUTURE_TIME_MS,
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -95,12 +96,19 @@ TEST_RUNNER.run({
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
                 episodeState: EpisodeState.DRAFT,
-                episodePremiereTimeMs: FAR_FUTURE_TIME_MS,
               },
               GET_EPISODE_ROW,
             ),
           ]),
           "episode",
+        );
+        assertThat(
+          await listPendingSeasonRecentPremiereTimeUpdatingTasks(
+            SPANNER_DATABASE,
+            { seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: 1000000 },
+          ),
+          isArray([]),
+          "pending tasks",
         );
       },
       tearDown: async () => {
@@ -113,7 +121,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "UnpublishWithPremiereedEpisodesAndRecentPremiereTimeUpdatingTask",
+      name: "UnpublishWithPremieredEpisodesAndRecentPremiereTimeUpdatingTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -121,29 +129,35 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              totalPublishedEpisodes: 3,
               createdTimeMs: 1000,
+              recentPremiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
               state: EpisodeState.PUBLISHED,
+              index: 1,
               premiereTimeMs: 300,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               state: EpisodeState.PUBLISHED,
+              index: 2,
               premiereTimeMs: 100,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode3",
               state: EpisodeState.PUBLISHED,
+              index: 3,
               premiereTimeMs: 2000,
             }),
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
               episodeId: "episode1",
+              premiereTimeMs: 1000,
               retryCount: 0,
               executionTimeMs: 1000,
             }),
@@ -181,6 +195,7 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
+                seasonTotalPublishedEpisodes: 2,
                 seasonLastChangeTimeMs: 1000,
                 seasonRecentPremiereTimeMs: 100,
                 seasonCreatedTimeMs: 1000,
@@ -201,7 +216,6 @@ TEST_RUNNER.run({
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
                 episodeState: EpisodeState.DRAFT,
-                episodePremiereTimeMs: FAR_FUTURE_TIME_MS,
               },
               GET_EPISODE_ROW,
             ),
@@ -221,10 +235,6 @@ TEST_RUNNER.run({
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-              seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: "season1",
-              seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: "episode1",
-            }),
           ]);
           await transaction.commit();
         });

@@ -1,13 +1,13 @@
+import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  deleteSeasonRecentPremiereTimeUpdatingTaskStatement,
   getSeasonAndEpisodeForPublisher,
-  insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   publishEpisodeStatement,
   publishSeasonStatement,
-  updateSeasonLastChangeTimeStatement,
+  updateSeasonTotalPublishedEpisodesStatement,
 } from "../../../db/sql";
+import { updateSeasonRecentPremiereTime } from "./common/update_season_recent_premiere_time";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -76,6 +76,16 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
         );
       }
       let row = rows[0];
+      if (row.episodeState !== EpisodeState.DRAFT) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} episode ${body.episodeId} is not in DRAFT state.`,
+        );
+      }
+      if (row.seasonTotalPublishedEpisodes >= MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} has reached maximum number of published episodes.`,
+        );
+      }
       if (!row.episodeVideoContainer) {
         throw newBadRequestError(
           `Video container is not committed yet for season ${body.seasonId} episode ${body.episodeId}.`,
@@ -83,39 +93,39 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
       }
       let now = this.getNow();
       let premiereTimeMs = body.premiereTimeMs ?? now;
+      let totalPublishedEpisodes = row.seasonTotalPublishedEpisodes + 1;
       await transaction.batchUpdate([
         ...(row.seasonState === SeasonState.DRAFT
           ? [
               publishSeasonStatement({
                 seasonSeasonIdEq: body.seasonId,
                 setState: SeasonState.PUBLISHED,
+                setTotalPublishedEpisodes: totalPublishedEpisodes,
                 setLastChangeTimeMs: now,
               }),
             ]
           : [
-              updateSeasonLastChangeTimeStatement({
+              updateSeasonTotalPublishedEpisodesStatement({
                 seasonSeasonIdEq: body.seasonId,
+                setTotalPublishedEpisodes: totalPublishedEpisodes,
                 setLastChangeTimeMs: now,
               }),
             ]),
         publishEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setPremiereTimeMs: premiereTimeMs,
           setState: EpisodeState.PUBLISHED,
-        }),
-        deleteSeasonRecentPremiereTimeUpdatingTaskStatement({
-          seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
-          seasonRecentPremiereTimeUpdatingTaskEpisodeIdEq: body.episodeId,
-        }),
-        insertSeasonRecentPremiereTimeUpdatingTaskStatement({
-          seasonId: body.seasonId,
-          episodeId: body.episodeId,
-          executionTimeMs: Math.max(now, premiereTimeMs),
-          retryCount: 0,
-          createdTimeMs: now,
+          setIndex: totalPublishedEpisodes,
+          setPremiereTimeMs: premiereTimeMs,
         }),
       ]);
+      await updateSeasonRecentPremiereTime(
+        transaction,
+        body.seasonId,
+        body.episodeId,
+        now,
+        premiereTimeMs,
+      );
       await transaction.commit();
     });
     return {};

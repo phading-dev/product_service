@@ -2,17 +2,18 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonAndEpisodeForPublisher,
-  listNextEpisodesForPublisher,
-  listPrevEpisodesForPublisher,
+  listNextPublishedEpisodesForPublisher,
+  listPrevPublishedEpisodesForPublisher,
   updateEpisodeIndexStatement,
   updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
-import { UpdateEpisodeOrderHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
+import { UpdateEpisodeIndexHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  UpdateEpisodeOrderRequestBody,
-  UpdateEpisodeOrderResponse,
+  UpdateEpisodeIndexRequestBody,
+  UpdateEpisodeIndexResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
@@ -22,9 +23,9 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterface {
-  public static create(): UpdateEpisodeOrderHandler {
-    return new UpdateEpisodeOrderHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+export class UpdateEpisodeIndexHandler extends UpdateEpisodeIndexHandlerInterface {
+  public static create(): UpdateEpisodeIndexHandler {
+    return new UpdateEpisodeIndexHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
       Date.now(),
     );
   }
@@ -39,9 +40,9 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
 
   public async handle(
     loggingPrefix: string,
-    body: UpdateEpisodeOrderRequestBody,
+    body: UpdateEpisodeIndexRequestBody,
     sessionStr: string,
-  ): Promise<UpdateEpisodeOrderResponse> {
+  ): Promise<UpdateEpisodeIndexResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
@@ -64,7 +65,7 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to update episode order.`,
+        `Account ${accountId} is not allowed to update episode order.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
@@ -79,9 +80,14 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
         );
       }
       let row = rows[0];
-      if (body.toIndex > row.seasonTotalEpisodes) {
+      if (row.episodeState !== EpisodeState.PUBLISHED) {
         throw newBadRequestError(
-          `Season ${body.seasonId} episode ${body.episodeId}'s target index ${body.toIndex} is larger than the total number of episodes which is ${row.seasonTotalEpisodes}.`,
+          `Season ${body.seasonId} episode ${body.episodeId} is not in PUBLISHED state.`,
+        );
+      }
+      if (body.toIndex > row.seasonTotalPublishedEpisodes) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} episode ${body.episodeId}'s target index ${body.toIndex} is larger than the total number of published episodes which is ${row.seasonTotalPublishedEpisodes}.`,
         );
       }
       let currentIndex = row.episodeIndex;
@@ -102,9 +108,10 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
         }),
       ];
       if (body.toIndex < currentIndex) {
-        let episodes = await listPrevEpisodesForPublisher(transaction, {
+        let episodes = await listPrevPublishedEpisodesForPublisher(transaction, {
           seasonPublisherIdEq: accountId,
           episodeSeasonIdEq: body.seasonId,
+          episodeStateEq: EpisodeState.PUBLISHED,
           episodeIndexLt: currentIndex,
           limit: currentIndex - body.toIndex,
         });
@@ -119,9 +126,10 @@ export class UpdateEpisodeOrderHandler extends UpdateEpisodeOrderHandlerInterfac
         }
       } else {
         // toIndex > currentIndex
-        let episodes = await listNextEpisodesForPublisher(transaction, {
+        let episodes = await listNextPublishedEpisodesForPublisher(transaction, {
           seasonPublisherIdEq: accountId,
           episodeSeasonIdEq: body.seasonId,
+          episodeStateEq: EpisodeState.PUBLISHED,
           episodeIndexGt: currentIndex,
           limit: body.toIndex - currentIndex,
         });

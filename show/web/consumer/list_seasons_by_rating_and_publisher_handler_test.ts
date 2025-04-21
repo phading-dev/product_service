@@ -8,9 +8,7 @@ import {
 import { ListSeasonsByRatingAndPublisherHandler } from "./list_seasons_by_rating_and_publisher_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
-import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
@@ -29,7 +27,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name1",
               coverImageR2Filename: "cover1",
-              totalEpisodes: 1,
               ratingsCount: 1,
               averageRating: 5,
               createdTimeMs: 1000,
@@ -47,7 +44,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name4",
               coverImageR2Filename: "cover4",
-              totalEpisodes: 4,
               ratingsCount: 4,
               averageRating: 5,
               createdTimeMs: 2000,
@@ -65,7 +61,6 @@ TEST_RUNNER.run({
               state: SeasonState.ARCHIVED,
               name: "name3",
               coverImageR2Filename: "cover3",
-              totalEpisodes: 3,
               ratingsCount: 3,
               averageRating: 3,
               createdTimeMs: 3000,
@@ -83,7 +78,6 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "name2",
               coverImageR2Filename: "cover2",
-              totalEpisodes: 2,
               ratingsCount: 2,
               averageRating: 3,
               createdTimeMs: 1000,
@@ -95,33 +89,38 @@ TEST_RUNNER.run({
               endDate: "9999-12-31",
               grade: 22,
             }),
+            insertSeasonStatement({
+              seasonId: "season5",
+              publisherId: "publisher2",
+              state: SeasonState.PUBLISHED,
+              name: "name5",
+              coverImageR2Filename: "cover5",
+              ratingsCount: 5,
+              averageRating: 4,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season5",
+              gradeId: "grade5",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 55,
+            }),
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new ListSeasonsByRatingAndPublisherHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://test.com",
           () => new Date(1000),
         );
 
         {
           // Execute
-          let response = await handler.handle(
-            "",
-            {
-              publisherId: "publisher1",
-              limit: 2,
-            },
-            "authStr",
-          );
+          let response = await handler.handle("", {
+            publisherId: "publisher1",
+            limit: 2,
+          });
 
           // Verify
           assertThat(
@@ -134,7 +133,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher1",
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
-                    totalEpisodes: 4,
                     grade: 44,
                     ratingsCount: 4,
                     averageRating: 5,
@@ -144,7 +142,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher1",
                     name: "name1",
                     coverImageUrl: "https://test.com/cover1",
-                    totalEpisodes: 1,
                     grade: 11,
                     ratingsCount: 1,
                     averageRating: 5,
@@ -161,16 +158,12 @@ TEST_RUNNER.run({
 
         {
           // Execute
-          let response = await handler.handle(
-            "",
-            {
-              publisherId: "publisher1",
-              ratingCursor: 5,
-              createdTimeCursor: 1000,
-              limit: 2,
-            },
-            "authStr",
-          );
+          let response = await handler.handle("", {
+            publisherId: "publisher1",
+            ratingCursor: 5,
+            createdTimeCursor: 1000,
+            limit: 2,
+          });
 
           // Verify
           assertThat(
@@ -183,7 +176,6 @@ TEST_RUNNER.run({
                     publisherId: "publisher1",
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
-                    totalEpisodes: 2,
                     grade: 22,
                     ratingsCount: 2,
                     averageRating: 3,
@@ -210,6 +202,9 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season4",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season5",
             }),
           ]);
           await transaction.commit();

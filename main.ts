@@ -15,9 +15,7 @@ import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/
 import { ProcessVideoContainerCreatingTaskHandler } from "./show/node/process_video_container_creating_task_handler";
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
 import { GetContinueEpisodeHandler } from "./show/web/consumer/get_continue_episode_handler";
-import { GetEpisodeDetailsHandler } from "./show/web/consumer/get_episode_details_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
-import { GetSeasonAndEpisodeSummaryHandler } from "./show/web/consumer/get_season_and_episode_summary_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
 import { GetSeasonNameHandler } from "./show/web/consumer/get_season_name_handler";
 import { ListContinueWatchingSeasonsHandler } from "./show/web/consumer/list_continue_watching_seasons_handler";
@@ -49,7 +47,6 @@ import { DropSubtitleTrackStagingDataHandler } from "./show/web/publisher/drop_s
 import { DropVideoTrackStagingDataHandler } from "./show/web/publisher/drop_video_track_staging_data_handler";
 import { GetEpisodeHandler } from "./show/web/publisher/get_episode_handler";
 import { GetSeasonHandler } from "./show/web/publisher/get_season_handler";
-import { ListEpisodesHandler as ListEpisodesForPublisherHandler } from "./show/web/publisher/list_episodes_handler";
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
 import { SearchSeasonsHandler as SearchSeasonsForPublisherHandler } from "./show/web/publisher/search_seasons_handler";
@@ -57,8 +54,6 @@ import { StartMediaUploadingHandler } from "./show/web/publisher/start_media_upl
 import { StartSubtitleUploadingHandler } from "./show/web/publisher/start_subtitle_uploading_handler";
 import { UnpublishEpisodeHandler } from "./show/web/publisher/unpublish_episode_handler";
 import { UpdateAudioTrackHandler } from "./show/web/publisher/update_audio_track_handler";
-import { UpdateEpisodeHandler } from "./show/web/publisher/update_episode_handler";
-import { UpdateEpisodeOrderHandler } from "./show/web/publisher/update_episode_order_handler";
 import { UpdateSeasonGradeHandler } from "./show/web/publisher/update_season_grade_handler";
 import { UpdateSeasonHandler } from "./show/web/publisher/update_season_handler";
 import { UpdateSubtitleTrackHandler } from "./show/web/publisher/update_subtitle_track_handler";
@@ -68,6 +63,14 @@ import {
   PRODUCT_WEB_SERVICE,
 } from "@phading/product_service_interface/service";
 import { ServiceHandler } from "@selfage/service_handler/service_handler";
+import { AuthorizeEpisodePlaybackHandler } from "./show/web/consumer/authorize_episode_playback_handler";
+import { GetEpisodeWithSeasonSummaryHandler } from "./show/web/consumer/get_episode_with_season_summary_handler";
+import { GetSeasonSummaryHandler } from "./show/web/consumer/get_season_summary_handler";
+import { ListDraftEpisodesHandler } from "./show/web/publisher/list_draft_episodes_handler";
+import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_published_episodes_handler";
+import { UpdateEpisodeIndexHandler } from "./show/web/publisher/update_episode_index_handler";
+import { UpdateEpisodeNameHandler } from "./show/web/publisher/update_episode_name_handler";
+import { UpdateEpisodePremiereTimeHandler } from "./show/web/publisher/update_episode_premiere_time_handler";
 
 async function main() {
   await initS3Client();
@@ -96,12 +99,14 @@ async function main() {
     .add(ProcessVideoContainerDeletingTaskHandler.create());
   service
     .addHandlerRegister(PRODUCT_WEB_SERVICE)
+    .add(AuthorizeEpisodePlaybackHandler.create())
     .add(GetContinueEpisodeHandler.create())
-    .add(GetEpisodeDetailsHandler.create())
+    .add(GetEpisodeHandler.create())
+    .add(GetEpisodeWithSeasonSummaryHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
-    .add(GetSeasonAndEpisodeSummaryHandler.create())
     .add(GetSeasonDetailsHandler.create())
     .add(GetSeasonNameHandler.create())
+    .add(GetSeasonSummaryHandler.create())
     .add(ListContinueWatchingSeasonsHandler.create())
     .add(ListEpisodesForConsumerHandler.create())
     .add(ListSeasonsByRatingAndPublisherHandler.create())
@@ -131,7 +136,8 @@ async function main() {
     .add(DropVideoTrackStagingDataHandler.create())
     .add(GetEpisodeHandler.create())
     .add(GetSeasonHandler.create())
-    .add(ListEpisodesForPublisherHandler.create())
+    .add(ListDraftEpisodesHandler.create())
+    .add(ListPublishedEpisodesHandler.create())
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
     .add(SearchSeasonsForPublisherHandler.create())
@@ -139,8 +145,9 @@ async function main() {
     .add(StartSubtitleUploadingHandler.create())
     .add(UnpublishEpisodeHandler.create())
     .add(UpdateAudioTrackHandler.create())
-    .add(UpdateEpisodeHandler.create())
-    .add(UpdateEpisodeOrderHandler.create())
+    .add(UpdateEpisodeIndexHandler.create())
+    .add(UpdateEpisodeNameHandler.create())
+    .add(UpdateEpisodePremiereTimeHandler.create())
     .add(UpdateSeasonGradeHandler.create())
     .add(UpdateSeasonHandler.create())
     .add(UpdateSubtitleTrackHandler.create())

@@ -1,14 +1,14 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getPublishedEpisodeForConsumer } from "../../../db/sql";
+import { getPublishedEpisode } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { GetEpisodeDetailsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { AuthorizeEpisodePlaybackHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
 import {
-  GetEpisodeDetailsRequestBody,
-  GetEpisodeDetailsResponse,
+  AuthorizeEpisodePlaybackRequestBody,
+  AuthorizeEpisodePlaybackResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
@@ -18,9 +18,9 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface {
-  public static create(): GetEpisodeDetailsHandler {
-    return new GetEpisodeDetailsHandler(
+export class AuthorizeEpisodePlaybackHandler extends AuthorizeEpisodePlaybackHandlerInterface {
+  public static create(): AuthorizeEpisodePlaybackHandler {
+    return new AuthorizeEpisodePlaybackHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2VideoPublicAccessDomain,
@@ -39,9 +39,9 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
 
   public async handle(
     loggingPrefix: string,
-    body: GetEpisodeDetailsRequestBody,
+    body: AuthorizeEpisodePlaybackRequestBody,
     sessionStr: string,
-  ): Promise<GetEpisodeDetailsResponse> {
+  ): Promise<AuthorizeEpisodePlaybackResponse> {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
@@ -58,11 +58,10 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     );
     if (!capabilities.canConsume) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to get episode details.`,
+        `Account ${accountId} not allowed to authorize episode playbacks.`,
       );
     }
-    let now = this.getNow();
-    let rows = await getPublishedEpisodeForConsumer(this.database, {
+    let rows = await getPublishedEpisode(this.database, {
       episodeSeasonIdEq: body.seasonId,
       seasonStateEq: SeasonState.PUBLISHED,
       episodeEpisodeIdEq: body.episodeId,
@@ -75,17 +74,10 @@ export class GetEpisodeDetailsHandler extends GetEpisodeDetailsHandlerInterface 
     }
     let row = rows[0];
     return {
-      episodeDetails: {
-        name: row.episodeName,
-        index: row.episodeIndex,
-        resolution: row.episodeVideoContainer.resolution,
-        videoDurationSec: row.episodeVideoContainer.durationSec,
-        premiereTimeMs: row.episodePremiereTimeMs,
-        videoUrl:
-          row.episodePremiereTimeMs <= now
-            ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainer.r2RootDirname}/${row.episodeVideoContainer.r2MasterPlaylistFilename}`
-            : undefined,
-      },
+      videoUrl:
+        row.episodePremiereTimeMs <= this.getNow()
+          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainer.r2RootDirname}/${row.episodeVideoContainer.r2MasterPlaylistFilename}`
+          : undefined,
     };
   }
 }

@@ -96,7 +96,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         coverImageUrl: season.seasonCoverImageR2Filename
           ? `${this.coverImagePublicAccessDomain}/${season.seasonCoverImageR2Filename}`
           : undefined,
-        totalEpisodes: season.seasonTotalEpisodes,
+        totalPublishedEpisodes: season.seasonTotalPublishedEpisodes,
         createdTimeMs: season.seasonCreatedTimeMs,
         lastChangeTimeMs: season.seasonLastChangeTimeMs,
         grade,

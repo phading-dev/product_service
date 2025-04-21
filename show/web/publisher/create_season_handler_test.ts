@@ -1,5 +1,4 @@
 import "../../../local/env";
-import { FAR_FUTURE_TIME_MS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_LAST_SEASON_GRADES_ROW,
@@ -68,9 +67,8 @@ TEST_RUNNER.run({
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.DRAFT,
                 seasonName: "Season 1",
-                seasonTotalEpisodes: 0,
+                seasonTotalPublishedEpisodes: 0,
                 seasonLastChangeTimeMs: 1000,
-                seasonRecentPremiereTimeMs: FAR_FUTURE_TIME_MS,
                 seasonDescription: "",
                 seasonCreatedTimeMs: 1000,
                 seasonTotalRatings: 0,

@@ -8,10 +8,7 @@ import {
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
-import {
-  FETCH_SESSION_AND_CHECK_CAPABILITY,
-  FetchSessionAndCheckCapabilityResponse,
-} from "@phading/user_session_service_interface/node/interface";
+import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -34,7 +31,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 1",
               coverImageR2Filename: "image1",
-              totalEpisodes: 3,
+              totalPublishedEpisodes: 3,
               description: "",
               averageRating: 4.5,
               ratingsCount: 99,
@@ -57,26 +54,14 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
+          () => new Date("2020-02-01T08:00:00.000Z"),
         );
 
         // Execute
-        let response = await handler.handle(
-          "",
-          { seasonId: "season1" },
-          "sessionStr",
-        );
+        let response = await handler.handle("", { seasonId: "season1" });
 
         // Verify
         assertThat(
@@ -84,8 +69,9 @@ TEST_RUNNER.run({
           eqMessage(
             {
               seasonDetails: {
-                name: "Season 1",
+                seasonId: "season1",
                 publisherId: "publisher1",
+                name: "Season 1",
                 coverImageUrl: "https://public_access_domain/image1",
                 totalEpisodes: 3,
                 description: "",
@@ -122,7 +108,7 @@ TEST_RUNNER.run({
               state: SeasonState.PUBLISHED,
               name: "Season 1",
               coverImageR2Filename: "image1",
-              totalEpisodes: 3,
+              totalPublishedEpisodes: 3,
               description: "something something",
               averageRating: 4.5,
               ratingsCount: 99,
@@ -161,17 +147,12 @@ TEST_RUNNER.run({
         } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1582876800000), // 2020-02-28T08:00:00.000Z
+          () => new Date("2020-02-28T08:00:00.000Z"),
         );
 
         // Execute
-        let response = await handler.handle(
-          "",
-          { seasonId: "season1" },
-          "sessionStr",
-        );
+        let response = await handler.handle("", { seasonId: "season1" });
 
         // Verify
         assertThat(
@@ -179,8 +160,9 @@ TEST_RUNNER.run({
           eqMessage(
             {
               seasonDetails: {
-                name: "Season 1",
+                seasonId: "season1",
                 publisherId: "publisher1",
+                name: "Season 1",
                 coverImageUrl: "https://public_access_domain/image1",
                 totalEpisodes: 3,
                 description: "something something",
@@ -219,7 +201,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.DRAFT,
-              totalEpisodes: 3,
+              totalPublishedEpisodes: 3,
               description: "something something",
               averageRating: 4.5,
               ratingsCount: 99,
@@ -228,23 +210,15 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
+          () => new Date("2020-02-01T08:00:00.000Z"),
         );
 
         // Execute
         let error = await assertReject(
-          handler.handle("", { seasonId: "season1" }, "sessionStr"),
+          handler.handle("", { seasonId: "season1" }),
         );
 
         // Verify
@@ -269,31 +243,15 @@ TEST_RUNNER.run({
       name: "SeasonNotFound",
       execute: async () => {
         // Prepare
-        let serviceClientMock = new (class extends NodeServiceClientMock {
-          public async send(request: any): Promise<any> {
-            switch (request.descriptor) {
-              case FETCH_SESSION_AND_CHECK_CAPABILITY:
-                return {
-                  accountId: "account1",
-                  capabilities: {
-                    canConsume: true,
-                  },
-                } as FetchSessionAndCheckCapabilityResponse;
-              default:
-                throw new Error(`Unexpected.`);
-            }
-          }
-        })();
         let handler = new GetSeasonDetailsHandler(
           SPANNER_DATABASE,
-          serviceClientMock,
           "https://public_access_domain",
-          () => new Date(1580544000000), // 2020-02-01T08:00:00.000Z
+          () => new Date("2020-02-01T08:00:00.000Z"), // 2020-02-01T08:00:00.000Z
         );
 
         // Execute
         let error = await assertReject(
-          handler.handle("", { seasonId: "season1" }, "sessionStr"),
+          handler.handle("", { seasonId: "season1" }),
         );
 
         // Verify

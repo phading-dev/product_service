@@ -8,11 +8,10 @@ import {
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
   insertVideoContainerDeletingTaskStatement,
-  listPrevEpisodesForPublisher,
+  listAllVideoContainersForPublisher,
 } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
-import { MAX_NUM_OF_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ArchiveSeasonHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -64,18 +63,10 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let [seasonRows, episodeRows] = await Promise.all([
-        getSeasonForPublisher(transaction, {
-          seasonPublisherIdEq: accountId,
-          seasonSeasonIdEq: body.seasonId,
-        }),
-        listPrevEpisodesForPublisher(transaction, {
-          seasonPublisherIdEq: accountId,
-          episodeSeasonIdEq: body.seasonId,
-          episodeIndexLt: MAX_NUM_OF_EPISODES_PER_SEASON + 1,
-          limit: MAX_NUM_OF_EPISODES_PER_SEASON,
-        }),
-      ]);
+      let seasonRows = await getSeasonForPublisher(transaction, {
+        seasonPublisherIdEq: accountId,
+        seasonSeasonIdEq: body.seasonId,
+      });
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
@@ -85,6 +76,10 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           `Season ${body.seasonId} is not in PUBLISHED state and cannot be archived.`,
         );
       }
+      let episodeRows = await listAllVideoContainersForPublisher(transaction, {
+        seasonPublisherIdEq: accountId,
+        episodeSeasonIdEq: body.seasonId,
+      });
       let now = this.getNow();
       let statements: Array<Statement> = [
         archiveSeasonStatement({
@@ -119,7 +114,7 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
         } else {
           statements.push(
             deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: episode.episodeSeasonId,
+              videoContainerCreatingTaskSeasonIdEq: body.seasonId,
               videoContainerCreatingTaskEpisodeIdEq: episode.episodeEpisodeId,
             }),
           );
