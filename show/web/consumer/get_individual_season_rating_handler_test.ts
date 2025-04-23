@@ -41,12 +41,7 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           response,
-          eqMessage(
-            {
-              rating: 0,
-            },
-            GET_INDIVIDUAL_SEASON_RATING_RESPONSE,
-          ),
+          eqMessage({}, GET_INDIVIDUAL_SEASON_RATING_RESPONSE),
           "response",
         );
       },

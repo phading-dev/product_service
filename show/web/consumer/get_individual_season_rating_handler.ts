@@ -52,9 +52,8 @@ export class GetIndividualSeasonRatingHandler extends GetIndividualSeasonRatingH
       individualSeasonRatingSeasonIdEq: body.seasonId,
     });
     if (ratingRows.length === 0) {
-      return {
-        rating: 0,
-      };
+      // No rating found.
+      return {};
     } else {
       return {
         rating: ratingRows[0].individualSeasonRatingRating,
