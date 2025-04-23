@@ -10,7 +10,7 @@ import { newGetLatestWatchedEpisodeRequest } from "@phading/play_activity_servic
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetContinueEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { ContinueEpisode } from "@phading/product_service_interface/show/web/consumer/info";
+import { Episode } from "@phading/product_service_interface/show/web/consumer/info";
 import {
   GetContinueEpisodeRequestBody,
   GetContinueEpisodeResponse,
@@ -64,7 +64,8 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
     );
     if (!latestWatchedEpisode.episodeId) {
       return {
-        continue: await this.getFirstEpisode(body.seasonId, false),
+        episode: await this.getFirstEpisode(body.seasonId),
+        rewatching: false,
       };
     } else {
       let latestEpisodeRows = await getPublishedEpisode(this.database, {
@@ -75,7 +76,8 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       });
       if (latestEpisodeRows.length === 0) {
         return {
-          continue: await this.getFirstEpisode(body.seasonId, false),
+          episode: await this.getFirstEpisode(body.seasonId),
+          rewatching: false,
         };
       }
 
@@ -86,18 +88,15 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
           NEXT_EPISODE_WATCH_TIME_THRESHOLD
       ) {
         return {
-          continue: {
-            episode: {
-              episodeId: latestEpisode.episodeEpisodeId,
-              name: latestEpisode.episodeName,
-              index: latestEpisode.episodeIndex,
-              videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
-              resolution: latestEpisode.episodeVideoContainer.resolution,
-              premiereTimeMs: latestEpisode.episodePremiereTimeMs,
-            },
-            continueTimeMs: latestWatchedEpisode.watchedTimeMs,
-            rewatching: false,
+          episode: {
+            episodeId: latestEpisode.episodeEpisodeId,
+            name: latestEpisode.episodeName,
+            index: latestEpisode.episodeIndex,
+            videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
+            resolution: latestEpisode.episodeVideoContainer.resolution,
+            premiereTimeMs: latestEpisode.episodePremiereTimeMs,
           },
+          rewatching: false,
         };
       }
 
@@ -110,32 +109,27 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       });
       if (nextEpisodeRows.length === 0) {
         return {
-          continue: await this.getFirstEpisode(body.seasonId, true),
+          episode: await this.getFirstEpisode(body.seasonId),
+          rewatching: true,
         };
       }
 
       let nextEpisode = nextEpisodeRows[0];
       return {
-        continue: {
-          episode: {
-            episodeId: nextEpisode.episodeEpisodeId,
-            name: nextEpisode.episodeName,
-            index: nextEpisode.episodeIndex,
-            videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
-            resolution: nextEpisode.episodeVideoContainer.resolution,
-            premiereTimeMs: nextEpisode.episodePremiereTimeMs,
-          },
-          continueTimeMs: 0,
-          rewatching: false,
+        episode: {
+          episodeId: nextEpisode.episodeEpisodeId,
+          name: nextEpisode.episodeName,
+          index: nextEpisode.episodeIndex,
+          videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
+          resolution: nextEpisode.episodeVideoContainer.resolution,
+          premiereTimeMs: nextEpisode.episodePremiereTimeMs,
         },
+        rewatching: false,
       };
     }
   }
 
-  private async getFirstEpisode(
-    seasonId: string,
-    rewatching: boolean,
-  ): Promise<ContinueEpisode> {
+  private async getFirstEpisode(seasonId: string): Promise<Episode> {
     let firstEpisodeRows = await listNextPublishedEpisodes(this.database, {
       episodeSeasonIdEq: seasonId,
       seasonStateEq: SeasonState.PUBLISHED,
@@ -148,16 +142,12 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
     }
     let firstEpisode = firstEpisodeRows[0];
     return {
-      episode: {
-        episodeId: firstEpisode.episodeEpisodeId,
-        name: firstEpisode.episodeName,
-        index: firstEpisode.episodeIndex,
-        videoDurationSec: firstEpisode.episodeVideoContainer.durationSec,
-        resolution: firstEpisode.episodeVideoContainer.resolution,
-        premiereTimeMs: firstEpisode.episodePremiereTimeMs,
-      },
-      continueTimeMs: 0,
-      rewatching,
+      episodeId: firstEpisode.episodeEpisodeId,
+      name: firstEpisode.episodeName,
+      index: firstEpisode.episodeIndex,
+      videoDurationSec: firstEpisode.episodeVideoContainer.durationSec,
+      resolution: firstEpisode.episodeVideoContainer.resolution,
+      premiereTimeMs: firstEpisode.episodePremiereTimeMs,
     };
   }
 }

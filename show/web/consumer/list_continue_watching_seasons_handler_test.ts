@@ -170,31 +170,26 @@ TEST_RUNNER.run({
                     {
                       seasonId: "season1",
                       latestEpisodeId: "episode1",
-                      latestEpisodeIndex: 1,
                       latestWatchedTimeMs: 30,
                     },
                     {
                       seasonId: "season2",
                       latestEpisodeId: "episode1",
-                      latestEpisodeIndex: 1,
                       latestWatchedTimeMs: 110,
                     },
                     {
                       seasonId: "season3",
                       latestEpisodeId: "episode1",
-                      latestEpisodeIndex: 1,
                       latestWatchedTimeMs: 30,
                     },
                     {
                       seasonId: "season4",
                       latestEpisodeId: "episode1",
-                      latestEpisodeIndex: 1,
                       latestWatchedTimeMs: 230,
                     },
                     {
                       seasonId: "season5",
                       latestEpisodeId: "episode1",
-                      latestEpisodeIndex: 1,
                       latestWatchedTimeMs: 30,
                     },
                   ],

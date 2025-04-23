@@ -3,22 +3,21 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_SEASON_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
-  LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
   deleteSeasonStatement,
   deleteVideoContainerDeletingTaskStatement,
+  getEpisode,
   getSeason,
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
-  listNextPublishedEpisodesForPublisher,
   listPendingVideoContainerCreatingTasks,
   listPendingVideoContainerDeletingTasks,
 } from "../../../db/sql";
 import { DeleteEpisodeHandler } from "./delete_episode_handler";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
-import { newNotFoundError } from "@selfage/http_error";
+import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -29,7 +28,7 @@ TEST_RUNNER.run({
   name: "DeleteEpisodeHandlerTest",
   cases: [
     {
-      name: "DeleteDraftEpisodeWithVideoContainer",
+      name: "DeleteWithVideoContainer",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -37,32 +36,14 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              totalPublishedEpisodes: 3,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              state: EpisodeState.PUBLISHED,
-              index: 1,
+              state: EpisodeState.DRAFT,
               name: "Ep 1",
               videoContainerId: "videocontainer1",
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode2",
-              state: EpisodeState.DRAFT,
-              index: 2,
-              name: "Ep 2",
-              videoContainerId: "videocontainer2",
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode3",
-              state: EpisodeState.PUBLISHED,
-              index: 3,
-              name: "Ep 3",
-              videoContainerId: "videocontainer3",
             }),
           ]);
           await transaction.commit();
@@ -85,7 +66,7 @@ TEST_RUNNER.run({
           "",
           {
             seasonId: "season1",
-            episodeId: "episode2",
+            episodeId: "episode1",
           },
           "sessionStr",
         );
@@ -98,7 +79,6 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonTotalPublishedEpisodes: 3,
                 seasonLastChangeTimeMs: 1000,
                 seasonCreatedTimeMs: 1000,
               },
@@ -108,47 +88,21 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listNextPublishedEpisodesForPublisher(SPANNER_DATABASE, {
+          await getEpisode(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            seasonPublisherIdEq: "publisher1",
-            episodeStateEq: EpisodeState.PUBLISHED,
-            episodeIndexGt: 0,
-            limit: 10,
+            episodeEpisodeIdEq: "episode1",
           }),
-          isArray([
-            eqMessage(
-              {
-                episodeSeasonId: "season1",
-                episodeEpisodeId: "episode1",
-                episodeState: EpisodeState.PUBLISHED,
-                episodeIndex: 1,
-                episodeName: "Ep 1",
-                episodeVideoContainerId: "videocontainer1",
-              },
-              LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
-            ),
-            eqMessage(
-              {
-                episodeSeasonId: "season1",
-                episodeEpisodeId: "episode3",
-                episodeState: EpisodeState.PUBLISHED,
-                episodeIndex: 3,
-                episodeName: "Ep 3",
-                episodeVideoContainerId: "videocontainer3",
-              },
-              LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
-            ),
-          ]),
-          "episodes",
+          isArray([]),
+          "episode",
         );
         assertThat(
           await getVideoContainerDeletingTask(SPANNER_DATABASE, {
-            videoContainerDeletingTaskVideoContainerIdEq: "videocontainer2",
+            videoContainerDeletingTaskVideoContainerIdEq: "videocontainer1",
           }),
           isArray([
             eqMessage(
               {
-                videoContainerDeletingTaskVideoContainerId: "videocontainer2",
+                videoContainerDeletingTaskVideoContainerId: "videocontainer1",
                 videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
                 videoContainerDeletingTaskCreatedTimeMs: 1000,
@@ -166,22 +120,13 @@ TEST_RUNNER.run({
             deleteVideoContainerDeletingTaskStatement({
               videoContainerDeletingTaskVideoContainerIdEq: "videocontainer1",
             }),
-            deleteVideoContainerDeletingTaskStatement({
-              videoContainerDeletingTaskVideoContainerIdEq: "videocontainer2",
-            }),
-            deleteVideoContainerDeletingTaskStatement({
-              videoContainerDeletingTaskVideoContainerIdEq: "videocontainer3",
-            }),
-            deleteVideoContainerDeletingTaskStatement({
-              videoContainerDeletingTaskVideoContainerIdEq: "videocontainer4",
-            }),
           ]);
           await transaction.commit();
         });
       },
     },
     {
-      name: "DeletePublishedEpisodeWithoutVideoContainer",
+      name: "DeleteWithoutVideoContainer",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -189,48 +134,17 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              totalPublishedEpisodes: 4,
-              recentPremiereTimeMs: 500,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              state: EpisodeState.PUBLISHED,
-              index: 1,
-              name: "Ep 1",
-              videoContainerId: "videocontainer1",
-              premiereTimeMs: 100,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode2",
-              state: EpisodeState.PUBLISHED,
-              index: 2,
+              state: EpisodeState.DRAFT,
               name: "Ep 2",
-              premiereTimeMs: 500,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode3",
-              state: EpisodeState.PUBLISHED,
-              index: 3,
-              name: "Ep 3",
-              videoContainerId: "videocontainer3",
-              premiereTimeMs: 300,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode4",
-              state: EpisodeState.PUBLISHED,
-              index: 4,
-              name: "Ep 4",
-              videoContainerId: "videocontainer4",
-              premiereTimeMs: 400,
             }),
             insertVideoContainerCreatingTaskStatement({
               seasonId: "season1",
-              episodeId: "episode2",
+              episodeId: "episode1",
             }),
           ]);
           await transaction.commit();
@@ -253,7 +167,7 @@ TEST_RUNNER.run({
           "",
           {
             seasonId: "season1",
-            episodeId: "episode2",
+            episodeId: "episode1",
           },
           "sessionStr",
         );
@@ -266,8 +180,6 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonTotalPublishedEpisodes: 3,
-                seasonRecentPremiereTimeMs: 400,
                 seasonLastChangeTimeMs: 1000,
                 seasonCreatedTimeMs: 1000,
               },
@@ -277,52 +189,12 @@ TEST_RUNNER.run({
           "season",
         );
         assertThat(
-          await listNextPublishedEpisodesForPublisher(SPANNER_DATABASE, {
+          await getEpisode(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            seasonPublisherIdEq: "publisher1",
-            episodeStateEq: EpisodeState.PUBLISHED,
-            episodeIndexGt: 0,
-            limit: 10,
+            episodeEpisodeIdEq: "episode1",
           }),
-          isArray([
-            eqMessage(
-              {
-                episodeSeasonId: "season1",
-                episodeEpisodeId: "episode1",
-                episodeState: EpisodeState.PUBLISHED,
-                episodeIndex: 1,
-                episodeName: "Ep 1",
-                episodeVideoContainerId: "videocontainer1",
-                episodePremiereTimeMs: 100,
-              },
-              LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
-            ),
-            eqMessage(
-              {
-                episodeSeasonId: "season1",
-                episodeEpisodeId: "episode3",
-                episodeState: EpisodeState.PUBLISHED,
-                episodeIndex: 2,
-                episodeName: "Ep 3",
-                episodeVideoContainerId: "videocontainer3",
-                episodePremiereTimeMs: 300,
-              },
-              LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
-            ),
-            eqMessage(
-              {
-                episodeSeasonId: "season1",
-                episodeEpisodeId: "episode4",
-                episodeState: EpisodeState.PUBLISHED,
-                episodeIndex: 3,
-                episodeName: "Ep 4",
-                episodeVideoContainerId: "videocontainer4",
-                episodePremiereTimeMs: 400,
-              },
-              LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW,
-            ),
-          ]),
-          "episodes",
+          isArray([]),
+          "episode",
         );
         assertThat(
           await listPendingVideoContainerCreatingTasks(SPANNER_DATABASE, {
@@ -346,6 +218,71 @@ TEST_RUNNER.run({
             deleteVideoContainerDeletingTaskStatement({
               videoContainerDeletingTaskVideoContainerIdEq: "videocontainer1",
             }),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+    {
+      name: "EpisodeNotInDraftState",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              createdTimeMs: 1000,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season1",
+              episodeId: "episode1",
+              state: EpisodeState.PUBLISHED,
+              name: "Ep 1",
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "publisher1",
+          capabilities: {
+            canPublish: true,
+          },
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new DeleteEpisodeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => 1000,
+        );
+
+        // Execute
+        let error = await assertReject(
+          handler.handle(
+            "",
+            {
+              seasonId: "season1",
+              episodeId: "episode1",
+            },
+            "sessionStr",
+          ),
+        );
+
+        // Verify
+        assertThat(
+          error,
+          eqHttpError(
+            newBadRequestError(
+              "Season season1 episode episode1 is not in draft state.",
+            ),
+          ),
+          "error",
+        );
+      },
+      tearDown: async () => {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
           ]);
           await transaction.commit();
         });

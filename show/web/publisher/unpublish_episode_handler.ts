@@ -2,11 +2,14 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonAndEpisodeForPublisher,
+  listNextPublishedEpisodesForPublisher,
   publishEpisodeStatement,
+  updateEpisodeIndexStatement,
   updateSeasonTotalPublishedEpisodesStatement,
 } from "../../../db/sql";
 import { updateSeasonRecentPremiereTime } from "./common/update_season_recent_premiere_time";
 import { Database } from "@google-cloud/spanner";
+import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { UnpublishEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -77,6 +80,21 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
           `Season ${body.seasonId} episode ${body.episodeId} is not published.`,
         );
       }
+      if (row.seasonTotalPublishedEpisodes <= 1) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} episode ${body.episodeId} is the last published episode.`,
+        );
+      }
+      let nextEpisodes = await listNextPublishedEpisodesForPublisher(
+        transaction,
+        {
+          episodeSeasonIdEq: body.seasonId,
+          seasonPublisherIdEq: accountId,
+          episodeStateEq: EpisodeState.PUBLISHED,
+          episodeIndexGt: row.episodeIndex,
+          limit: MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON,
+        },
+      );
       let now = this.getNow();
       await transaction.batchUpdate([
         updateSeasonTotalPublishedEpisodesStatement({
@@ -91,6 +109,13 @@ export class UnpublishEpisodeHandler extends UnpublishEpisodeHandlerInterface {
           setIndex: undefined,
           setPremiereTimeMs: undefined,
         }),
+        ...nextEpisodes.map((episode) =>
+          updateEpisodeIndexStatement({
+            episodeSeasonIdEq: episode.episodeSeasonId,
+            episodeEpisodeIdEq: episode.episodeEpisodeId,
+            setIndex: episode.episodeIndex - 1,
+          }),
+        ),
       ]);
       await updateSeasonRecentPremiereTime(
         transaction,

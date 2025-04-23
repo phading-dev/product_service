@@ -140,18 +140,15 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              continue: {
-                episode: {
-                  episodeId: "episode1",
-                  name: "Episode 1",
-                  index: 1,
-                  videoDurationSec: 120,
-                  resolution: "1080p",
-                  premiereTimeMs: 100,
-                },
-                continueTimeMs: 0,
-                rewatching: false,
+              episode: {
+                episodeId: "episode1",
+                name: "Episode 1",
+                index: 1,
+                videoDurationSec: 120,
+                resolution: "1080p",
+                premiereTimeMs: 100,
               },
+              rewatching: false,
             },
             GET_CONTINUE_EPISODE_RESPONSE,
           ),
@@ -205,18 +202,15 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              continue: {
-                episode: {
-                  episodeId: "episode1",
-                  name: "Episode 1",
-                  index: 1,
-                  videoDurationSec: 120,
-                  resolution: "1080p",
-                  premiereTimeMs: 100,
-                },
-                continueTimeMs: 0,
-                rewatching: false,
+              episode: {
+                episodeId: "episode1",
+                name: "Episode 1",
+                index: 1,
+                videoDurationSec: 120,
+                resolution: "1080p",
+                premiereTimeMs: 100,
               },
+              rewatching: false,
             },
             GET_CONTINUE_EPISODE_RESPONSE,
           ),
@@ -271,18 +265,15 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              continue: {
-                episode: {
-                  episodeId: "episode2",
-                  name: "Episode 2",
-                  index: 2,
-                  videoDurationSec: 150,
-                  resolution: "1080p",
-                  premiereTimeMs: 200,
-                },
-                continueTimeMs: 60,
-                rewatching: false,
+              episode: {
+                episodeId: "episode2",
+                name: "Episode 2",
+                index: 2,
+                videoDurationSec: 150,
+                resolution: "1080p",
+                premiereTimeMs: 200,
               },
+              rewatching: false,
             },
             GET_CONTINUE_EPISODE_RESPONSE,
           ),
@@ -337,18 +328,15 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              continue: {
-                episode: {
-                  episodeId: "episode3",
-                  name: "Episode 3",
-                  index: 3,
-                  videoDurationSec: 180,
-                  resolution: "1080p",
-                  premiereTimeMs: 300,
-                },
-                continueTimeMs: 0,
-                rewatching: false,
+              episode: {
+                episodeId: "episode3",
+                name: "Episode 3",
+                index: 3,
+                videoDurationSec: 180,
+                resolution: "1080p",
+                premiereTimeMs: 300,
               },
+              rewatching: false,
             },
             GET_CONTINUE_EPISODE_RESPONSE,
           ),
@@ -403,18 +391,15 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              continue: {
-                episode: {
-                  episodeId: "episode1",
-                  name: "Episode 1",
-                  index: 1,
-                  videoDurationSec: 120,
-                  resolution: "1080p",
-                  premiereTimeMs: 100,
-                },
-                continueTimeMs: 0,
-                rewatching: true,
+              episode: {
+                episodeId: "episode1",
+                name: "Episode 1",
+                index: 1,
+                videoDurationSec: 120,
+                resolution: "1080p",
+                premiereTimeMs: 100,
               },
+              rewatching: true,
             },
             GET_CONTINUE_EPISODE_RESPONSE,
           ),
