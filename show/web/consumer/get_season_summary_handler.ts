@@ -71,6 +71,7 @@ export class GetSeasonSummaryHandler extends GetSeasonSummaryHandlerInterface {
         name: season.seasonName,
         coverImageUrl: `${this.coverImagePublicAccessDomain}/${season.seasonCoverImageR2Filename}`,
         grade: grade.seasonGradeGrade,
+        totalEpisodes: season.seasonTotalPublishedEpisodes,
         averageRating: season.seasonAverageRating,
         ratingsCount: season.seasonRatingsCount,
       },

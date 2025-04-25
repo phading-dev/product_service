@@ -126,6 +126,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           publisherId: seasonRow.seasonPublisherId,
           coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`,
           grade: seasonGradeRow.seasonGradeGrade,
+          totalEpisodes: seasonRow.seasonTotalPublishedEpisodes,
           averageRating: seasonRow.seasonAverageRating,
           ratingsCount: seasonRow.seasonRatingsCount,
         };

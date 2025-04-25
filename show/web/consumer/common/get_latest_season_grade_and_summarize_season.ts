@@ -1,6 +1,8 @@
 import {
   ContinuedSearchPublishedSeasonsRow,
+  ListPublishedSeasonsByPremiereTimeAndPublisherRow,
   ListPublishedSeasonsByPremiereTimeRow,
+  ListPublishedSeasonsByRatingAndPublisherRow,
   ListPublishedSeasonsByRatingRow,
   SearchPublishedSeasonsRow,
   getLastSeasonGrades,
@@ -15,7 +17,9 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
   todayStr: string,
   row:
     | ListPublishedSeasonsByRatingRow
+    | ListPublishedSeasonsByRatingAndPublisherRow
     | ListPublishedSeasonsByPremiereTimeRow
+    | ListPublishedSeasonsByPremiereTimeAndPublisherRow
     | SearchPublishedSeasonsRow
     | ContinuedSearchPublishedSeasonsRow,
   i: number,
@@ -37,6 +41,7 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
     name: row.seasonName,
     coverImageUrl: `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
     averageRating: row.seasonAverageRating,
+    totalEpisodes: row.seasonTotalPublishedEpisodes,
     ratingsCount: row.seasonRatingsCount,
     grade: gradeRows[0].seasonGradeGrade,
   };
