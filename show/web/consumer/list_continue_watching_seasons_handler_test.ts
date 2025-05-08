@@ -171,27 +171,27 @@ TEST_RUNNER.run({
                     {
                       seasonId: "season1",
                       latestEpisodeId: "episode1",
-                      latestWatchedTimeMs: 30,
+                      latestWatchedVideoTimeMs: 30000,
                     },
                     {
                       seasonId: "season2",
                       latestEpisodeId: "episode1",
-                      latestWatchedTimeMs: 110,
+                      latestWatchedVideoTimeMs: 110000,
                     },
                     {
                       seasonId: "season3",
                       latestEpisodeId: "episode1",
-                      latestWatchedTimeMs: 30,
+                      latestWatchedVideoTimeMs: 30000,
                     },
                     {
                       seasonId: "season4",
                       latestEpisodeId: "episode1",
-                      latestWatchedTimeMs: 230,
+                      latestWatchedVideoTimeMs: 230000,
                     },
                     {
                       seasonId: "season5",
                       latestEpisodeId: "episode1",
-                      latestWatchedTimeMs: 30,
+                      latestWatchedVideoTimeMs: 30000,
                     },
                   ],
                 } as ListRecentlyWatchedSeasonsResponse;
@@ -238,7 +238,7 @@ TEST_RUNNER.run({
                     videoDurationSec: 60,
                     premiereTimeMs: 1000,
                   },
-                  continueTimeMs: 30,
+                  continueTimeMs: 30000,
                 },
                 {
                   season: {

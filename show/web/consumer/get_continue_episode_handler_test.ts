@@ -243,7 +243,7 @@ TEST_RUNNER.run({
                 this.request = request;
                 return {
                   episodeId: "episode2",
-                  watchedTimeMs: 60,
+                  watchedVideoTimeMs: 60000,
                 } as GetLatestWatchedEpisodeResponse;
             }
           }
@@ -306,7 +306,7 @@ TEST_RUNNER.run({
                 this.request = request;
                 return {
                   episodeId: "episode2",
-                  watchedTimeMs: 136,
+                  watchedVideoTimeMs: 136000,
                 } as GetLatestWatchedEpisodeResponse;
             }
           }
@@ -369,7 +369,7 @@ TEST_RUNNER.run({
                 this.request = request;
                 return {
                   episodeId: "episode3",
-                  watchedTimeMs: 179,
+                  watchedVideoTimeMs: 179000,
                 } as GetLatestWatchedEpisodeResponse;
             }
           }

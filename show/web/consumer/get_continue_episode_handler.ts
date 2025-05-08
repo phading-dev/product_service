@@ -83,8 +83,9 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
 
       let latestEpisode = latestEpisodeRows[0];
       if (
-        latestWatchedEpisode.watchedTimeMs <
+        latestWatchedEpisode.watchedVideoTimeMs <
         latestEpisode.episodeVideoContainer.durationSec *
+          1000 *
           NEXT_EPISODE_WATCH_TIME_THRESHOLD
       ) {
         return {

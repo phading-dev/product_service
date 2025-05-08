@@ -102,7 +102,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         let getContinueEpisodePromise = this.getContinueEpisode(
           recentSeason.seasonId,
           recentSeason.latestEpisodeId,
-          recentSeason.latestWatchedTimeMs,
+          recentSeason.latestWatchedVideoTimeMs,
         );
         let seasonRows = await seasonRowsPromise;
         if (seasonRows.length === 0) {
@@ -145,7 +145,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
   private async getContinueEpisode(
     seasonId: string,
     latestEpisodeId: string,
-    latestWatchedTimeMs: number,
+    latestWatchedVideoTimeMs: number,
   ): Promise<{
     episode: Episode;
     continueTimeMs: number;
@@ -161,8 +161,9 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     }
     let latestEpisode = latestEpisodeRows[0];
     if (
-      latestWatchedTimeMs <
+      latestWatchedVideoTimeMs <
       latestEpisode.episodeVideoContainer.durationSec *
+        1000 *
         NEXT_EPISODE_WATCH_TIME_THRESHOLD
     ) {
       return {
@@ -174,7 +175,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           resolution: latestEpisode.episodeVideoContainer.resolution,
           premiereTimeMs: latestEpisode.episodePremiereTimeMs,
         },
-        continueTimeMs: latestWatchedTimeMs,
+        continueTimeMs: latestWatchedVideoTimeMs,
       };
     }
 
