@@ -43,7 +43,6 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
       throw newBadRequestError(`"limit" is too large.`);
     }
     let nowDate = this.getNowDate();
-    let now = nowDate.valueOf();
     let todayStr = TzDate.fromDate(
       nowDate,
       ENV_VARS.timezoneNegativeOffset,
@@ -54,7 +53,7 @@ export class ListSeasonsByRatingHandler extends ListSeasonsByRatingHandlerInterf
       seasonStateEq: SeasonState.PUBLISHED,
       seasonAverageRatingLt: ratingCursor,
       seasonAverageRatingEq: ratingCursor,
-      seasonCreatedTimeMsLt: body.createdTimeCursor ?? now,
+      seasonCreatedTimeMsLt: body.createdTimeCursor ?? nowDate.getTime(),
       limit: body.limit,
     });
     let seasons = new Array<SeasonSummary>(rows.length);

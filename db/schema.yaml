@@ -123,6 +123,7 @@
             - createdTimeMs
           partitionByColumns:
             - publisherId
+            - state
       insert: InsertSeason
       delete: DeleteSeason
       get: GetSeason
@@ -586,6 +587,8 @@
         exprs:
           - op: =
             lColumn: publisherId
+          - op: =
+            lColumn: state
           - op: SEARCH
             lColumn: fullText
       orderBy:
@@ -606,6 +609,8 @@
         exprs:
           - op: =
             lColumn: publisherId
+          - op: =
+            lColumn: state
           - op: SEARCH
             lColumn: fullText
           - op: OR

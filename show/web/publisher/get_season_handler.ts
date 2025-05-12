@@ -12,6 +12,7 @@ import {
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,
+  newInternalServerErrorError,
   newNotFoundError,
   newUnauthorizedError,
 } from "@selfage/http_error";
@@ -58,7 +59,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         `Account ${accountId} not allowed to get season details.`,
       );
     }
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
@@ -75,6 +76,11 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     ]);
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+    }
+    if (seasonGradeRows.length === 0) {
+      throw newInternalServerErrorError(
+        `Season ${body.seasonId} does not have any grades on today ${todayStr}.`,
+      );
     }
     let grade: number;
     let nextGrade: NextGrade;

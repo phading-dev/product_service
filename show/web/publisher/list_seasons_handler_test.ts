@@ -1,6 +1,10 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
+import {
+  deleteSeasonStatement,
+  insertSeasonGradeStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { ListSeasonsHandler } from "./list_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { LIST_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
@@ -31,6 +35,13 @@ TEST_RUNNER.run({
               averageRating: 4.5,
               createdTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
             insertSeasonStatement({
               seasonId: "season2",
               publisherId: "publisher1",
@@ -43,6 +54,13 @@ TEST_RUNNER.run({
               averageRating: 0,
               createdTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season2",
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 22,
+            }),
             insertSeasonStatement({
               seasonId: "season3",
               publisherId: "publisher1",
@@ -54,6 +72,13 @@ TEST_RUNNER.run({
               averageRating: 4,
               createdTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 33,
+            }),
             insertSeasonStatement({
               seasonId: "season4",
               publisherId: "publisher2",
@@ -64,6 +89,13 @@ TEST_RUNNER.run({
               ratingsCount: 0,
               averageRating: 0,
               createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 44,
             }),
           ]);
           await transaction.commit();
@@ -79,7 +111,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://cover_image_public_access_domain",
-          () => 1000,
+          () => new Date(1000),
         );
 
         // Execute
@@ -105,6 +137,7 @@ TEST_RUNNER.run({
                   lastChangeTimeMs: 300,
                   ratingsCount: 3,
                   averageRating: 4,
+                  grade: 33,
                 },
                 {
                   seasonId: "season2",
@@ -115,6 +148,7 @@ TEST_RUNNER.run({
                   lastChangeTimeMs: 200,
                   ratingsCount: 0,
                   averageRating: 0,
+                  grade: 22,
                 },
               ],
               lastChangeTimeCursor: 200,
@@ -150,6 +184,7 @@ TEST_RUNNER.run({
                   lastChangeTimeMs: 100,
                   ratingsCount: 2,
                   averageRating: 4.5,
+                  grade: 11,
                 },
               ],
             },

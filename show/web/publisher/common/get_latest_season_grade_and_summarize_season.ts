@@ -1,27 +1,17 @@
 import {
-  ContinuedSearchPublishedSeasonsRow,
-  ListPublishedSeasonsByPremiereTimeAndPublisherRow,
-  ListPublishedSeasonsByPremiereTimeRow,
-  ListPublishedSeasonsByRatingAndPublisherRow,
-  ListPublishedSeasonsByRatingRow,
-  SearchPublishedSeasonsRow,
+  ListSeasonsForPublisherRow,
+  SearchSeasonsForPublisherRow,
   getLastSeasonGrades,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/publisher/summary";
 import { newInternalServerErrorError } from "@selfage/http_error";
 
 export async function getLatestSeasonGradeAndSummarizeSeason(
   database: Database,
   coverImagePublicAccessDomain: string,
   todayStr: string,
-  row:
-    | ListPublishedSeasonsByRatingRow
-    | ListPublishedSeasonsByRatingAndPublisherRow
-    | ListPublishedSeasonsByPremiereTimeRow
-    | ListPublishedSeasonsByPremiereTimeAndPublisherRow
-    | SearchPublishedSeasonsRow
-    | ContinuedSearchPublishedSeasonsRow,
+  row: ListSeasonsForPublisherRow | SearchSeasonsForPublisherRow,
   i: number,
   seasons: Array<SeasonSummary>,
 ): Promise<void> {
@@ -37,12 +27,14 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
   }
   seasons[i] = {
     seasonId: row.seasonSeasonId,
-    publisherId: row.seasonPublisherId,
     name: row.seasonName,
-    coverImageUrl: `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
-    averageRating: row.seasonAverageRating,
-    totalEpisodes: row.seasonTotalPublishedEpisodes,
+    coverImageUrl: row.seasonCoverImageR2Filename
+      ? `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
+      : undefined,
+    totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
+    lastChangeTimeMs: row.seasonLastChangeTimeMs,
     ratingsCount: row.seasonRatingsCount,
+    averageRating: row.seasonAverageRating,
     grade: gradeRows[0].seasonGradeGrade,
   };
 }

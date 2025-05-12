@@ -1,7 +1,12 @@
 import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { deleteSeasonStatement, insertSeasonStatement } from "../../../db/sql";
+import {
+  deleteSeasonStatement,
+  insertSeasonGradeStatement,
+  insertSeasonStatement,
+} from "../../../db/sql";
 import { SearchSeasonsHandler } from "./search_seasons_handler";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/publisher/summary";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
@@ -22,6 +27,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
               name: "Thrilling Eclipse",
               description:
                 "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
@@ -31,9 +37,17 @@ TEST_RUNNER.run({
               averageRating: 0,
               createdTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
             insertSeasonStatement({
               seasonId: "season2",
               publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
               name: "Happy sand",
               description: "A sand in a desert.",
               coverImageR2Filename: "cover2",
@@ -43,9 +57,17 @@ TEST_RUNNER.run({
               averageRating: 0,
               createdTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season2",
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 22,
+            }),
             insertSeasonStatement({
               seasonId: "season3",
               publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
               name: "Thrilling Eclipse",
               description:
                 "An engaging journey of discovering lyrics. A tale of friendship and growth. Filled with surprises and excitement.",
@@ -56,9 +78,17 @@ TEST_RUNNER.run({
               averageRating: 0,
               createdTimeMs: 2000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 33,
+            }),
             insertSeasonStatement({
               seasonId: "season4",
               publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
               name: "Thrilling Eclipse Lyrics",
               description:
                 "Epic season with thrilling narratives. A heartwarming tale of courage and growth. Packed with twists, turns, and surprises.",
@@ -68,6 +98,13 @@ TEST_RUNNER.run({
               ratingsCount: 0,
               averageRating: 0,
               createdTimeMs: 2000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 44,
             }),
           ]);
           await transaction.commit();
@@ -83,12 +120,14 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
+          () => new Date(1000),
         );
 
         // Execute
         let response = await handler.handle(
           "",
           {
+            state: SeasonState.PUBLISHED,
             query: "Thrilling Eclipse Lyrics",
             limit: 2,
           },
@@ -108,6 +147,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 4000,
               ratingsCount: 0,
               averageRating: 0,
+              grade: 44,
             },
             SEASON_SUMMARY,
           ),
@@ -123,6 +163,7 @@ TEST_RUNNER.run({
               lastChangeTimeMs: 1000,
               ratingsCount: 0,
               averageRating: 0,
+              grade: 11,
             },
             SEASON_SUMMARY,
           ),
@@ -130,17 +171,20 @@ TEST_RUNNER.run({
         );
         assertThat(response.scoreCursor, gt(0), "response 1 score cursor");
         assertThat(
-          response.createdTimeCursor, eq(1000), "response 1 created time cursor", 
+          response.createdTimeCursor,
+          eq(1000),
+          "response 1 created time cursor",
         );
 
         // Execute
         response = await handler.handle(
           "",
           {
+            state: SeasonState.PUBLISHED,
             query: "Thrilling Eclipse Lyrics",
             limit: 2,
             scoreCursor: response.scoreCursor,
-            createdTimeCursor: response.createdTimeCursor
+            createdTimeCursor: response.createdTimeCursor,
           },
           "session1",
         );
@@ -159,6 +203,7 @@ TEST_RUNNER.run({
                   lastChangeTimeMs: 3000,
                   ratingsCount: 0,
                   averageRating: 0,
+                  grade: 33,
                 },
               ],
             },

@@ -93,7 +93,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
         seasonFullTextScoreSelect: body.query,
       });
     }
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();

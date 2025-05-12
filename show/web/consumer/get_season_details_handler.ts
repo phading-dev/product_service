@@ -40,7 +40,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
@@ -58,9 +58,9 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
     if (seasonRows.length === 0) {
       throw newNotFoundError(`Season ${body.seasonId} is not found.`);
     }
-    if (seasonGradeRows.length === 0 || seasonGradeRows.length > 2) {
+    if (seasonGradeRows.length === 0) {
       throw newInternalServerErrorError(
-        `Season ${body.seasonId} has unexpected number of season grades: ${seasonGradeRows.length}.`,
+        `Season ${body.seasonId} does not have any grades on today ${todayStr}.`,
       );
     }
 

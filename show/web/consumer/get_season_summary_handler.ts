@@ -39,7 +39,7 @@ export class GetSeasonSummaryHandler extends GetSeasonSummaryHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
@@ -59,7 +59,7 @@ export class GetSeasonSummaryHandler extends GetSeasonSummaryHandlerInterface {
     }
     if (gradeRows.length === 0) {
       throw newInternalServerErrorError(
-        `Season ${body.seasonId} has no grade at today ${todayStr}.`,
+        `Season ${body.seasonId} does not have any grades on today ${todayStr}.`,
       );
     }
     let season = seasonRows[0];

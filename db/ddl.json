@@ -68,7 +68,7 @@
       "createIndexDdl": "CREATE SEARCH INDEX ByFullText ON Season(fullText) PARTITION BY state ORDER BY createdTimeMs"
     }, {
       "name": "ByPublisherAndFullText",
-      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherAndFullText ON Season(fullText) PARTITION BY publisherId ORDER BY createdTimeMs"
+      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherAndFullText ON Season(fullText) PARTITION BY publisherId, state ORDER BY createdTimeMs"
     }]
   }, {
     "name": "SeasonGrade",

@@ -83,7 +83,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         limit: body.limit,
       }),
     );
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
@@ -112,7 +112,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         let seasonGradeRows = await seasonGradeRowsPromise;
         if (seasonGradeRows.length === 0) {
           throw newInternalServerErrorError(
-            `Season ${recentSeason.seasonId} today ${todayStr} has no grade.`,
+            `Season ${recentSeason.seasonId} does not have any grades on today ${todayStr}.`,
           );
         }
         let seasonGradeRow = seasonGradeRows[0];

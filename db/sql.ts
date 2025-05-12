@@ -2471,6 +2471,7 @@ export async function searchSeasonsForPublisher(
   runner: Database | Transaction,
   args: {
     seasonPublisherIdEq?: string,
+    seasonStateEq?: SeasonState,
     seasonFullTextSearch: string,
     seasonFullTextScoreOrderBy: string,
     limit: number,
@@ -2478,9 +2479,10 @@ export async function searchSeasonsForPublisher(
   }
 ): Promise<Array<SearchSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonFullTextSearch: args.seasonFullTextSearch,
       seasonFullTextScoreOrderBy: args.seasonFullTextScoreOrderBy,
       limit: args.limit.toString(),
@@ -2488,6 +2490,7 @@ export async function searchSeasonsForPublisher(
     },
     types: {
       seasonPublisherIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
       seasonFullTextSearch: { type: "string" },
       seasonFullTextScoreOrderBy: { type: "string" },
       limit: { type: "int64" },
@@ -2586,6 +2589,7 @@ export async function continuedSearchSeasonsForPublisher(
   runner: Database | Transaction,
   args: {
     seasonPublisherIdEq?: string,
+    seasonStateEq?: SeasonState,
     seasonFullTextSearch: string,
     seasonFullTextScoreWhereLt: string,
     seasonFullTextScoreLt: number,
@@ -2598,9 +2602,10 @@ export async function continuedSearchSeasonsForPublisher(
   }
 ): Promise<Array<ContinuedSearchSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
+      seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonFullTextSearch: args.seasonFullTextSearch,
       seasonFullTextScoreWhereLt: args.seasonFullTextScoreWhereLt,
       seasonFullTextScoreLt: Spanner.float(args.seasonFullTextScoreLt),
@@ -2613,6 +2618,7 @@ export async function continuedSearchSeasonsForPublisher(
     },
     types: {
       seasonPublisherIdEq: { type: "string" },
+      seasonStateEq: { type: "float64" },
       seasonFullTextSearch: { type: "string" },
       seasonFullTextScoreWhereLt: { type: "string" },
       seasonFullTextScoreLt: { type: "float64" },

@@ -42,16 +42,15 @@ export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentP
       throw newBadRequestError(`"limit" is too large.`);
     }
     let nowDate = this.getNowDate();
-    let now = nowDate.valueOf();
     let todayStr = TzDate.fromDate(
       nowDate,
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
     let seasonRows = await listPublishedSeasonsByPremiereTime(this.database, {
       seasonStateEq: SeasonState.PUBLISHED,
-      seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? now,
-      seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? now,
-      seasonCreatedTimeMsLt: body.createdTimeCursor ?? now,
+      seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? nowDate.getTime(),
+      seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? nowDate.getTime(),
+      seasonCreatedTimeMsLt: body.createdTimeCursor ?? nowDate.getTime(),
       limit: body.limit,
     });
     let seasons = new Array<SeasonSummary>(seasonRows.length);

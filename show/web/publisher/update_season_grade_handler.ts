@@ -79,7 +79,7 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
-      let today = TzDate.fromDate(
+      let today = TzDate.fromNewDate(
         this.getNowDate(),
         ENV_VARS.timezoneNegativeOffset,
       );

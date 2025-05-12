@@ -46,7 +46,7 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
-    let todayStr = TzDate.fromDate(
+    let todayStr = TzDate.fromNewDate(
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
@@ -70,7 +70,7 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
     }
     if (gradeRows.length === 0) {
       throw newInternalServerErrorError(
-        `Season ${body.seasonId} has no grade at today ${todayStr}.`,
+        `Season ${body.seasonId} does not have any grade on today ${todayStr}.`,
       );
     }
     return {

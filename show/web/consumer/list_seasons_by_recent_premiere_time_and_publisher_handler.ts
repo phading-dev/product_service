@@ -45,7 +45,6 @@ export class ListSeasonsByRecentPremiereTimeAndPublisherHandler extends ListSeas
       throw newBadRequestError(`"limit" is too large.`);
     }
     let nowDate = this.getNowDate();
-    let now = nowDate.valueOf();
     let todayStr = TzDate.fromDate(
       nowDate,
       ENV_VARS.timezoneNegativeOffset,
@@ -55,9 +54,9 @@ export class ListSeasonsByRecentPremiereTimeAndPublisherHandler extends ListSeas
       {
         seasonStateEq: SeasonState.PUBLISHED,
         seasonPublisherIdEq: body.publisherId,
-        seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? now,
-        seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? now,
-        seasonCreatedTimeMsLt: body.createdTimeCursor ?? now,
+        seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? nowDate.getTime(),
+        seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? nowDate.getTime(),
+        seasonCreatedTimeMsLt: body.createdTimeCursor ?? nowDate.getTime(),
         limit: body.limit,
       },
     );

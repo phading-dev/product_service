@@ -8,6 +8,7 @@ import {
   searchSeasonsForPublisher,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
+import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -18,6 +19,7 @@ import { SeasonSummary } from "@phading/product_service_interface/show/web/publi
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
 
 export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
   public static create(): SearchSeasonsHandler {
@@ -25,6 +27,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      () => new Date(),
     );
   }
 
@@ -32,6 +35,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private coverImagePublicAccessDomain: string,
+    private getNowDate: () => Date,
   ) {
     super();
   }
@@ -41,6 +45,9 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     body: SearchSeasonsRequestBody,
     sessionStr: string,
   ): Promise<SearchSeasonsResponse> {
+    if (!body.state) {
+      throw newBadRequestError(`"state" is required.`);
+    }
     if (!body.query) {
       throw newBadRequestError(`"query" is required.`);
     }
@@ -69,6 +76,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     if (!body.scoreCursor) {
       seasonRows = await searchSeasonsForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
+        seasonStateEq: body.state,
         seasonFullTextSearch: body.query,
         seasonFullTextScoreOrderBy: body.query,
         limit: body.limit,
@@ -77,6 +85,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     } else {
       seasonRows = await continuedSearchSeasonsForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
+        seasonStateEq: body.state,
         seasonFullTextSearch: body.query,
         seasonFullTextScoreWhereLt: body.query,
         seasonFullTextScoreLt: body.scoreCursor,
@@ -88,20 +97,25 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
         seasonFullTextScoreSelect: body.query,
       });
     }
+    let todayStr = TzDate.fromNewDate(
+      this.getNowDate(),
+      ENV_VARS.timezoneNegativeOffset,
+    ).toLocalDateISOString();
+    let seasons = new Array<SeasonSummary>(seasonRows.length);
+    await Promise.all(
+      seasonRows.map(async (row, i) => {
+        await getLatestSeasonGradeAndSummarizeSeason(
+          this.database,
+          this.coverImagePublicAccessDomain,
+          todayStr,
+          row,
+          i,
+          seasons,
+        );
+      }),
+    );
     return {
-      seasons: seasonRows.map(
-        (row): SeasonSummary => ({
-          seasonId: row.seasonSeasonId,
-          name: row.seasonName,
-          coverImageUrl: row.seasonCoverImageR2Filename
-            ? `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
-            : undefined,
-          totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
-          lastChangeTimeMs: row.seasonLastChangeTimeMs,
-          ratingsCount: row.seasonRatingsCount,
-          averageRating: row.seasonAverageRating,
-        }),
-      ),
+      seasons,
       scoreCursor:
         seasonRows.length === body.limit
           ? seasonRows[seasonRows.length - 1].seasonFullTextScore
