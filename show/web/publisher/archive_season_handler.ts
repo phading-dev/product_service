@@ -3,13 +3,17 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   archiveSeasonStatement,
   deleteAllEpisodesStatement,
+  deleteSeasonGradeStatement,
   deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteVideoContainerCreatingTaskStatement,
+  getLastSeasonGrades,
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
   insertVideoContainerDeletingTaskStatement,
   listAllVideoContainersForPublisher,
+  updateSeasonGradeEndDateStatement,
 } from "../../../db/sql";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { Statement } from "@google-cloud/spanner/build/src/transaction";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -25,18 +29,23 @@ import {
   newUnauthorizedError,
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
+import { FAR_FUTURE_DATE } from "../../../common/constants";
 
+// TODO: Delete any future grade.
 export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
   public static create(): ArchiveSeasonHandler {
-    return new ArchiveSeasonHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
-      Date.now(),
+    return new ArchiveSeasonHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => new Date(),
     );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private getNow: () => number,
+    private getNowDate: () => Date,
   ) {
     super();
   }
@@ -76,11 +85,22 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           `Season ${body.seasonId} is not in PUBLISHED state and cannot be archived.`,
         );
       }
-      let episodeRows = await listAllVideoContainersForPublisher(transaction, {
-        seasonPublisherIdEq: accountId,
-        episodeSeasonIdEq: body.seasonId,
-      });
-      let now = this.getNow();
+      let todayStr = TzDate.fromNewDate(
+        this.getNowDate(),
+        ENV_VARS.timezoneNegativeOffset,
+      ).toLocalDateISOString();
+      let [episodeRows, seasonGrades] = await Promise.all([
+        listAllVideoContainersForPublisher(transaction, {
+          seasonPublisherIdEq: accountId,
+          episodeSeasonIdEq: body.seasonId,
+        }),
+        getLastSeasonGrades(transaction, {
+          seasonGradeSeasonIdEq: body.seasonId,
+          seasonGradeEndDateGt: todayStr,
+          limit: 2,
+        }),
+      ]);
+      let now = this.getNowDate().getTime();
       let statements: Array<Statement> = [
         archiveSeasonStatement({
           seasonSeasonIdEq: body.seasonId,
@@ -119,6 +139,20 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
             }),
           );
         }
+      }
+      if (seasonGrades.length === 2) {
+        let [nextGrade, currentGrade] = seasonGrades;
+        statements.push(
+          updateSeasonGradeEndDateStatement({
+            seasonGradeSeasonIdEq: currentGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: currentGrade.seasonGradeGradeId,
+            setEndDate: FAR_FUTURE_DATE,
+          }),
+          deleteSeasonGradeStatement({
+            seasonGradeSeasonIdEq: nextGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: nextGrade.seasonGradeGradeId,
+          }),
+        );
       }
       await transaction.batchUpdate(statements);
       await transaction.commit();

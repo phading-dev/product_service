@@ -1,19 +1,20 @@
+import { FAR_FUTURE_DATE } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  deleteSeasonGradeStatement,
   getLastSeasonGrades,
   getSeasonForPublisher,
-  updateSeasonGradeStatement,
+  updateSeasonGradeEndDateStatement,
   updateSeasonLastChangeTimeStatement,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
-import { MAX_GRADE } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { UpdateSeasonGradeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { DeleteNextSeasonGradeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  UpdateSeasonGradeRequestBody,
-  UpdateSeasonGradeResponse,
+  DeleteNextSeasonGradeRequestBody,
+  DeleteNextSeasonGradeResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
@@ -25,9 +26,9 @@ import {
 import { NodeServiceClient } from "@selfage/node_service_client";
 import { TzDate } from "@selfage/tz_date";
 
-export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface {
-  public static create(): UpdateSeasonGradeHandler {
-    return new UpdateSeasonGradeHandler(
+export class DeleteNextSeasonGradeHandler extends DeleteNextSeasonGradeHandlerInterface {
+  public static create(): DeleteNextSeasonGradeHandler {
+    return new DeleteNextSeasonGradeHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       () => new Date(),
@@ -44,21 +45,15 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
 
   public async handle(
     loggingPrefix: string,
-    body: UpdateSeasonGradeRequestBody,
-    sessionStr: string,
-  ): Promise<UpdateSeasonGradeResponse> {
+    body: DeleteNextSeasonGradeRequestBody,
+    authStr: string,
+  ): Promise<DeleteNextSeasonGradeResponse> {
     if (!body.seasonId) {
-      throw newBadRequestError(`"seasonId" field is required.`);
-    }
-    if (!body.grade) {
-      throw newBadRequestError(`"grade" field is required.`);
-    }
-    if (body.grade < 1 || body.grade > MAX_GRADE) {
-      throw newBadRequestError(`"grade" is too large or too small.`);
+      throw newBadRequestError(`"seasonId" is required.`);
     }
     let { accountId, capabilities } = await this.serviceClient.send(
       newFetchSessionAndCheckCapabilityRequest({
-        signedSession: sessionStr,
+        signedSession: authStr,
         capabilitiesMask: {
           checkCanPublish: true,
         },
@@ -66,7 +61,7 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
     );
     if (!capabilities.canPublish) {
       throw newUnauthorizedError(
-        `Account ${accountId} not allowed to update season grade.`,
+        `Account ${accountId} not allowed to delete next season grade.`,
       );
     }
     await this.database.runTransactionAsync(async (transaction) => {
@@ -82,16 +77,16 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
         getLastSeasonGrades(transaction, {
           seasonGradeSeasonIdEq: body.seasonId,
           seasonGradeEndDateGt: today.toLocalDateISOString(),
-          limit: 1,
+          limit: 2,
         }),
       ]);
       if (seasonRows.length === 0) {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
       let season = seasonRows[0];
-      if (season.seasonState !== SeasonState.DRAFT) {
+      if (season.seasonState !== SeasonState.PUBLISHED) {
         throw newBadRequestError(
-          `Season ${body.seasonId} is not in DRAFT state and cannot update grade in place.`,
+          `Season ${body.seasonId} is not in PUBLISHED state and cannot delete next season grade.`,
         );
       }
       if (seasonGradeRows.length === 0) {
@@ -99,16 +94,25 @@ export class UpdateSeasonGradeHandler extends UpdateSeasonGradeHandlerInterface 
           `Season ${body.seasonId} doesn't have any valid grade.`,
         );
       }
-      let seasonGrade = seasonGradeRows[0];
+      if (seasonGradeRows.length < 2) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} doesn't have next grade to delete.`,
+        );
+      }
+      let [nextGrade, currentGrade] = seasonGradeRows;
       await transaction.batchUpdate([
-        updateSeasonGradeStatement({
-          seasonGradeSeasonIdEq: seasonGrade.seasonGradeSeasonId,
-          seasonGradeGradeIdEq: seasonGrade.seasonGradeGradeId,
-          setGrade: body.grade,
+        updateSeasonGradeEndDateStatement({
+          seasonGradeSeasonIdEq: currentGrade.seasonGradeSeasonId,
+          seasonGradeGradeIdEq: currentGrade.seasonGradeGradeId,
+          setEndDate: FAR_FUTURE_DATE,
+        }),
+        deleteSeasonGradeStatement({
+          seasonGradeSeasonIdEq: nextGrade.seasonGradeSeasonId,
+          seasonGradeGradeIdEq: nextGrade.seasonGradeGradeId,
         }),
         updateSeasonLastChangeTimeStatement({
           seasonSeasonIdEq: body.seasonId,
-          setLastChangeTimeMs: this.getNowDate().getTime(),
+          setLastChangeTimeMs: this.getNowDate().valueOf(),
         }),
       ]);
       await transaction.commit();

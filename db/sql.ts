@@ -220,6 +220,25 @@ export function insertSeasonGradeStatement(
   };
 }
 
+export function deleteSeasonGradeStatement(
+  args: {
+    seasonGradeSeasonIdEq: string,
+    seasonGradeGradeIdEq: string,
+  }
+): Statement {
+  return {
+    sql: "DELETE SeasonGrade WHERE (SeasonGrade.seasonId = @seasonGradeSeasonIdEq AND SeasonGrade.gradeId = @seasonGradeGradeIdEq)",
+    params: {
+      seasonGradeSeasonIdEq: args.seasonGradeSeasonIdEq,
+      seasonGradeGradeIdEq: args.seasonGradeGradeIdEq,
+    },
+    types: {
+      seasonGradeSeasonIdEq: { type: "string" },
+      seasonGradeGradeIdEq: { type: "string" },
+    }
+  };
+}
+
 export function insertEpisodeStatement(
   args: {
     seasonId: string,

@@ -9,7 +9,7 @@ import {
   insertSeasonGradeStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { UpdateSeasonGradeHandler } from "./update_season_grade_handler";
+import { DeleteNextSeasonGradeHandler } from "./delete_next_season_grade_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
@@ -20,10 +20,10 @@ import { assertReject, assertThat, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "UpdateSeasonGradeHandlerTest",
+  name: "DeleteNextSeasonGradeHandlerTest",
   cases: [
     {
-      name: "UpdateDraftSeason",
+      name: "Success",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -31,15 +31,29 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.DRAFT,
+              state: SeasonState.PUBLISHED,
               createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
               gradeId: "grade1",
               startDate: "1900-01-01",
-              endDate: "9999-12-31",
+              endDate: "2010-01-01",
+              grade: 1,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2010-01-01",
+              endDate: "2020-02-01",
               grade: 3,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade3",
+              startDate: "2020-02-01",
+              endDate: "9999-12-31",
+              grade: 5,
             }),
           ]);
           await transaction.commit();
@@ -51,7 +65,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new UpdateSeasonGradeHandler(
+        let handler = new DeleteNextSeasonGradeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => new Date("2020-01-01T08:00:00Z"),
@@ -62,7 +76,6 @@ TEST_RUNNER.run({
           "",
           {
             seasonId: "season1",
-            grade: 5,
           },
           "sessionStr",
         );
@@ -75,7 +88,7 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonState: SeasonState.DRAFT,
+                seasonState: SeasonState.PUBLISHED,
                 seasonLastChangeTimeMs: new Date(
                   "2020-01-01T08:00:00Z",
                 ).getTime(),
@@ -96,15 +109,81 @@ TEST_RUNNER.run({
             eqMessage(
               {
                 seasonGradeSeasonId: "season1",
-                seasonGradeGradeId: "grade1",
-                seasonGradeStartDate: "1900-01-01",
+                seasonGradeGradeId: "grade2",
+                seasonGradeStartDate: "2010-01-01",
                 seasonGradeEndDate: "9999-12-31",
-                seasonGradeGrade: 5,
+                seasonGradeGrade: 3,
               },
               GET_LAST_SEASON_GRADES_ROW,
             ),
           ]),
           "SeasonGrades",
+        );
+      },
+      tearDown: async () => {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+    {
+      name: "NoNextGradeToDelete",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1900-01-01",
+              endDate: "9999-12-31",
+              grade: 3,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "publisher1",
+          capabilities: {
+            canPublish: true,
+          },
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new DeleteNextSeasonGradeHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => new Date("2020-01-01T08:00:00Z"),
+        );
+
+        // Execute
+        let error = await assertReject(
+          handler.handle(
+            "",
+            {
+              seasonId: "season1",
+            },
+            "sessionStr",
+          ),
+        );
+
+        // Verify
+        assertThat(
+          error,
+          eqHttpError(
+            newBadRequestError(
+              `Season season1 doesn't have next grade to delete.`,
+            ),
+          ),
+          "Error",
         );
       },
       tearDown: async () => {
@@ -132,8 +211,15 @@ TEST_RUNNER.run({
               seasonId: "season1",
               gradeId: "grade1",
               startDate: "1900-01-01",
-              endDate: "9999-12-31",
+              endDate: "2020-02-01",
               grade: 3,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2020-02-01",
+              endDate: "9999-12-31",
+              grade: 5,
             }),
           ]);
           await transaction.commit();
@@ -145,10 +231,10 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new UpdateSeasonGradeHandler(
+        let handler = new DeleteNextSeasonGradeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => new Date("2020-01-01T08:00:00Z"),
+          () => new Date(1577908800000), // 2020-01-01T08:00:00Z
         );
 
         // Execute
@@ -157,7 +243,6 @@ TEST_RUNNER.run({
             "",
             {
               seasonId: "season1",
-              grade: 5,
             },
             "sessionStr",
           ),
@@ -168,7 +253,7 @@ TEST_RUNNER.run({
           error,
           eqHttpError(
             newBadRequestError(
-              `Season season1 is not in DRAFT state and cannot update grade in place.`,
+              `Season season1 is not in PUBLISHED state and cannot delete next season grade.`,
             ),
           ),
           "Error",

@@ -2,6 +2,7 @@ import "../../../local/env";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_COVER_IMAGE_DELETING_TASK_ROW,
+  GET_LAST_SEASON_GRADES_ROW,
   GET_SEASON_ROW,
   GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteCoverImageDeletingTaskStatement,
@@ -10,9 +11,11 @@ import {
   deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
   getCoverImageDeletingTask,
+  getLastSeasonGrades,
   getSeason,
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
+  insertSeasonGradeStatement,
   insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
@@ -79,7 +82,7 @@ TEST_RUNNER.run({
   name: "ArchiveSeasonHandlerTest",
   cases: [
     {
-      name: "SeasonWithEpisodesAndWithoutVideoContainer",
+      name: "SeasonWithEpisodesWithAndWithoutVideoContainerAndWithOneGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -132,6 +135,13 @@ TEST_RUNNER.run({
               retryCount: 0,
               executionTimeMs: 1000,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1900-01-01",
+              endDate: "9999-12-31",
+              grade: 3,
+            }),
           ]);
           await transaction.commit();
         });
@@ -145,7 +155,7 @@ TEST_RUNNER.run({
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
+          () => new Date("2023-01-01T08:00:00Z"),
         );
 
         // Execute
@@ -162,7 +172,9 @@ TEST_RUNNER.run({
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
                 seasonState: SeasonState.ARCHIVED,
-                seasonLastChangeTimeMs: 1000,
+                seasonLastChangeTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
                 seasonCreatedTimeMs: 1000,
               },
               GET_SEASON_ROW,
@@ -179,8 +191,12 @@ TEST_RUNNER.run({
               {
                 coverImageDeletingTaskR2Filename: "cover1",
                 coverImageDeletingTaskRetryCount: 0,
-                coverImageDeletingTaskExecutionTimeMs: 1000,
-                coverImageDeletingTaskCreatedTimeMs: 1000,
+                coverImageDeletingTaskExecutionTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
+                coverImageDeletingTaskCreatedTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
               },
               GET_COVER_IMAGE_DELETING_TASK_ROW,
             ),
@@ -191,7 +207,9 @@ TEST_RUNNER.run({
           await listPendingSeasonRecentPremiereTimeUpdatingTasks(
             SPANNER_DATABASE,
             {
-              seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: 1000000,
+              seasonRecentPremiereTimeUpdatingTaskExecutionTimeMsLe: new Date(
+                "2026-01-01T08:00:00Z",
+              ).getTime(),
             },
           ),
           isArray([]),
@@ -207,7 +225,9 @@ TEST_RUNNER.run({
         );
         assertThat(
           await listPendingVideoContainerCreatingTasks(SPANNER_DATABASE, {
-            videoContainerCreatingTaskExecutionTimeMsLe: 1000000,
+            videoContainerCreatingTaskExecutionTimeMsLe: new Date(
+              "2026-01-01T08:00:00Z",
+            ).getTime(),
           }),
           isArray([]),
           "videoContainerCreatingTasks",
@@ -221,8 +241,12 @@ TEST_RUNNER.run({
               {
                 videoContainerDeletingTaskVideoContainerId: "videoContainer2",
                 videoContainerDeletingTaskRetryCount: 0,
-                videoContainerDeletingTaskExecutionTimeMs: 1000,
-                videoContainerDeletingTaskCreatedTimeMs: 1000,
+                videoContainerDeletingTaskExecutionTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
+                videoContainerDeletingTaskCreatedTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
               },
               GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
@@ -238,13 +262,136 @@ TEST_RUNNER.run({
               {
                 videoContainerDeletingTaskVideoContainerId: "videoContainer4",
                 videoContainerDeletingTaskRetryCount: 0,
-                videoContainerDeletingTaskExecutionTimeMs: 1000,
-                videoContainerDeletingTaskCreatedTimeMs: 1000,
+                videoContainerDeletingTaskExecutionTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
+                videoContainerDeletingTaskCreatedTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
               },
               GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
           "videoContainerDeletingTasks for videoContainer4",
+        );
+        assertThat(
+          await getLastSeasonGrades(SPANNER_DATABASE, {
+            seasonGradeSeasonIdEq: "season1",
+            seasonGradeEndDateGt: "2023-01-01",
+            limit: 2,
+          }),
+          isArray([
+            eqMessage(
+              {
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade1",
+                seasonGradeStartDate: "1900-01-01",
+                seasonGradeEndDate: "9999-12-31",
+                seasonGradeGrade: 3,
+              },
+              GET_LAST_SEASON_GRADES_ROW,
+            ),
+          ]),
+          "SeasonGrades",
+        );
+      },
+      tearDown: async () => {
+        await cleanUpAll();
+      },
+    },
+    {
+      name: "SeasonWithMultipleGrades",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
+              coverImageR2Filename: "cover1",
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1900-01-01",
+              endDate: "2010-01-01",
+              grade: 1,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2010-01-01",
+              endDate: "2023-02-01",
+              grade: 3,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade3",
+              startDate: "2023-02-01",
+              endDate: "9999-12-31",
+              grade: 5,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "publisher1",
+          capabilities: {
+            canPublish: true,
+          },
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new ArchiveSeasonHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          () => new Date("2023-01-01T08:00:00Z"),
+        );
+
+        // Execute
+        await handler.handle("", { seasonId: "season1" }, "sessionStr");
+
+        // Verify
+        assertThat(
+          await getSeason(SPANNER_DATABASE, {
+            seasonSeasonIdEq: "season1",
+          }),
+          isArray([
+            eqMessage(
+              {
+                seasonSeasonId: "season1",
+                seasonPublisherId: "publisher1",
+                seasonState: SeasonState.ARCHIVED,
+                seasonLastChangeTimeMs: new Date(
+                  "2023-01-01T08:00:00Z",
+                ).getTime(),
+                seasonCreatedTimeMs: 1000,
+              },
+              GET_SEASON_ROW,
+            ),
+          ]),
+          "season",
+        );
+        assertThat(
+          await getLastSeasonGrades(SPANNER_DATABASE, {
+            seasonGradeSeasonIdEq: "season1",
+            seasonGradeEndDateGt: "2023-01-01",
+            limit: 2,
+          }),
+          isArray([
+            eqMessage(
+              {
+                seasonGradeSeasonId: "season1",
+                seasonGradeGradeId: "grade2",
+                seasonGradeStartDate: "2010-01-01",
+                seasonGradeEndDate: "9999-12-31",
+                seasonGradeGrade: 3,
+              },
+              GET_LAST_SEASON_GRADES_ROW,
+            ),
+          ]),
+          "SeasonGrades",
         );
       },
       tearDown: async () => {
@@ -279,7 +426,7 @@ TEST_RUNNER.run({
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
+          () => new Date("2023-01-01T08:00:00Z"),
         );
 
         // Execute
@@ -316,7 +463,7 @@ TEST_RUNNER.run({
         let handler = new ArchiveSeasonHandler(
           SPANNER_DATABASE,
           serviceClientMock,
-          () => 1000,
+          () => new Date("2023-01-01T08:00:00Z"),
         );
 
         // Execute

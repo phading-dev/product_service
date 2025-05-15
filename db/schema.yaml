@@ -156,6 +156,7 @@
               desc: true
             - startDate
       insert: InsertSeasonGrade
+      delete: DeleteSeasonGrade
     - kind: Table
       name: Episode
       columns:

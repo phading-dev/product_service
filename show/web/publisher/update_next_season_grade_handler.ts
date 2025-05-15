@@ -1,0 +1,190 @@
+import { FAR_FUTURE_DATE } from "../../../common/constants";
+import { SERVICE_CLIENT } from "../../../common/service_client";
+import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import {
+  getLastSeasonGrades,
+  getSeasonForPublisher,
+  insertSeasonGradeStatement,
+  updateSeasonGradeEndDateStatement,
+  updateSeasonGradeStartDateAndGradeStatement,
+  updateSeasonLastChangeTimeStatement,
+} from "../../../db/sql";
+import { ENV_VARS } from "../../../env_vars";
+import { Database } from "@google-cloud/spanner";
+import {
+  MAX_GRADE,
+  MIN_GRADE_EFFECTIVE_GAP_DAY,
+} from "@phading/constants/show";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
+import { UpdateNextSeasonGradeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import {
+  UpdateNextSeasonGradeRequestBody,
+  UpdateNextSeasonGradeResponse,
+} from "@phading/product_service_interface/show/web/publisher/interface";
+import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
+import {
+  newBadRequestError,
+  newInternalServerErrorError,
+  newNotFoundError,
+  newUnauthorizedError,
+} from "@selfage/http_error";
+import { NodeServiceClient } from "@selfage/node_service_client";
+import { TzDate } from "@selfage/tz_date";
+
+export class UpdateNextSeasonGradeHandler extends UpdateNextSeasonGradeHandlerInterface {
+  public static create(): UpdateNextSeasonGradeHandler {
+    return new UpdateNextSeasonGradeHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => new Date(),
+      () => crypto.randomUUID(),
+    );
+  }
+
+  public constructor(
+    private database: Database,
+    private serviceClient: NodeServiceClient,
+    private getNowDate: () => Date,
+    private generateUuid: () => string,
+  ) {
+    super();
+  }
+
+  public async handle(
+    loggingPrefix: string,
+    body: UpdateNextSeasonGradeRequestBody,
+    sessionStr: string,
+  ): Promise<UpdateNextSeasonGradeResponse> {
+    if (!body.seasonId) {
+      throw newBadRequestError(`"seasonId" field is required.`);
+    }
+    if (!body.grade) {
+      throw newBadRequestError(`"grade" field is required.`);
+    }
+    if (body.grade < 1 || body.grade > MAX_GRADE) {
+      throw newBadRequestError(`"grade" is too large or too small.`);
+    }
+    if (!body.effectiveDate) {
+      throw newBadRequestError(`"effectiveDate" is required.`);
+    }
+    if (
+      isNaN(
+        TzDate.fromLocalDateString(
+          body.effectiveDate,
+          ENV_VARS.timezoneNegativeOffset,
+        ).toTimestampMs(),
+      )
+    ) {
+      throw newBadRequestError(
+        `"effectiveDate" is not a valid date when updating next season grade.`,
+      );
+    }
+    let today = TzDate.fromNewDate(
+      this.getNowDate(),
+      ENV_VARS.timezoneNegativeOffset,
+    );
+    let minDate = today.clone().addDays(MIN_GRADE_EFFECTIVE_GAP_DAY);
+    if (body.effectiveDate < minDate.toLocalDateISOString()) {
+      throw newBadRequestError(
+        `"effectiveDate" ${body.effectiveDate} must be at least ${MIN_GRADE_EFFECTIVE_GAP_DAY} days apart from today ${today.toLocalDateISOString()}.`,
+      );
+    }
+    let { accountId, capabilities } = await this.serviceClient.send(
+      newFetchSessionAndCheckCapabilityRequest({
+        signedSession: sessionStr,
+        capabilitiesMask: {
+          checkCanPublish: true,
+        },
+      }),
+    );
+    if (!capabilities.canPublish) {
+      throw newUnauthorizedError(
+        `Account ${accountId} not allowed to update next season grade.`,
+      );
+    }
+    await this.database.runTransactionAsync(async (transaction) => {
+      let [seasonRows, seasonGradeRows] = await Promise.all([
+        getSeasonForPublisher(transaction, {
+          seasonPublisherIdEq: accountId,
+          seasonSeasonIdEq: body.seasonId,
+        }),
+        getLastSeasonGrades(transaction, {
+          seasonGradeSeasonIdEq: body.seasonId,
+          seasonGradeEndDateGt: today.toLocalDateISOString(),
+          limit: 2,
+        }),
+      ]);
+      if (seasonRows.length === 0) {
+        throw newNotFoundError(`Season ${body.seasonId} is not found.`);
+      }
+      let season = seasonRows[0];
+      if (season.seasonState !== SeasonState.PUBLISHED) {
+        throw newBadRequestError(
+          `Season ${body.seasonId} is not in PUBLISHED state and cannot update next season grade.`,
+        );
+      }
+      if (seasonGradeRows.length === 0) {
+        throw newInternalServerErrorError(
+          `Season ${body.seasonId} doesn't have any valid grade.`,
+        );
+      }
+      if (seasonGradeRows.length === 1) {
+        let seasonGrade = seasonGradeRows[0];
+        if (seasonGrade.seasonGradeStartDate > today.toLocalDateISOString()) {
+          throw newInternalServerErrorError(
+            `Season ${body.seasonId} has invalid grades. Grade ${seasonGrade.seasonGradeGradeId}'s start date ${seasonGrade.seasonGradeStartDate} should be smaller than today ${today.toLocalDateISOString()}.`,
+          );
+        }
+        await transaction.batchUpdate([
+          updateSeasonGradeEndDateStatement({
+            seasonGradeSeasonIdEq: seasonGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: seasonGrade.seasonGradeGradeId,
+            setEndDate: body.effectiveDate,
+          }),
+          insertSeasonGradeStatement({
+            seasonId: body.seasonId,
+            gradeId: this.generateUuid(),
+            startDate: body.effectiveDate,
+            endDate: FAR_FUTURE_DATE,
+            grade: body.grade,
+          }),
+          updateSeasonLastChangeTimeStatement({
+            seasonSeasonIdEq: body.seasonId,
+            setLastChangeTimeMs: this.getNowDate().valueOf(),
+          }),
+        ]);
+      } else {
+        let [nextGrade, currentGrade] = seasonGradeRows;
+        if (currentGrade.seasonGradeStartDate > today.toLocalDateISOString()) {
+          throw newInternalServerErrorError(
+            `Season ${body.seasonId} has invalid grades. Grade ${currentGrade.seasonGradeGradeId}'s start date ${currentGrade.seasonGradeStartDate} should be smaller than today ${today.toLocalDateISOString()}.`,
+          );
+        }
+        if (nextGrade.seasonGradeStartDate <= today.toLocalDateISOString()) {
+          throw newInternalServerErrorError(
+            `Season ${body.seasonId} has invalid grades. Grade ${nextGrade.seasonGradeGradeId}'s start date ${nextGrade.seasonGradeStartDate} should be larger than today ${today.toLocalDateISOString()}.`,
+          );
+        }
+        await transaction.batchUpdate([
+          updateSeasonGradeEndDateStatement({
+            seasonGradeSeasonIdEq: currentGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: currentGrade.seasonGradeGradeId,
+            setEndDate: body.effectiveDate,
+          }),
+          updateSeasonGradeStartDateAndGradeStatement({
+            seasonGradeSeasonIdEq: nextGrade.seasonGradeSeasonId,
+            seasonGradeGradeIdEq: nextGrade.seasonGradeGradeId,
+            setGrade: body.grade,
+            setStartDate: body.effectiveDate,
+          }),
+          updateSeasonLastChangeTimeStatement({
+            seasonSeasonIdEq: body.seasonId,
+            setLastChangeTimeMs: this.getNowDate().valueOf(),
+          }),
+        ]);
+      }
+      await transaction.commit();
+    });
+    return {};
+  }
+}

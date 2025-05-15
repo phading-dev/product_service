@@ -49,9 +49,6 @@ export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterf
     if (body.name.length > MAX_SUBTITLE_TRACK_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);
     }
-    if (body.isDefault == null) {
-      throw newBadRequestError(`"isDefault" is required.`);
-    }
     await this.videoContainerActionHandler.handle(
       loggingPrefix,
       body.seasonId,
@@ -62,7 +59,6 @@ export class UpdateSubtitleTrackHandler extends UpdateSubtitleTrackHandlerInterf
           containerId,
           r2TrackDirname: body.r2TrackDirname,
           name: body.name,
-          isDefault: body.isDefault,
         }),
     );
     return {};
