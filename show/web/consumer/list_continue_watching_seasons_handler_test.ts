@@ -58,7 +58,7 @@ TEST_RUNNER.run({
               episodeId: "episode1",
               index: 1,
               name: "S1E1",
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
@@ -86,7 +86,7 @@ TEST_RUNNER.run({
               episodeId: "episode1",
               index: 1,
               name: "S2E1",
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
@@ -97,7 +97,7 @@ TEST_RUNNER.run({
               episodeId: "episode2",
               index: 2,
               name: "S2E2",
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
@@ -142,7 +142,7 @@ TEST_RUNNER.run({
               episodeId: "episode1",
               index: 1,
               name: "S4E1",
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 240,
               },
               state: EpisodeState.PUBLISHED,

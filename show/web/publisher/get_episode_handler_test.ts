@@ -43,6 +43,10 @@ TEST_RUNNER.run({
               index: 1,
               name: "Ep 1",
               videoContainerId: "videoContainer1",
+              videoContainerCached: {
+                r2RootDirname: "root",
+                r2MasterPlaylistFilename: "master.m3u8",
+              },
               state: EpisodeState.PUBLISHED,
               premiereTimeMs: 300,
             }),
@@ -78,6 +82,7 @@ TEST_RUNNER.run({
         let handler = new GetEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          "https://example.com",
         );
 
         // Execute
@@ -99,6 +104,11 @@ TEST_RUNNER.run({
                 seasonName: "Season 1",
                 episodeName: "Ep 1",
                 episodeIndex: 1,
+                videoContainerCached: {
+                  r2RootDirname: "root",
+                  r2MasterPlaylistFilename: "master.m3u8",
+                },
+                videoUrl: "https://example.com/root/master.m3u8",
                 videoContainer: {
                   masterPlaylist: {
                     synced: {
@@ -169,6 +179,7 @@ TEST_RUNNER.run({
         let handler = new GetEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          "https://example.com",
         );
 
         // Execute

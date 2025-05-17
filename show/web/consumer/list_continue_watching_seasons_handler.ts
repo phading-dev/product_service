@@ -162,7 +162,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     let latestEpisode = latestEpisodeRows[0];
     if (
       latestWatchedVideoTimeMs <
-      latestEpisode.episodeVideoContainer.durationSec *
+      latestEpisode.episodeVideoContainerCached.durationSec *
         1000 *
         NEXT_EPISODE_WATCH_TIME_THRESHOLD
     ) {
@@ -171,8 +171,8 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           episodeId: latestEpisode.episodeEpisodeId,
           name: latestEpisode.episodeName,
           index: latestEpisode.episodeIndex,
-          videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
-          resolution: latestEpisode.episodeVideoContainer.resolution,
+          videoDurationSec: latestEpisode.episodeVideoContainerCached.durationSec,
+          resolution: latestEpisode.episodeVideoContainerCached.resolution,
           premiereTimeMs: latestEpisode.episodePremiereTimeMs,
         },
         continueTimeMs: latestWatchedVideoTimeMs,
@@ -195,8 +195,8 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         episodeId: nextEpisode.episodeEpisodeId,
         name: nextEpisode.episodeName,
         index: nextEpisode.episodeIndex,
-        videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
-        resolution: nextEpisode.episodeVideoContainer.resolution,
+        videoDurationSec: nextEpisode.episodeVideoContainerCached.durationSec,
+        resolution: nextEpisode.episodeVideoContainerCached.resolution,
         premiereTimeMs: nextEpisode.episodePremiereTimeMs,
       },
       continueTimeMs: 0,

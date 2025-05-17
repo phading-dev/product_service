@@ -1,5 +1,5 @@
 import { SPANNER_DATABASE } from "../../common/spanner_database";
-import { getEpisode, updateEpisodeVideoContainerStatement } from "../../db/sql";
+import { getEpisode, updateEpisodeVideoContainerCachedStatement } from "../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { CacheVideoContainerHandlerInterface } from "@phading/product_service_interface/show/node/handler";
 import {
@@ -8,9 +8,9 @@ import {
 } from "@phading/product_service_interface/show/node/interface";
 import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 
-export class CacheVideoContainer extends CacheVideoContainerHandlerInterface {
-  public static create(): CacheVideoContainer {
-    return new CacheVideoContainer(SPANNER_DATABASE);
+export class CacheVideoContainerHandler extends CacheVideoContainerHandlerInterface {
+  public static create(): CacheVideoContainerHandler {
+    return new CacheVideoContainerHandler(SPANNER_DATABASE);
   }
 
   public constructor(private database: Database) {
@@ -32,17 +32,17 @@ export class CacheVideoContainer extends CacheVideoContainerHandlerInterface {
         );
       }
       let row = rows[0];
-      let currentVersion = row.episodeVideoContainer?.version ?? 0;
-      if (currentVersion > body.videoContainer.version) {
+      let currentVersion = row.episodeVideoContainerCached?.version ?? 0;
+      if (currentVersion > body.videoContainerCached.version) {
         throw newBadRequestError(
-          `Season ${body.seasonId} episode ${body.episodeId} video container already has version ${row.episodeVideoContainer.version} which is newer than the request version ${body.videoContainer.version}.`,
+          `Season ${body.seasonId} episode ${body.episodeId} video container already has version ${row.episodeVideoContainerCached.version} which is newer than the request version ${body.videoContainerCached.version}.`,
         );
       }
       await transaction.batchUpdate([
-        updateEpisodeVideoContainerStatement({
+        updateEpisodeVideoContainerCachedStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
-          setVideoContainer: body.videoContainer,
+          setVideoContainerCached: body.videoContainerCached,
         }),
       ]);
       await transaction.commit();

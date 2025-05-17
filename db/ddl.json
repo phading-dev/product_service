@@ -111,8 +111,8 @@
       "name": "videoContainerId",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoContainerId STRING(MAX)"
     }, {
-      "name": "videoContainer",
-      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoContainer BYTES(MAX)"
+      "name": "videoContainerCached",
+      "addColumnDdl": "ALTER TABLE Episode ADD COLUMN videoContainerCached BYTES(MAX)"
     }, {
       "name": "state",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN state FLOAT64"
@@ -120,7 +120,7 @@
       "name": "premiereTimeMs",
       "addColumnDdl": "ALTER TABLE Episode ADD COLUMN premiereTimeMs FLOAT64"
     }],
-    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainer BYTES(MAX), state FLOAT64, premiereTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
+    "createTableDdl": "CREATE TABLE Episode (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, index FLOAT64, name STRING(MAX), videoContainerId STRING(MAX), videoContainerCached BYTES(MAX), state FLOAT64, premiereTimeMs FLOAT64) PRIMARY KEY (seasonId ASC, episodeId ASC), INTERLEAVE IN PARENT Season ON DELETE CASCADE",
     "indexes": [{
       "name": "ByIndex",
       "createIndexDdl": "CREATE INDEX ByIndex ON Episode(seasonId, state, index DESC)"

@@ -7,7 +7,7 @@ import {
   insertEpisodeStatement,
   insertSeasonStatement,
 } from "../../db/sql";
-import { CacheVideoContainer } from "./cache_video_container";
+import { CacheVideoContainerHandler } from "./cache_video_container_handler";
 import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
@@ -34,13 +34,13 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new CacheVideoContainer(SPANNER_DATABASE);
+        let handler = new CacheVideoContainerHandler(SPANNER_DATABASE);
 
         // Execute
         await handler.handle("", {
           seasonId: "season1",
           episodeId: "episode1",
-          videoContainer: {
+          videoContainerCached: {
             version: 1,
             durationSec: 60,
           },
@@ -57,7 +57,7 @@ TEST_RUNNER.run({
               {
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
-                episodeVideoContainer: {
+                episodeVideoContainerCached: {
                   version: 1,
                   durationSec: 60,
                 },
@@ -92,7 +92,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {
+              videoContainerCached: {
                 version: 2,
                 durationSec: 120,
               },
@@ -100,14 +100,14 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new CacheVideoContainer(SPANNER_DATABASE);
+        let handler = new CacheVideoContainerHandler(SPANNER_DATABASE);
 
         // Execute
         let error = await assertReject(
           handler.handle("", {
             seasonId: "season1",
             episodeId: "episode1",
-            videoContainer: {
+            videoContainerCached: {
               version: 1,
               durationSec: 60,
             },
@@ -140,14 +140,14 @@ TEST_RUNNER.run({
       name: "EpisodeNotFound",
       execute: async () => {
         // Prepare
-        let handler = new CacheVideoContainer(SPANNER_DATABASE);
+        let handler = new CacheVideoContainerHandler(SPANNER_DATABASE);
 
         // Execute
         let error = await assertReject(
           handler.handle("", {
             seasonId: "season1",
             episodeId: "episode1",
-            videoContainer: {
+            videoContainerCached: {
               version: 1,
               durationSec: 60,
             },

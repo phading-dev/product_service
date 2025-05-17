@@ -173,9 +173,9 @@
         - name: videoContainerId
           type: string
           nullable: true
-        - name: videoContainer
-          type: VideoContainer
-          import: "@phading/product_service_interface/show/video_container"
+        - name: videoContainerCached
+          type: VideoContainerCached
+          import: "@phading/product_service_interface/show/video_container_cached"
           nullable: true
         - name: state
           type: EpisodeState
@@ -455,7 +455,7 @@
             lColumn: episodeId
       set:
         - videoContainerId
-    - name: UpdateEpisodeVideoContainer
+    - name: UpdateEpisodeVideoContainerCached
       table: Episode
       where:
         op: AND
@@ -465,7 +465,7 @@
           - op: =
             lColumn: episodeId
       set:
-        - videoContainer
+        - videoContainerCached
     - name: UpdateEpisodeIndex
       table: Episode
       where:

@@ -58,7 +58,7 @@ export class ListDraftEpisodesHandler extends ListDraftEpisodesHandlerInterface 
           state: row.episodeState,
           name: row.episodeName,
           index: row.episodeIndex,
-          videoContainer: row.episodeVideoContainer,
+          videoContainer: row.episodeVideoContainerCached,
           premiereTimeMs: row.episodePremiereTimeMs,
         }),
       ),

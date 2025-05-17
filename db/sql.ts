@@ -3,7 +3,7 @@ import { Spanner, Database, Transaction } from '@google-cloud/spanner';
 import { Statement } from '@google-cloud/spanner/build/src/transaction';
 import { PrimitiveType, MessageDescriptor } from '@selfage/message/descriptor';
 import { toEnumFromNumber, serializeMessage, deserializeMessage } from '@selfage/message/serializer';
-import { VideoContainer, VIDEO_CONTAINER } from '@phading/product_service_interface/show/video_container';
+import { VideoContainerCached, VIDEO_CONTAINER_CACHED } from '@phading/product_service_interface/show/video_container_cached';
 import { EpisodeState, EPISODE_STATE } from '@phading/product_service_interface/show/episode_state';
 
 export function insertSeasonStatement(
@@ -246,20 +246,20 @@ export function insertEpisodeStatement(
     index?: number,
     name?: string,
     videoContainerId?: string,
-    videoContainer?: VideoContainer,
+    videoContainerCached?: VideoContainerCached,
     state?: EpisodeState,
     premiereTimeMs?: number,
   }
 ): Statement {
   return {
-    sql: "INSERT Episode (seasonId, episodeId, index, name, videoContainerId, videoContainer, state, premiereTimeMs) VALUES (@seasonId, @episodeId, @index, @name, @videoContainerId, @videoContainer, @state, @premiereTimeMs)",
+    sql: "INSERT Episode (seasonId, episodeId, index, name, videoContainerId, videoContainerCached, state, premiereTimeMs) VALUES (@seasonId, @episodeId, @index, @name, @videoContainerId, @videoContainerCached, @state, @premiereTimeMs)",
     params: {
       seasonId: args.seasonId,
       episodeId: args.episodeId,
       index: args.index == null ? null : Spanner.float(args.index),
       name: args.name == null ? null : args.name,
       videoContainerId: args.videoContainerId == null ? null : args.videoContainerId,
-      videoContainer: args.videoContainer == null ? null : Buffer.from(serializeMessage(args.videoContainer, VIDEO_CONTAINER).buffer),
+      videoContainerCached: args.videoContainerCached == null ? null : Buffer.from(serializeMessage(args.videoContainerCached, VIDEO_CONTAINER_CACHED).buffer),
       state: args.state == null ? null : Spanner.float(args.state),
       premiereTimeMs: args.premiereTimeMs == null ? null : Spanner.float(args.premiereTimeMs),
     },
@@ -269,7 +269,7 @@ export function insertEpisodeStatement(
       index: { type: "float64" },
       name: { type: "string" },
       videoContainerId: { type: "string" },
-      videoContainer: { type: "bytes" },
+      videoContainerCached: { type: "bytes" },
       state: { type: "float64" },
       premiereTimeMs: { type: "float64" },
     }
@@ -301,7 +301,7 @@ export interface GetEpisodeRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -329,9 +329,9 @@ export let GET_EPISODE_ROW: MessageDescriptor<GetEpisodeRow> = {
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -351,7 +351,7 @@ export async function getEpisode(
   }
 ): Promise<Array<GetEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Episode.seasonId, Episode.episodeId, Episode.index, Episode.name, Episode.videoContainerId, Episode.videoContainer, Episode.state, Episode.premiereTimeMs FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT Episode.seasonId, Episode.episodeId, Episode.index, Episode.name, Episode.videoContainerId, Episode.videoContainerCached, Episode.state, Episode.premiereTimeMs FROM Episode WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       episodeEpisodeIdEq: args.episodeEpisodeIdEq,
@@ -369,7 +369,7 @@ export async function getEpisode(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -1791,24 +1791,24 @@ export function updateEpisodeVideoContainerIdStatement(
   };
 }
 
-export function updateEpisodeVideoContainerStatement(
+export function updateEpisodeVideoContainerCachedStatement(
   args: {
     episodeSeasonIdEq: string,
     episodeEpisodeIdEq: string,
-    setVideoContainer?: VideoContainer,
+    setVideoContainerCached?: VideoContainerCached,
   }
 ): Statement {
   return {
-    sql: "UPDATE Episode SET videoContainer = @setVideoContainer WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
+    sql: "UPDATE Episode SET videoContainerCached = @setVideoContainerCached WHERE (Episode.seasonId = @episodeSeasonIdEq AND Episode.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       episodeEpisodeIdEq: args.episodeEpisodeIdEq,
-      setVideoContainer: args.setVideoContainer == null ? null : Buffer.from(serializeMessage(args.setVideoContainer, VIDEO_CONTAINER).buffer),
+      setVideoContainerCached: args.setVideoContainerCached == null ? null : Buffer.from(serializeMessage(args.setVideoContainerCached, VIDEO_CONTAINER_CACHED).buffer),
     },
     types: {
       episodeSeasonIdEq: { type: "string" },
       episodeEpisodeIdEq: { type: "string" },
-      setVideoContainer: { type: "bytes" },
+      setVideoContainerCached: { type: "bytes" },
     }
   };
 }
@@ -3221,7 +3221,7 @@ export interface GetPublishedSeasonAndEpisodeRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -3289,9 +3289,9 @@ export let GET_PUBLISHED_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetPublishedS
     index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 16,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 17,
@@ -3313,7 +3313,7 @@ export async function getPublishedSeasonAndEpisode(
   }
 ): Promise<Array<GetPublishedSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (s.seasonId = @seasonSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (s.seasonId = @seasonSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -3345,7 +3345,7 @@ export async function getPublishedSeasonAndEpisode(
       episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
       episodeName: row.at(13).value == null ? undefined : row.at(13).value,
       episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainer: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });
@@ -3954,7 +3954,7 @@ export interface GetPublishedEpisodeRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -3982,9 +3982,9 @@ export let GET_PUBLISHED_EPISODE_ROW: MessageDescriptor<GetPublishedEpisodeRow> 
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4006,7 +4006,7 @@ export async function getPublishedEpisode(
   }
 ): Promise<Array<GetPublishedEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -4028,7 +4028,7 @@ export async function getPublishedEpisode(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4042,7 +4042,7 @@ export interface ListNextPublishedEpisodesRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4070,9 +4070,9 @@ export let LIST_NEXT_PUBLISHED_EPISODES_ROW: MessageDescriptor<ListNextPublished
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4095,7 +4095,7 @@ export async function listNextPublishedEpisodes(
   }
 ): Promise<Array<ListNextPublishedEpisodesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.index > @episodeIndexGt AND e.state = @episodeStateEq) ORDER BY e.index LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.index > @episodeIndexGt AND e.state = @episodeStateEq) ORDER BY e.index LIMIT @limit",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -4119,7 +4119,7 @@ export async function listNextPublishedEpisodes(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4133,7 +4133,7 @@ export interface ListPrevPublishedEpisodesRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4161,9 +4161,9 @@ export let LIST_PREV_PUBLISHED_EPISODES_ROW: MessageDescriptor<ListPrevPublished
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4186,7 +4186,7 @@ export async function listPrevPublishedEpisodes(
   }
 ): Promise<Array<ListPrevPublishedEpisodesRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.index < @episodeIndexLt AND e.state = @episodeStateEq) ORDER BY e.index DESC LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND s.state = @seasonStateEq AND e.index < @episodeIndexLt AND e.state = @episodeStateEq) ORDER BY e.index DESC LIMIT @limit",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -4210,7 +4210,7 @@ export async function listPrevPublishedEpisodes(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4224,7 +4224,7 @@ export interface ListPrevPublishedEpisodesForPublisherRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4252,9 +4252,9 @@ export let LIST_PREV_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW: MessageDescriptor<Lis
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4277,7 +4277,7 @@ export async function listPrevPublishedEpisodesForPublisher(
   }
 ): Promise<Array<ListPrevPublishedEpisodesForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq AND e.index < @episodeIndexLt) ORDER BY e.index DESC LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq AND e.index < @episodeIndexLt) ORDER BY e.index DESC LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -4301,7 +4301,7 @@ export async function listPrevPublishedEpisodesForPublisher(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4315,7 +4315,7 @@ export interface ListNextPublishedEpisodesForPublisherRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4343,9 +4343,9 @@ export let LIST_NEXT_PUBLISHED_EPISODES_FOR_PUBLISHER_ROW: MessageDescriptor<Lis
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4368,7 +4368,7 @@ export async function listNextPublishedEpisodesForPublisher(
   }
 ): Promise<Array<ListNextPublishedEpisodesForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq AND e.index > @episodeIndexGt) ORDER BY e.index LIMIT @limit",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq AND e.index > @episodeIndexGt) ORDER BY e.index LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -4392,7 +4392,7 @@ export async function listNextPublishedEpisodesForPublisher(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4406,7 +4406,7 @@ export interface ListDraftEpisodesForPublisherRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4434,9 +4434,9 @@ export let LIST_DRAFT_EPISODES_FOR_PUBLISHER_ROW: MessageDescriptor<ListDraftEpi
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4457,7 +4457,7 @@ export async function listDraftEpisodesForPublisher(
   }
 ): Promise<Array<ListDraftEpisodesForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq) ORDER BY e.seasonId, e.episodeId",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.state = @episodeStateEq) ORDER BY e.seasonId, e.episodeId",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -4477,7 +4477,7 @@ export async function listDraftEpisodesForPublisher(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4537,7 +4537,7 @@ export interface GetEpisodeForPublisherRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4565,9 +4565,9 @@ export let GET_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetEpisodeForPublish
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 6,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 7,
@@ -4588,7 +4588,7 @@ export async function getEpisodeForPublisher(
   }
 ): Promise<Array<GetEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -4608,7 +4608,7 @@ export async function getEpisodeForPublisher(
       episodeIndex: row.at(2).value == null ? undefined : row.at(2).value.value,
       episodeName: row.at(3).value == null ? undefined : row.at(3).value,
       episodeVideoContainerId: row.at(4).value == null ? undefined : row.at(4).value,
-      episodeVideoContainer: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(5).value == null ? undefined : deserializeMessage(row.at(5).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(6).value == null ? undefined : toEnumFromNumber(row.at(6).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
     });
@@ -4718,7 +4718,7 @@ export interface GetSeasonAndEpisodeRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4786,9 +4786,9 @@ export let GET_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetSeasonAndEpisodeRow>
     index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 16,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 17,
@@ -4808,7 +4808,7 @@ export async function getSeasonAndEpisode(
   }
 ): Promise<Array<GetSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       episodeEpisodeIdEq: args.episodeEpisodeIdEq,
@@ -4836,7 +4836,7 @@ export async function getSeasonAndEpisode(
       episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
       episodeName: row.at(13).value == null ? undefined : row.at(13).value,
       episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainer: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });
@@ -4860,7 +4860,7 @@ export interface GetSeasonAndEpisodeForPublisherRow {
   episodeIndex?: number,
   episodeName?: string,
   episodeVideoContainerId?: string,
-  episodeVideoContainer?: VideoContainer,
+  episodeVideoContainerCached?: VideoContainerCached,
   episodeState?: EpisodeState,
   episodePremiereTimeMs?: number,
 }
@@ -4928,9 +4928,9 @@ export let GET_SEASON_AND_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeason
     index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'episodeVideoContainer',
+    name: 'episodeVideoContainerCached',
     index: 16,
-    messageType: VIDEO_CONTAINER,
+    messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
     index: 17,
@@ -4951,7 +4951,7 @@ export async function getSeasonAndEpisodeForPublisher(
   }
 ): Promise<Array<GetSeasonAndEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainer, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -4981,7 +4981,7 @@ export async function getSeasonAndEpisodeForPublisher(
       episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
       episodeName: row.at(13).value == null ? undefined : row.at(13).value,
       episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainer: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER),
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
       episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
       episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });

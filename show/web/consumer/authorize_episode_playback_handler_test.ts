@@ -32,7 +32,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               episodeId: "episode1",
               seasonId: "season1",
-              videoContainer: {
+              videoContainerCached: {
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },
@@ -103,7 +103,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               episodeId: "episode1",
               seasonId: "season1",
-              videoContainer: {
+              videoContainerCached: {
                 r2RootDirname: "root",
                 r2MasterPlaylistFilename: "master.m3u8",
               },

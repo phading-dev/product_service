@@ -76,7 +76,7 @@ export class AuthorizeEpisodePlaybackHandler extends AuthorizeEpisodePlaybackHan
     return {
       videoUrl:
         row.episodePremiereTimeMs <= this.getNow()
-          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainer.r2RootDirname}/${row.episodeVideoContainer.r2MasterPlaylistFilename}`
+          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
           : undefined,
     };
   }

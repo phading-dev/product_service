@@ -86,7 +86,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
           `Season ${body.seasonId} has reached maximum number of published episodes.`,
         );
       }
-      if (!row.episodeVideoContainer) {
+      if (!row.episodeVideoContainerCached) {
         throw newBadRequestError(
           `Video container is not committed yet for season ${body.seasonId} episode ${body.episodeId}.`,
         );

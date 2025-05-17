@@ -27,7 +27,7 @@ async function insertEpisodes() {
         episodeId: "episode1",
         name: "Ep 1",
         index: 1,
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 60,
         },
         state: EpisodeState.PUBLISHED,
@@ -38,7 +38,7 @@ async function insertEpisodes() {
         episodeId: "episode2",
         name: "Ep 2",
         index: 2,
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 120,
         },
         state: EpisodeState.PUBLISHED,
@@ -49,7 +49,7 @@ async function insertEpisodes() {
         episodeId: "episode3",
         name: "Ep 3",
         index: 3,
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 180,
         },
         state: EpisodeState.DRAFT,
@@ -60,7 +60,7 @@ async function insertEpisodes() {
         episodeId: "episode4",
         name: "Ep 4",
         index: 4,
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 240,
         },
         state: EpisodeState.PUBLISHED,
@@ -301,7 +301,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               name: "Ep 1",
               index: 1,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,

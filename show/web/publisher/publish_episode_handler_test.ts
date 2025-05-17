@@ -46,7 +46,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
+              videoContainerCached: {},
               state: EpisodeState.DRAFT,
             }),
           ]);
@@ -105,7 +105,7 @@ TEST_RUNNER.run({
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
                 episodeIndex: 1,
-                episodeVideoContainer: {},
+                episodeVideoContainerCached: {},
                 episodeState: EpisodeState.PUBLISHED,
                 episodePremiereTimeMs: 1000,
               },
@@ -155,7 +155,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
+              videoContainerCached: {},
               state: EpisodeState.DRAFT,
             }),
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
@@ -222,7 +222,7 @@ TEST_RUNNER.run({
                 episodeSeasonId: "season1",
                 episodeEpisodeId: "episode1",
                 episodeIndex: 2,
-                episodeVideoContainer: {},
+                episodeVideoContainerCached: {},
                 episodeState: EpisodeState.PUBLISHED,
                 episodePremiereTimeMs: 2000,
               },
@@ -350,7 +350,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
+              videoContainerCached: {},
               state: EpisodeState.DRAFT,
             }),
           ]);
@@ -419,7 +419,7 @@ TEST_RUNNER.run({
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",
-              videoContainer: {},
+              videoContainerCached: {},
               state: EpisodeState.DRAFT,
             }),
           ]);

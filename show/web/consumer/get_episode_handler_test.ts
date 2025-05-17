@@ -36,7 +36,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               name: "Ep 1",
               index: 1,
-              videoContainer: {
+              videoContainerCached: {
                 resolution: "1080p",
                 durationSec: 60,
               },
@@ -107,7 +107,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               name: "Ep 1",
               index: 1,
-              videoContainer: {
+              videoContainerCached: {
                 resolution: "1080p",
                 durationSec: 60,
               },
@@ -170,7 +170,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               name: "Ep 1",
               index: 1,
-              videoContainer: {
+              videoContainerCached: {
                 resolution: "1080p",
                 durationSec: 60,
               },

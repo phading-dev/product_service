@@ -1,7 +1,7 @@
 import http = require("http");
 import { initS3Client } from "./common/s3_client";
 import { ENV_VARS } from "./env_vars";
-import { CacheVideoContainer } from "./show/node/cache_video_container";
+import { CacheVideoContainerHandler } from "./show/node/cache_video_container_handler";
 import { CheckPresenceOfEpisodeHandler } from "./show/node/check_presence_of_episode_handler";
 import { CheckPresenceOfSeasonHandler } from "./show/node/check_presence_of_season_handler";
 import { GetSeasonGradeHandler } from "./show/node/get_season_grade_handler";
@@ -86,7 +86,7 @@ async function main() {
     .addMetricsHandler();
   service
     .addHandlerRegister(PRODUCT_NODE_SERVICE)
-    .add(CacheVideoContainer.create())
+    .add(CacheVideoContainerHandler.create())
     .add(CheckPresenceOfEpisodeHandler.create())
     .add(CheckPresenceOfSeasonHandler.create())
     .add(GetSeasonGradeHandler.create())

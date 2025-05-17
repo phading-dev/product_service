@@ -84,7 +84,7 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       let latestEpisode = latestEpisodeRows[0];
       if (
         latestWatchedEpisode.watchedVideoTimeMs <
-        latestEpisode.episodeVideoContainer.durationSec *
+        latestEpisode.episodeVideoContainerCached.durationSec *
           1000 *
           NEXT_EPISODE_WATCH_TIME_THRESHOLD
       ) {
@@ -93,8 +93,8 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
             episodeId: latestEpisode.episodeEpisodeId,
             name: latestEpisode.episodeName,
             index: latestEpisode.episodeIndex,
-            videoDurationSec: latestEpisode.episodeVideoContainer.durationSec,
-            resolution: latestEpisode.episodeVideoContainer.resolution,
+            videoDurationSec: latestEpisode.episodeVideoContainerCached.durationSec,
+            resolution: latestEpisode.episodeVideoContainerCached.resolution,
             premiereTimeMs: latestEpisode.episodePremiereTimeMs,
           },
           rewatching: false,
@@ -121,8 +121,8 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
           episodeId: nextEpisode.episodeEpisodeId,
           name: nextEpisode.episodeName,
           index: nextEpisode.episodeIndex,
-          videoDurationSec: nextEpisode.episodeVideoContainer.durationSec,
-          resolution: nextEpisode.episodeVideoContainer.resolution,
+          videoDurationSec: nextEpisode.episodeVideoContainerCached.durationSec,
+          resolution: nextEpisode.episodeVideoContainerCached.resolution,
           premiereTimeMs: nextEpisode.episodePremiereTimeMs,
         },
         rewatching: false,
@@ -146,8 +146,8 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       episodeId: firstEpisode.episodeEpisodeId,
       name: firstEpisode.episodeName,
       index: firstEpisode.episodeIndex,
-      videoDurationSec: firstEpisode.episodeVideoContainer.durationSec,
-      resolution: firstEpisode.episodeVideoContainer.resolution,
+      videoDurationSec: firstEpisode.episodeVideoContainerCached.durationSec,
+      resolution: firstEpisode.episodeVideoContainerCached.resolution,
       premiereTimeMs: firstEpisode.episodePremiereTimeMs,
     };
   }

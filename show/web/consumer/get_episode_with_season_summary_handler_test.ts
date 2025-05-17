@@ -50,7 +50,7 @@ TEST_RUNNER.run({
               index: 1,
               name: "Episode 1",
               premiereTimeMs: 24000,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 3600,
                 resolution: "1080p",
               },
@@ -142,7 +142,7 @@ TEST_RUNNER.run({
               index: 1,
               name: "Episode 1",
               premiereTimeMs: 24000,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 3600,
                 resolution: "1080p",
               },
@@ -214,7 +214,7 @@ TEST_RUNNER.run({
               index: 1,
               name: "Episode 1",
               premiereTimeMs: 24000,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 3600,
                 resolution: "1080p",
               },

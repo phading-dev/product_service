@@ -88,7 +88,7 @@ export class ListPublishedEpisodesHandler extends ListPublishedEpisodesHandlerIn
           state: row.episodeState,
           name: row.episodeName,
           index: row.episodeIndex,
-          videoContainer: row.episodeVideoContainer,
+          videoContainer: row.episodeVideoContainerCached,
           premiereTimeMs: row.episodePremiereTimeMs,
         }),
       ),

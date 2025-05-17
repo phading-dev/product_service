@@ -33,7 +33,7 @@ TEST_RUNNER.run({
               episodeId: "episode1",
               name: "Ep 1",
               index: 1,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
@@ -44,7 +44,7 @@ TEST_RUNNER.run({
               episodeId: "episode2",
               name: "Ep 2",
               index: 2,
-              videoContainer: {
+              videoContainerCached: {
                 durationSec: 120,
               },
               state: EpisodeState.DRAFT,

@@ -46,8 +46,8 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         episodeId: row.episodeEpisodeId,
         name: row.episodeName,
         index: row.episodeIndex,
-        resolution: row.episodeVideoContainer.resolution,
-        videoDurationSec: row.episodeVideoContainer.durationSec,
+        resolution: row.episodeVideoContainerCached.resolution,
+        videoDurationSec: row.episodeVideoContainerCached.durationSec,
         premiereTimeMs: row.episodePremiereTimeMs,
       },
     };

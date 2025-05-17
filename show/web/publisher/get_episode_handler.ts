@@ -1,6 +1,7 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getSeasonAndEpisodeForPublisher } from "../../../db/sql";
+import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { GetEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -19,12 +20,17 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
   public static create(): GetEpisodeHandler {
-    return new GetEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new GetEpisodeHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      ENV_VARS.r2VideoPublicAccessDomain,
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private videoPublicAccessDomain: string,
   ) {
     super();
   }
@@ -77,6 +83,11 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         seasonName: row.seasonName,
         episodeName: row.episodeName,
         episodeIndex: row.episodeIndex,
+        totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
+        videoContainerCached: row.episodeVideoContainerCached,
+        videoUrl: row.episodeVideoContainerCached
+          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
+          : undefined,
         videoContainer,
         state: row.episodeState,
         premiereTimeMs: row.episodePremiereTimeMs,

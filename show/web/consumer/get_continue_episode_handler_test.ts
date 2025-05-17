@@ -37,7 +37,7 @@ async function insertEpisodes() {
         episodeId: "episode1",
         index: 1,
         name: "Episode 1",
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 120,
           resolution: "1080p",
         },
@@ -49,7 +49,7 @@ async function insertEpisodes() {
         episodeId: "episode2",
         index: 2,
         name: "Episode 2",
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 150,
           resolution: "1080p",
         },
@@ -61,7 +61,7 @@ async function insertEpisodes() {
         episodeId: "episode3",
         index: 3,
         name: "Episode 3",
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 180,
           resolution: "1080p",
         },
@@ -73,7 +73,7 @@ async function insertEpisodes() {
         episodeId: "episode4",
         index: 4,
         name: "Episode 4",
-        videoContainer: {
+        videoContainerCached: {
           durationSec: 200,
           resolution: "1080p",
         },

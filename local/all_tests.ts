@@ -1,4 +1,4 @@
-import "../show/node/cache_video_container_test";
+import "../show/node/cache_video_container_handler_test";
 import "../show/node/get_season_grade_handler_test";
 import "../show/node/process_cover_image_deleting_task_handler_test";
 import "../show/node/process_season_recent_premiere_time_updating_handler_test";
