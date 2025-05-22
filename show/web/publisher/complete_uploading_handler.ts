@@ -2,20 +2,19 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { VideoContainerActionHandler } from "./common/video_container_action_handler";
 import { Database } from "@google-cloud/spanner";
-import { CancelSubtitleUploadingHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { CompleteUploadingHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  CancelSubtitleUploadingRequestBody,
-  CancelSubtitleUploadingResponse,
+  CompleteUploadingRequestBody,
+  CompleteUploadingResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newCancelSubtitleUploadingRequest } from "@phading/video_service_interface/node/client";
+import { newCompleteUploadingRequest } from "@phading/video_service_interface/node/client";
+import { newBadRequestError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class CancelSubtitleUploadingHandler extends CancelSubtitleUploadingHandlerInterface {
-  public static create(): CancelSubtitleUploadingHandler {
-    return new CancelSubtitleUploadingHandler(
-      SPANNER_DATABASE,
-      SERVICE_CLIENT,
-      () => Date.now(),
+export class CompleteUploadingHandler extends CompleteUploadingHandlerInterface {
+  public static create(): CompleteUploadingHandler {
+    return new CompleteUploadingHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
     );
   }
 
@@ -35,17 +34,21 @@ export class CancelSubtitleUploadingHandler extends CancelSubtitleUploadingHandl
 
   public async handle(
     loggingPrefix: string,
-    body: CancelSubtitleUploadingRequestBody,
+    body: CompleteUploadingRequestBody,
     sessionStr: string,
-  ): Promise<CancelSubtitleUploadingResponse> {
+  ): Promise<CompleteUploadingResponse> {
+    if (!body.uploadSessionUrl) {
+      throw newBadRequestError(`"uploadSessionUrl" is required.`);
+    }
     await this.videoContainerActionHandler.handle(
       loggingPrefix,
       body.seasonId,
       body.episodeId,
       sessionStr,
       (containerId) =>
-        newCancelSubtitleUploadingRequest({
+        newCompleteUploadingRequest({
           containerId,
+          uploadSessionUrl: body.uploadSessionUrl,
         }),
     );
     return {};

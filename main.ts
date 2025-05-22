@@ -31,13 +31,9 @@ import { RateSeasonHandler } from "./show/web/consumer/rate_season_handler";
 import { SearchSeasonsHandler as SearchSeasonsForConsumerHandler } from "./show/web/consumer/search_seasons_handler";
 import { UnrateSeasonHandler } from "./show/web/consumer/unrate_season_handler";
 import { ArchiveSeasonHandler } from "./show/web/publisher/archive_season_handler";
-import { CancelMediaFormattingHandler } from "./show/web/publisher/cancel_media_formatting_handler";
-import { CancelMediaUploadingHandler } from "./show/web/publisher/cancel_media_uploading_handler";
-import { CancelSubtitleFormattingHandler } from "./show/web/publisher/cancel_subtitle_formatting_handler";
-import { CancelSubtitleUploadingHandler } from "./show/web/publisher/cancel_subtitle_uploading_handler";
+import { CancelUploadingHandler } from "./show/web/publisher/cancel_uploading_handler";
 import { CommitEpisodeStagingDataHandler } from "./show/web/publisher/commit_episode_staging_data_handler";
-import { CompleteMediaUploadingHandler } from "./show/web/publisher/complete_media_uploading_handler";
-import { CompleteSubtitleUploadingHandler } from "./show/web/publisher/complete_subtitle_uploading_handler";
+import { CompleteUploadingHandler } from "./show/web/publisher/complete_uploading_handler";
 import { CreateEpisodeHandler } from "./show/web/publisher/create_episode_handler";
 import { CreateSeasonHandler } from "./show/web/publisher/create_season_handler";
 import { DeleteAudioTrackHandler } from "./show/web/publisher/delete_audio_track_handler";
@@ -56,8 +52,7 @@ import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_publishe
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
 import { SearchSeasonsHandler as SearchSeasonsForPublisherHandler } from "./show/web/publisher/search_seasons_handler";
-import { StartMediaUploadingHandler } from "./show/web/publisher/start_media_uploading_handler";
-import { StartSubtitleUploadingHandler } from "./show/web/publisher/start_subtitle_uploading_handler";
+import { StartUploadingHandler } from "./show/web/publisher/start_uploading_handler";
 import { UnpublishEpisodeHandler } from "./show/web/publisher/unpublish_episode_handler";
 import { UpdateAudioTrackHandler } from "./show/web/publisher/update_audio_track_handler";
 import { UpdateEpisodeIndexHandler } from "./show/web/publisher/update_episode_index_handler";
@@ -119,13 +114,9 @@ async function main() {
     .add(SearchSeasonsForConsumerHandler.create())
     .add(UnrateSeasonHandler.create())
     .add(ArchiveSeasonHandler.create())
-    .add(CancelMediaFormattingHandler.create())
-    .add(CancelMediaUploadingHandler.create())
-    .add(CancelSubtitleFormattingHandler.create())
-    .add(CancelSubtitleUploadingHandler.create())
+    .add(CancelUploadingHandler.create())
     .add(CommitEpisodeStagingDataHandler.create())
-    .add(CompleteMediaUploadingHandler.create())
-    .add(CompleteSubtitleUploadingHandler.create())
+    .add(CompleteUploadingHandler.create())
     .add(CreateEpisodeHandler.create())
     .add(CreateSeasonHandler.create())
     .add(DeleteAudioTrackHandler.create())
@@ -144,8 +135,7 @@ async function main() {
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
     .add(SearchSeasonsForPublisherHandler.create())
-    .add(StartMediaUploadingHandler.create())
-    .add(StartSubtitleUploadingHandler.create())
+    .add(StartUploadingHandler.create())
     .add(UnpublishEpisodeHandler.create())
     .add(UpdateAudioTrackHandler.create())
     .add(UpdateEpisodeIndexHandler.create())

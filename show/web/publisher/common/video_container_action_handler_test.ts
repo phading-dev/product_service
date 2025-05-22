@@ -7,11 +7,11 @@ import {
   insertEpisodeStatement,
   insertSeasonStatement,
 } from "../../../../db/sql";
-import { CancelMediaFormattingHandler } from "../cancel_media_formatting_handler";
+import { CancelUploadingHandler } from "../cancel_uploading_handler";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import {
-  CANCEL_MEDIA_FORMATTING,
-  CANCEL_MEDIA_FORMATTING_REQUEST_BODY,
+  CANCEL_UPLOADING,
+  CANCEL_UPLOADING_REQUEST_BODY,
 } from "@phading/video_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -22,7 +22,7 @@ TEST_RUNNER.run({
   name: "VideoContainerActionHandlerTest",
   cases: [
     {
-      name: "CancelMediaFormatting",
+      name: "CancelUploading",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -47,7 +47,7 @@ TEST_RUNNER.run({
             canPublish: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new CancelMediaFormattingHandler(
+        let handler = new CancelUploadingHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
@@ -66,14 +66,14 @@ TEST_RUNNER.run({
         // Verify
         assertThat(
           serviceClientMock.request.descriptor,
-          eq(CANCEL_MEDIA_FORMATTING),
+          eq(CANCEL_UPLOADING),
           "RC",
         );
         assertThat(
           serviceClientMock.request.body,
           eqMessage(
             { containerId: "videoContainer1" },
-            CANCEL_MEDIA_FORMATTING_REQUEST_BODY,
+            CANCEL_UPLOADING_REQUEST_BODY,
           ),
           "RC body",
         );
