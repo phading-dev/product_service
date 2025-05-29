@@ -36,32 +36,25 @@ import { CommitEpisodeStagingDataHandler } from "./show/web/publisher/commit_epi
 import { CompleteUploadingHandler } from "./show/web/publisher/complete_uploading_handler";
 import { CreateEpisodeHandler } from "./show/web/publisher/create_episode_handler";
 import { CreateSeasonHandler } from "./show/web/publisher/create_season_handler";
-import { DeleteAudioTrackHandler } from "./show/web/publisher/delete_audio_track_handler";
 import { DeleteEpisodeHandler } from "./show/web/publisher/delete_episode_handler";
 import { DeleteNextSeasonGradeHandler } from "./show/web/publisher/delete_next_season_grade_handler";
 import { DeleteSeasonHandler } from "./show/web/publisher/delete_season_handler";
-import { DeleteSubtitleTrackHandler } from "./show/web/publisher/delete_subtitle_track_handler";
-import { DeleteVideoTrackHandler } from "./show/web/publisher/delete_video_track_handler";
-import { DropAudioTrackStagingDataHandler } from "./show/web/publisher/drop_audio_track_staging_data_handler";
-import { DropSubtitleTrackStagingDataHandler } from "./show/web/publisher/drop_subtitle_track_staging_data_handler";
-import { DropVideoTrackStagingDataHandler } from "./show/web/publisher/drop_video_track_staging_data_handler";
 import { GetEpisodeHandler } from "./show/web/publisher/get_episode_handler";
 import { GetSeasonHandler } from "./show/web/publisher/get_season_handler";
 import { ListDraftEpisodesHandler } from "./show/web/publisher/list_draft_episodes_handler";
 import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_published_episodes_handler";
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
+import { SaveEpisodeStagingDataHandler } from "./show/web/publisher/save_episode_staging_data_handler";
 import { SearchSeasonsHandler as SearchSeasonsForPublisherHandler } from "./show/web/publisher/search_seasons_handler";
 import { StartUploadingHandler } from "./show/web/publisher/start_uploading_handler";
 import { UnpublishEpisodeHandler } from "./show/web/publisher/unpublish_episode_handler";
-import { UpdateAudioTrackHandler } from "./show/web/publisher/update_audio_track_handler";
 import { UpdateEpisodeIndexHandler } from "./show/web/publisher/update_episode_index_handler";
 import { UpdateEpisodeNameHandler } from "./show/web/publisher/update_episode_name_handler";
 import { UpdateEpisodePremiereTimeHandler } from "./show/web/publisher/update_episode_premiere_time_handler";
 import { UpdateNextSeasonGradeHandler } from "./show/web/publisher/update_next_season_grade_handler";
 import { UpdateSeasonGradeHandler } from "./show/web/publisher/update_season_grade_handler";
 import { UpdateSeasonHandler } from "./show/web/publisher/update_season_handler";
-import { UpdateSubtitleTrackHandler } from "./show/web/publisher/update_subtitle_track_handler";
 import { UploadCoverImageHandler } from "./show/web/publisher/upload_cover_image_handler";
 import {
   PRODUCT_NODE_SERVICE,
@@ -119,32 +112,25 @@ async function main() {
     .add(CompleteUploadingHandler.create())
     .add(CreateEpisodeHandler.create())
     .add(CreateSeasonHandler.create())
-    .add(DeleteAudioTrackHandler.create())
     .add(DeleteEpisodeHandler.create())
     .add(DeleteNextSeasonGradeHandler.create())
     .add(DeleteSeasonHandler.create())
-    .add(DeleteSubtitleTrackHandler.create())
-    .add(DeleteVideoTrackHandler.create())
-    .add(DropAudioTrackStagingDataHandler.create())
-    .add(DropSubtitleTrackStagingDataHandler.create())
-    .add(DropVideoTrackStagingDataHandler.create())
     .add(GetEpisodeHandler.create())
     .add(GetSeasonHandler.create())
     .add(ListDraftEpisodesHandler.create())
     .add(ListPublishedEpisodesHandler.create())
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
+    .add(SaveEpisodeStagingDataHandler.create())
     .add(SearchSeasonsForPublisherHandler.create())
     .add(StartUploadingHandler.create())
     .add(UnpublishEpisodeHandler.create())
-    .add(UpdateAudioTrackHandler.create())
     .add(UpdateEpisodeIndexHandler.create())
     .add(UpdateEpisodeNameHandler.create())
     .add(UpdateEpisodePremiereTimeHandler.create())
     .add(UpdateNextSeasonGradeHandler.create())
     .add(UpdateSeasonGradeHandler.create())
     .add(UpdateSeasonHandler.create())
-    .add(UpdateSubtitleTrackHandler.create())
     .add(UploadCoverImageHandler.create());
   await service.start(ENV_VARS.port);
 }

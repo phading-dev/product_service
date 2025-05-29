@@ -2,18 +2,17 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { VideoContainerActionHandler } from "./common/video_container_action_handler";
 import { Database } from "@google-cloud/spanner";
-import { DeleteSubtitleTrackHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
+import { SaveEpisodeStagingDataHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
-  DeleteSubtitleTrackRequestBody,
-  DeleteSubtitleTrackResponse,
+  SaveEpisodeStagingDataRequestBody,
+  SaveEpisodeStagingDataResponse,
 } from "@phading/product_service_interface/show/web/publisher/interface";
-import { newDeleteSubtitleTrackRequest } from "@phading/video_service_interface/node/client";
-import { newBadRequestError } from "@selfage/http_error";
+import { newSaveVideoContainerStagingDataRequest } from "@phading/video_service_interface/node/client";
 import { NodeServiceClient } from "@selfage/node_service_client";
 
-export class DeleteSubtitleTrackHandler extends DeleteSubtitleTrackHandlerInterface {
-  public static create(): DeleteSubtitleTrackHandler {
-    return new DeleteSubtitleTrackHandler(
+export class SaveEpisodeStagingDataHandler extends SaveEpisodeStagingDataHandlerInterface {
+  public static create(): SaveEpisodeStagingDataHandler {
+    return new SaveEpisodeStagingDataHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       () => Date.now(),
@@ -36,23 +35,22 @@ export class DeleteSubtitleTrackHandler extends DeleteSubtitleTrackHandlerInterf
 
   public async handle(
     loggingPrefix: string,
-    body: DeleteSubtitleTrackRequestBody,
+    body: SaveEpisodeStagingDataRequestBody,
     sessionStr: string,
-  ): Promise<DeleteSubtitleTrackResponse> {
-    if (!body.r2TrackDirname) {
-      throw newBadRequestError(`"r2TrackDirname" is required.`);
-    }
-    await this.videoContainerActionHandler.handle(
+  ): Promise<SaveEpisodeStagingDataResponse> {
+    let { error } = await this.videoContainerActionHandler.handle(
       loggingPrefix,
       body.seasonId,
       body.episodeId,
       sessionStr,
       (containerId) =>
-        newDeleteSubtitleTrackRequest({
+        newSaveVideoContainerStagingDataRequest({
           containerId,
-          r2TrackDirname: body.r2TrackDirname,
+          videoContainer: body.videoContainer,
         }),
     );
-    return {};
+    return {
+      error,
+    };
   }
 }

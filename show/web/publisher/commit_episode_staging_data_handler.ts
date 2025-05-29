@@ -38,7 +38,7 @@ export class CommitEpisodeStagingDataHandler extends CommitEpisodeStagingDataHan
     body: CommitEpisodeStagingDataRequestBody,
     sessionStr: string,
   ): Promise<CommitEpisodeStagingDataResponse> {
-    let { success, error } = await this.videoContainerActionHandler.handle(
+    let { error } = await this.videoContainerActionHandler.handle(
       loggingPrefix,
       body.seasonId,
       body.episodeId,
@@ -46,10 +46,10 @@ export class CommitEpisodeStagingDataHandler extends CommitEpisodeStagingDataHan
       (containerId) =>
         newCommitVideoContainerStagingDataRequest({
           containerId,
+          videoContainer: body.videoContainer,
         }),
     );
     return {
-      success,
       error,
     };
   }
