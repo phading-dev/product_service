@@ -45,6 +45,9 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
     if (!body.name) {
       throw newBadRequestError(`"name" is required.`);
     }
+    if (body.name.length === 0) {
+      throw newBadRequestError(`"name" cannot be empty.`);
+    }
     if (body.name.length > MAX_SEASON_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);
     }

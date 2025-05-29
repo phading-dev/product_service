@@ -1,5 +1,6 @@
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
+import { normalizeVideoContainerStagingData } from "./common/normalize_video_container_staging_data";
 import { VideoContainerActionHandler } from "./common/video_container_action_handler";
 import { Database } from "@google-cloud/spanner";
 import { CommitEpisodeStagingDataHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
@@ -38,6 +39,10 @@ export class CommitEpisodeStagingDataHandler extends CommitEpisodeStagingDataHan
     body: CommitEpisodeStagingDataRequestBody,
     sessionStr: string,
   ): Promise<CommitEpisodeStagingDataResponse> {
+    if (!body.videoContainer) {
+      throw new Error(`"videoContainer" is required.`);
+    }
+    normalizeVideoContainerStagingData(body.videoContainer);
     let { error } = await this.videoContainerActionHandler.handle(
       loggingPrefix,
       body.seasonId,

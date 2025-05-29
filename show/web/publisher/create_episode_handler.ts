@@ -54,6 +54,9 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
     if (!body.episodeName) {
       throw newBadRequestError(`"episodeName" is required.`);
     }
+    if (body.episodeName.length === 0) {
+      throw newBadRequestError(`"episodeName" cannot be empty.`);
+    }
     if (body.episodeName.length > MAX_EPISODE_NAME_LENGTH) {
       throw newBadRequestError(`"episodeName" is too long.`);
     }
