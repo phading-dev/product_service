@@ -95,7 +95,7 @@ TEST_RUNNER.run({
         );
         let delayResolveFn: () => void;
         let firstEncounterPromise = new Promise<void>((resolve1) => {
-          handler.interferFn = async () => {
+          handler.interfereFn = async () => {
             resolve1();
             await new Promise<void>((resolve2) => {
               delayResolveFn = resolve2;
@@ -199,7 +199,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "Interfered_Cleanup",
+      name: "InvalidFile_Cleanup",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -229,15 +229,12 @@ TEST_RUNNER.run({
           () => 1000,
           () => "image2",
         );
-        handler.interferFn = async () => {
-          throw new Error("Fake error.");
-        };
 
         // Execute
         let error = await assertReject(
           handler.handle(
             "",
-            createReadStream("test_data/user_image.jpg"),
+            createReadStream("test_data/non_image.txt"),
             {
               seasonId: "season1",
             },
@@ -246,7 +243,7 @@ TEST_RUNNER.run({
         );
 
         // Verify
-        assertThat(error, eqError(new Error("Fake error")), "error");
+        assertThat(error, eqError(new Error("Input buffer contains unsupported image format")), "error");
         assertThat(
           await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([

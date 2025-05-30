@@ -112,11 +112,7 @@ export class CreateEpisodeHandler extends CreateEpisodeHandlerInterface {
       await transaction.commit();
     });
     return {
-      episode: {
-        episodeId,
-        name: body.episodeName,
-        state: EpisodeState.DRAFT,
-      },
+      episodeId,
     };
   }
 }

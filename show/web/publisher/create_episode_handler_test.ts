@@ -70,11 +70,7 @@ TEST_RUNNER.run({
           response,
           eqMessage(
             {
-              episode: {
-                episodeId: "episode1",
-                name: "Ep 1",
-                state: EpisodeState.DRAFT,
-              },
+              episodeId: "episode1",
             },
             CREATE_EPISODE_RESPONSE,
           ),

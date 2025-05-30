@@ -51,7 +51,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
 
   private static ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
   private static DELAY_TO_CLEAN_UP_ON_ERROR_MS = 5 * 60 * 1000;
-  public interferFn: () => Promise<void> = () => Promise.resolve();
+  public interfereFn: () => Promise<void> = () => Promise.resolve();
 
   public constructor(
     private database: Database,
@@ -146,7 +146,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
     accountId: string,
     seasonId: string,
   ): Promise<void> {
-    await this.interferFn();
+    await this.interfereFn();
     let data = await getStream.buffer(body, {
       maxBuffer: MAX_COVER_IMAGE_BUFFER_SIZE,
     });
@@ -160,7 +160,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
         ContentType: "image/jpeg",
       },
     });
-    pipeline(
+    await pipeline(
       sharp(data)
         .resize(COVER_IMAGE_WIDTH, COVER_IMAGE_HEIGHT, { fit: "contain" })
         .jpeg({
