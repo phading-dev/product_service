@@ -42,10 +42,8 @@ export class CreateSeasonHandler extends CreateSeasonHandlerInterface {
     body: CreateSeasonRequestBody,
     sessionStr: string,
   ): Promise<CreateSeasonResponse> {
+    body.name = (body.name ?? "").trim();
     if (!body.name) {
-      throw newBadRequestError(`"name" is required.`);
-    }
-    if (body.name.length === 0) {
       throw newBadRequestError(`"name" cannot be empty.`);
     }
     if (body.name.length > MAX_SEASON_NAME_LENGTH) {

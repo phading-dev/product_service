@@ -46,13 +46,14 @@ export class UpdateSeasonHandler extends UpdateSeasonHandlerInterface {
     if (!body.seasonId) {
       throw newBadRequestError(`"seasonId" is required.`);
     }
+    body.name = (body.name ?? "").trim();
     if (!body.name) {
-      throw newBadRequestError(`"name" is required.`);
+      throw newBadRequestError(`"name" cannot be empty.`);
     }
     if (body.name.length > MAX_SEASON_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);
     }
-    body.description ??= "";
+    body.description = (body.description ?? "").trim();
     if (body.description.length > MAX_SEASON_DESCRIPTION_LENGTH) {
       throw newBadRequestError(`"description" is too long.`);
     }

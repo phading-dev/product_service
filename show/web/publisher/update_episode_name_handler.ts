@@ -46,8 +46,9 @@ export class UpdateEpisodeNameHandler extends UpdateEpisodeNameHandlerInterface 
     if (!body.episodeId) {
       throw newBadRequestError(`"episodeId" is required.`);
     }
+    body.name = (body.name ?? "").trim();
     if (!body.name) {
-      throw newBadRequestError(`"name" is required.`);
+      throw newBadRequestError(`"name" cannot be empty.`);
     }
     if (body.name.length > MAX_EPISODE_NAME_LENGTH) {
       throw newBadRequestError(`"name" is too long.`);

@@ -14,9 +14,10 @@ export function normalizeVideoContainerStagingData(
     videoContainer.audios = [];
   }
   videoContainer.audios.forEach((audio, index) => {
-    if (audio.staging.toAdd) {
-      if (!audio.staging.toAdd.name || audio.staging.toAdd.name.length === 0) {
-        audio.staging.toAdd.name = index.toString();
+    if (audio.staging?.toAdd) {
+      audio.staging.toAdd.name = (audio.staging.toAdd.name ?? "").trim();
+      if (!audio.staging.toAdd.name.length) {
+        audio.staging.toAdd.name = (index + 1).toString();
       }
       if (audio.staging.toAdd.name.length > MAX_AUDIO_TRACK_NAME_LENGTH) {
         audio.staging.toAdd.name = audio.staging.toAdd.name.substring(
@@ -30,12 +31,10 @@ export function normalizeVideoContainerStagingData(
     videoContainer.subtitles = [];
   }
   videoContainer.subtitles.forEach((subtitle, index) => {
-    if (subtitle.staging.toAdd) {
-      if (
-        !subtitle.staging.toAdd.name ||
-        subtitle.staging.toAdd.name.length === 0
-      ) {
-        subtitle.staging.toAdd.name = index.toString();
+    if (subtitle.staging?.toAdd) {
+      subtitle.staging.toAdd.name = (subtitle.staging.toAdd.name ?? "").trim();
+      if (!subtitle.staging.toAdd.name) {
+        subtitle.staging.toAdd.name = (index + 1).toString();
       }
       if (subtitle.staging.toAdd.name.length > MAX_SUBTITLE_TRACK_NAME_LENGTH) {
         subtitle.staging.toAdd.name = subtitle.staging.toAdd.name.substring(

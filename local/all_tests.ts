@@ -20,6 +20,7 @@ import "../show/web/consumer/list_seasons_by_recent_premiere_time_handler_test";
 import "../show/web/consumer/rate_season_handler_test";
 import "../show/web/consumer/search_seasons_handler_test";
 import "../show/web/consumer/unrate_season_handler_test";
+import "../show/web/publisher/common/normalize_video_container_staging_data_test";
 import "../show/web/publisher/common/video_container_action_handler_test";
 import "../show/web/publisher/archive_season_handler_test";
 import "../show/web/publisher/create_episode_handler_test";

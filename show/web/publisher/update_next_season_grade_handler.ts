@@ -135,6 +135,11 @@ export class UpdateNextSeasonGradeHandler extends UpdateNextSeasonGradeHandlerIn
             `Season ${body.seasonId} has invalid grades. Grade ${seasonGrade.seasonGradeGradeId}'s start date ${seasonGrade.seasonGradeStartDate} should be smaller than today ${today.toLocalDateISOString()}.`,
           );
         }
+        if (seasonGrade.seasonGradeGrade === body.grade) {
+          throw newBadRequestError(
+            `Season ${body.seasonId} already has the same grade as ${body.grade}.`,
+          );
+        }
         await transaction.batchUpdate([
           updateSeasonGradeEndDateStatement({
             seasonGradeSeasonIdEq: seasonGrade.seasonGradeSeasonId,
@@ -163,6 +168,11 @@ export class UpdateNextSeasonGradeHandler extends UpdateNextSeasonGradeHandlerIn
         if (nextGrade.seasonGradeStartDate <= today.toLocalDateISOString()) {
           throw newInternalServerErrorError(
             `Season ${body.seasonId} has invalid grades. Grade ${nextGrade.seasonGradeGradeId}'s start date ${nextGrade.seasonGradeStartDate} should be larger than today ${today.toLocalDateISOString()}.`,
+          );
+        }
+        if (currentGrade.seasonGradeGrade === body.grade) {
+          throw newBadRequestError(
+            `Season ${body.seasonId} already has the same grade as ${body.grade}.`,
           );
         }
         await transaction.batchUpdate([
