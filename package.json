@@ -36,7 +36,7 @@
     "@google-cloud/spanner": "^7.21.0",
     "@google-cloud/storage": "^7.16.0",
     "@phading/cluster": "^1.0.6",
-    "@phading/constants": "^0.3.11",
+    "@phading/constants": "^0.3.12",
     "@phading/play_activity_service_interface": "^1.0.10",
     "@phading/product_service_interface": "^1.1.13",
     "@phading/user_session_service_interface": "^1.1.0",

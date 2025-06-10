@@ -73,24 +73,28 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
         `Season ${body.seasonId} does not have any grade on today ${todayStr}.`,
       );
     }
+    let summary = summaryRows[0];
+    let grade = gradeRows[0];
     return {
       summary: {
         season: {
-          seasonId: summaryRows[0].seasonSeasonId,
-          publisherId: summaryRows[0].seasonPublisherId,
-          name: summaryRows[0].seasonName,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${summaryRows[0].seasonCoverImageR2Filename}`,
-          grade: gradeRows[0].seasonGradeGrade,
-          averageRating: summaryRows[0].seasonAverageRating,
-          ratingsCount: summaryRows[0].seasonRatingsCount,
+          seasonId: summary.seasonSeasonId,
+          publisherId: summary.seasonPublisherId,
+          name: summary.seasonName,
+          coverImageUrl: summary.seasonCoverImageR2Filename
+            ? `${this.coverImagePublicAccessDomain}/${summary.seasonCoverImageR2Filename}`
+            : undefined,
+          grade: grade.seasonGradeGrade,
+          averageRating: summary.seasonAverageRating,
+          ratingsCount: summary.seasonRatingsCount,
         },
         episode: {
-          episodeId: summaryRows[0].episodeEpisodeId,
-          index: summaryRows[0].episodeIndex,
-          name: summaryRows[0].episodeName,
-          videoDurationSec: summaryRows[0].episodeVideoContainerCached.durationSec,
-          resolution: summaryRows[0].episodeVideoContainerCached.resolution,
-          premiereTimeMs: summaryRows[0].episodePremiereTimeMs,
+          episodeId: summary.episodeEpisodeId,
+          index: summary.episodeIndex,
+          name: summary.episodeName,
+          videoDurationSec: summary.episodeVideoContainerCached.durationSec,
+          resolution: summary.episodeVideoContainerCached.resolution,
+          premiereTimeMs: summary.episodePremiereTimeMs,
         },
       },
     };

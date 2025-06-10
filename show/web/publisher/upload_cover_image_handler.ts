@@ -1,9 +1,5 @@
 import getStream = require("get-stream");
 import sharp = require("sharp");
-import {
-  COVER_IMAGE_HEIGHT,
-  COVER_IMAGE_WIDTH,
-} from "../../../common/constants";
 import { S3_CLIENT } from "../../../common/s3_client";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
@@ -19,7 +15,11 @@ import { ENV_VARS } from "../../../env_vars";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Database } from "@google-cloud/spanner";
-import { MAX_COVER_IMAGE_BUFFER_SIZE } from "@phading/constants/show";
+import {
+  COVER_IMAGE_HEIGHT,
+  COVER_IMAGE_WIDTH,
+  MAX_COVER_IMAGE_BUFFER_SIZE,
+} from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { UploadCoverImageHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {

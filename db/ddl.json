@@ -32,6 +32,9 @@
       "name": "createdTimeMs",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN createdTimeMs INT64 NOT NULL"
     }, {
+      "name": "publishedTimeMs",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN publishedTimeMs FLOAT64"
+    }, {
       "name": "totalRatings",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN totalRatings FLOAT64"
     }, {
@@ -47,7 +50,7 @@
       "name": "fullText",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalPublishedEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremiereTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalPublishedEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremiereTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, publishedTimeMs FLOAT64, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
       "name": "ByLastChangeTimeMs",
       "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"

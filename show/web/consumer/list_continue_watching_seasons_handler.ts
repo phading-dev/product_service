@@ -124,7 +124,9 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           seasonId: seasonRow.seasonSeasonId,
           name: seasonRow.seasonName,
           publisherId: seasonRow.seasonPublisherId,
-          coverImageUrl: `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`,
+          coverImageUrl: seasonRow.seasonCoverImageR2Filename
+            ? `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`
+            : undefined,
           grade: seasonGradeRow.seasonGradeGrade,
           totalEpisodes: seasonRow.seasonTotalPublishedEpisodes,
           averageRating: seasonRow.seasonAverageRating,
@@ -171,7 +173,8 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           episodeId: latestEpisode.episodeEpisodeId,
           name: latestEpisode.episodeName,
           index: latestEpisode.episodeIndex,
-          videoDurationSec: latestEpisode.episodeVideoContainerCached.durationSec,
+          videoDurationSec:
+            latestEpisode.episodeVideoContainerCached.durationSec,
           resolution: latestEpisode.episodeVideoContainerCached.resolution,
           premiereTimeMs: latestEpisode.episodePremiereTimeMs,
         },

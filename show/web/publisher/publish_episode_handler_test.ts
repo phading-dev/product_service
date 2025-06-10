@@ -88,6 +88,7 @@ TEST_RUNNER.run({
                 seasonLastChangeTimeMs: 1000,
                 seasonRecentPremiereTimeMs: 1000,
                 seasonCreatedTimeMs: 10,
+                seasonPublishedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),

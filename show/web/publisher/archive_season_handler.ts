@@ -1,3 +1,4 @@
+import { FAR_FUTURE_DATE } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
@@ -30,9 +31,7 @@ import {
 } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 import { TzDate } from "@selfage/tz_date";
-import { FAR_FUTURE_DATE } from "../../../common/constants";
 
-// TODO: Delete any future grade.
 export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
   public static create(): ArchiveSeasonHandler {
     return new ArchiveSeasonHandler(
@@ -108,12 +107,6 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           setCoverImageR2Filename: undefined,
           setLastChangeTimeMs: now,
         }),
-        insertCoverImageDeletingTaskStatement({
-          r2Filename: season.seasonCoverImageR2Filename,
-          retryCount: 0,
-          executionTimeMs: now,
-          createdTimeMs: now,
-        }),
         deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement({
           seasonRecentPremiereTimeUpdatingTaskSeasonIdEq: body.seasonId,
         }),
@@ -121,6 +114,16 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
           episodeSeasonIdEq: body.seasonId,
         }),
       ];
+      if (season.seasonCoverImageR2Filename) {
+        statements.push(
+          insertCoverImageDeletingTaskStatement({
+            r2Filename: season.seasonCoverImageR2Filename,
+            retryCount: 0,
+            executionTimeMs: now,
+            createdTimeMs: now,
+          }),
+        );
+      }
       for (let episode of episodeRows) {
         if (episode.episodeVideoContainerId) {
           statements.push(

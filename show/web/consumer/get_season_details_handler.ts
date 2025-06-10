@@ -82,7 +82,9 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         publisherId: row.seasonPublisherId,
         name: row.seasonName,
         description: row.seasonDescription,
-        coverImageUrl: `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
+        coverImageUrl: row.seasonCoverImageR2Filename
+          ? `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
+          : undefined,
         grade,
         nextGrade,
         totalEpisodes: row.seasonTotalPublishedEpisodes,

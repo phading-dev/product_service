@@ -18,6 +18,7 @@ export function insertSeasonStatement(
     recentPremiereTimeMs?: number,
     description?: string,
     createdTimeMs: number,
+    publishedTimeMs?: number,
     totalRatings?: number,
     ratingsCount?: number,
     averageRating?: number,
@@ -25,7 +26,7 @@ export function insertSeasonStatement(
   }
 ): Statement {
   return {
-    sql: "INSERT Season (seasonId, publisherId, state, name, coverImageR2Filename, totalPublishedEpisodes, lastChangeTimeMs, recentPremiereTimeMs, description, createdTimeMs, totalRatings, ratingsCount, averageRating, ratingUpdatedTimeMs) VALUES (@seasonId, @publisherId, @state, @name, @coverImageR2Filename, @totalPublishedEpisodes, @lastChangeTimeMs, @recentPremiereTimeMs, @description, @createdTimeMs, @totalRatings, @ratingsCount, @averageRating, @ratingUpdatedTimeMs)",
+    sql: "INSERT Season (seasonId, publisherId, state, name, coverImageR2Filename, totalPublishedEpisodes, lastChangeTimeMs, recentPremiereTimeMs, description, createdTimeMs, publishedTimeMs, totalRatings, ratingsCount, averageRating, ratingUpdatedTimeMs) VALUES (@seasonId, @publisherId, @state, @name, @coverImageR2Filename, @totalPublishedEpisodes, @lastChangeTimeMs, @recentPremiereTimeMs, @description, @createdTimeMs, @publishedTimeMs, @totalRatings, @ratingsCount, @averageRating, @ratingUpdatedTimeMs)",
     params: {
       seasonId: args.seasonId,
       publisherId: args.publisherId == null ? null : args.publisherId,
@@ -37,6 +38,7 @@ export function insertSeasonStatement(
       recentPremiereTimeMs: args.recentPremiereTimeMs == null ? null : Spanner.float(args.recentPremiereTimeMs),
       description: args.description == null ? null : args.description,
       createdTimeMs: args.createdTimeMs.toString(),
+      publishedTimeMs: args.publishedTimeMs == null ? null : Spanner.float(args.publishedTimeMs),
       totalRatings: args.totalRatings == null ? null : Spanner.float(args.totalRatings),
       ratingsCount: args.ratingsCount == null ? null : Spanner.float(args.ratingsCount),
       averageRating: args.averageRating == null ? null : Spanner.float(args.averageRating),
@@ -53,6 +55,7 @@ export function insertSeasonStatement(
       recentPremiereTimeMs: { type: "float64" },
       description: { type: "string" },
       createdTimeMs: { type: "int64" },
+      publishedTimeMs: { type: "float64" },
       totalRatings: { type: "float64" },
       ratingsCount: { type: "float64" },
       averageRating: { type: "float64" },
@@ -88,6 +91,7 @@ export interface GetSeasonRow {
   seasonRecentPremiereTimeMs?: number,
   seasonDescription?: string,
   seasonCreatedTimeMs?: number,
+  seasonPublishedTimeMs?: number,
   seasonTotalRatings?: number,
   seasonRatingsCount?: number,
   seasonAverageRating?: number,
@@ -137,20 +141,24 @@ export let GET_SEASON_ROW: MessageDescriptor<GetSeasonRow> = {
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonTotalRatings',
+    name: 'seasonPublishedTimeMs',
     index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingsCount',
+    name: 'seasonTotalRatings',
     index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonAverageRating',
+    name: 'seasonRatingsCount',
     index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingUpdatedTimeMs',
+    name: 'seasonAverageRating',
     index: 14,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 15,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -162,7 +170,7 @@ export async function getSeason(
   }
 ): Promise<Array<GetSeasonRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.publishedTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
     },
@@ -183,10 +191,11 @@ export async function getSeason(
       seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
       seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
       seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.valueOf(),
-      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
-      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonPublishedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonRatingsCount: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonRatingUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
     });
   }
   return resRows;
@@ -1587,21 +1596,24 @@ export function publishSeasonStatement(
     setState?: SeasonState,
     setTotalPublishedEpisodes?: number,
     setLastChangeTimeMs?: number,
+    setPublishedTimeMs?: number,
   }
 ): Statement {
   return {
-    sql: "UPDATE Season SET state = @setState, totalPublishedEpisodes = @setTotalPublishedEpisodes, lastChangeTimeMs = @setLastChangeTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    sql: "UPDATE Season SET state = @setState, totalPublishedEpisodes = @setTotalPublishedEpisodes, lastChangeTimeMs = @setLastChangeTimeMs, publishedTimeMs = @setPublishedTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       setState: args.setState == null ? null : Spanner.float(args.setState),
       setTotalPublishedEpisodes: args.setTotalPublishedEpisodes == null ? null : Spanner.float(args.setTotalPublishedEpisodes),
       setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
+      setPublishedTimeMs: args.setPublishedTimeMs == null ? null : Spanner.float(args.setPublishedTimeMs),
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
       setState: { type: "float64" },
       setTotalPublishedEpisodes: { type: "float64" },
       setLastChangeTimeMs: { type: "float64" },
+      setPublishedTimeMs: { type: "float64" },
     }
   };
 }
@@ -2211,6 +2223,7 @@ export interface GetSeasonAllForPublisherRow {
   seasonRecentPremiereTimeMs?: number,
   seasonDescription?: string,
   seasonCreatedTimeMs?: number,
+  seasonPublishedTimeMs?: number,
   seasonTotalRatings?: number,
   seasonRatingsCount?: number,
   seasonAverageRating?: number,
@@ -2260,20 +2273,24 @@ export let GET_SEASON_ALL_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonAllForPu
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonTotalRatings',
+    name: 'seasonPublishedTimeMs',
     index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingsCount',
+    name: 'seasonTotalRatings',
     index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonAverageRating',
+    name: 'seasonRatingsCount',
     index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingUpdatedTimeMs',
+    name: 'seasonAverageRating',
     index: 14,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 15,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2286,7 +2303,7 @@ export async function getSeasonAllForPublisher(
   }
 ): Promise<Array<GetSeasonAllForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.publishedTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonSeasonIdEq: args.seasonSeasonIdEq,
@@ -2309,10 +2326,11 @@ export async function getSeasonAllForPublisher(
       seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
       seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
       seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.valueOf(),
-      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
-      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonPublishedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonRatingsCount: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonRatingUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
     });
   }
   return resRows;
@@ -3364,6 +3382,7 @@ export interface GetPublishedSeasonAllRow {
   seasonRecentPremiereTimeMs?: number,
   seasonDescription?: string,
   seasonCreatedTimeMs?: number,
+  seasonPublishedTimeMs?: number,
   seasonTotalRatings?: number,
   seasonRatingsCount?: number,
   seasonAverageRating?: number,
@@ -3413,20 +3432,24 @@ export let GET_PUBLISHED_SEASON_ALL_ROW: MessageDescriptor<GetPublishedSeasonAll
     index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonTotalRatings',
+    name: 'seasonPublishedTimeMs',
     index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingsCount',
+    name: 'seasonTotalRatings',
     index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonAverageRating',
+    name: 'seasonRatingsCount',
     index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
-    name: 'seasonRatingUpdatedTimeMs',
+    name: 'seasonAverageRating',
     index: 14,
+    primitiveType: PrimitiveType.NUMBER,
+  }, {
+    name: 'seasonRatingUpdatedTimeMs',
+    index: 15,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3439,7 +3462,7 @@ export async function getPublishedSeasonAll(
   }
 ): Promise<Array<GetPublishedSeasonAllRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.description, Season.createdTimeMs, Season.publishedTimeMs, Season.totalRatings, Season.ratingsCount, Season.averageRating, Season.ratingUpdatedTimeMs FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -3462,10 +3485,11 @@ export async function getPublishedSeasonAll(
       seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
       seasonDescription: row.at(8).value == null ? undefined : row.at(8).value,
       seasonCreatedTimeMs: row.at(9).value == null ? undefined : row.at(9).value.valueOf(),
-      seasonTotalRatings: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonRatingsCount: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonAverageRating: row.at(12).value == null ? undefined : row.at(12).value.value,
-      seasonRatingUpdatedTimeMs: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonPublishedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonTotalRatings: row.at(11).value == null ? undefined : row.at(11).value.value,
+      seasonRatingsCount: row.at(12).value == null ? undefined : row.at(12).value.value,
+      seasonAverageRating: row.at(13).value == null ? undefined : row.at(13).value.value,
+      seasonRatingUpdatedTimeMs: row.at(14).value == null ? undefined : row.at(14).value.value,
     });
   }
   return resRows;

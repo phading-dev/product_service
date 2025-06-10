@@ -39,7 +39,9 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
     seasonId: row.seasonSeasonId,
     publisherId: row.seasonPublisherId,
     name: row.seasonName,
-    coverImageUrl: `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`,
+    coverImageUrl: row.seasonCoverImageR2Filename
+      ? `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
+      : undefined,
     averageRating: row.seasonAverageRating,
     totalEpisodes: row.seasonTotalPublishedEpisodes,
     ratingsCount: row.seasonRatingsCount,

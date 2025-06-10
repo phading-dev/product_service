@@ -102,6 +102,7 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
                 setState: SeasonState.PUBLISHED,
                 setTotalPublishedEpisodes: totalPublishedEpisodes,
                 setLastChangeTimeMs: now,
+                setPublishedTimeMs: now,
               }),
             ]
           : [

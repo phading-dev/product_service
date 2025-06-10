@@ -20,6 +20,7 @@ import {
   insertSeasonStatement,
   insertVideoContainerCreatingTaskStatement,
   listAllVideoContainersForPublisher,
+  listPendingCoverImageDeletingTasks,
   listPendingSeasonRecentPremiereTimeUpdatingTasks,
   listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
@@ -300,7 +301,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "SeasonWithMultipleGrades",
+      name: "SeasonWithoutCoverImageAndWithMultipleGrades",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -309,7 +310,6 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
-              coverImageR2Filename: "cover1",
               createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
@@ -372,6 +372,15 @@ TEST_RUNNER.run({
             ),
           ]),
           "season",
+        );
+        assertThat(
+          await listPendingCoverImageDeletingTasks(SPANNER_DATABASE, {
+            coverImageDeletingTaskExecutionTimeMsLe: new Date(
+              "2026-01-01T08:00:00Z",
+            ).getTime(),
+          }),
+          isArray([]),
+          "r2FileDeletingTasks",
         );
         assertThat(
           await getLastSeasonGrades(SPANNER_DATABASE, {

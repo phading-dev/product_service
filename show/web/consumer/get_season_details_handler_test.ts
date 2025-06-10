@@ -20,7 +20,7 @@ TEST_RUNNER.run({
   name: "GetSeasonDetailsHandlerTest",
   cases: [
     {
-      name: "GetSeasonWithoutDescriptionAndWithOneEffectiveGrade",
+      name: "GetSeasonWithoutCoverImageOrDescriptionAndWithOneEffectiveGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -30,7 +30,6 @@ TEST_RUNNER.run({
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               name: "Season 1",
-              coverImageR2Filename: "image1",
               totalPublishedEpisodes: 3,
               description: "",
               averageRating: 4.5,
@@ -72,7 +71,6 @@ TEST_RUNNER.run({
                 seasonId: "season1",
                 publisherId: "publisher1",
                 name: "Season 1",
-                coverImageUrl: "https://public_access_domain/image1",
                 totalEpisodes: 3,
                 description: "",
                 grade: 9,
