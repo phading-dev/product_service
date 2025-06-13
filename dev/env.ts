@@ -7,4 +7,4 @@ ENV_VARS.r2SeasonCoverImageBucketName = "season-cover-image-dev";
 ENV_VARS.r2SeasonCoverImagePublicAccessOrigin =
   "https://season-cover-image-dev.secount.com";
 ENV_VARS.r2VideoPublicAccessOrigin = "https://video-dev.secount.com";
-ENV_VARS.replicas = 2;
+ENV_VARS.replicas = 1;
