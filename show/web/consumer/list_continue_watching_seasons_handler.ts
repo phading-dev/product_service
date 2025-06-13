@@ -39,7 +39,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
     return new ListContinueWatchingSeasonsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
@@ -47,7 +47,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -125,7 +125,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           name: seasonRow.seasonName,
           publisherId: seasonRow.seasonPublisherId,
           coverImageUrl: seasonRow.seasonCoverImageR2Filename
-            ? `${this.coverImagePublicAccessDomain}/${seasonRow.seasonCoverImageR2Filename}`
+            ? `${this.coverImagePublicAccessOrigin}/${seasonRow.seasonCoverImageR2Filename}`
             : undefined,
           grade: seasonGradeRow.seasonGradeGrade,
           totalEpisodes: seasonRow.seasonTotalPublishedEpisodes,

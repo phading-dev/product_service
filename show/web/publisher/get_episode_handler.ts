@@ -23,14 +23,14 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     return new GetEpisodeHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      ENV_VARS.r2VideoPublicAccessDomain,
+      ENV_VARS.r2VideoPublicAccessOrigin,
     );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private videoPublicAccessDomain: string,
+    private videoPublicAccessOrigin: string,
   ) {
     super();
   }
@@ -86,7 +86,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
         videoContainerCached: row.episodeVideoContainerCached,
         videoUrl: row.episodeVideoContainerCached
-          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
+          ? `${this.videoPublicAccessOrigin}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
           : undefined,
         videoContainer,
         state: row.episodeState,

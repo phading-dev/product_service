@@ -19,14 +19,14 @@ export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingA
   public static create(): ListSeasonsByRatingAndPublisherHandler {
     return new ListSeasonsByRatingAndPublisherHandler(
       SPANNER_DATABASE,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
 
   public constructor(
     private database: Database,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -65,7 +65,7 @@ export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingA
       rows.map(async (row, i) => {
         await getLatestSeasonGradeAndSummarizeSeason(
           this.database,
-          this.coverImagePublicAccessDomain,
+          this.coverImagePublicAccessOrigin,
           todayStr,
           row,
           i,

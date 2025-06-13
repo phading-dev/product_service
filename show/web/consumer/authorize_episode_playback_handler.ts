@@ -23,7 +23,7 @@ export class AuthorizeEpisodePlaybackHandler extends AuthorizeEpisodePlaybackHan
     return new AuthorizeEpisodePlaybackHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      ENV_VARS.r2VideoPublicAccessDomain,
+      ENV_VARS.r2VideoPublicAccessOrigin,
       () => Date.now(),
     );
   }
@@ -31,7 +31,7 @@ export class AuthorizeEpisodePlaybackHandler extends AuthorizeEpisodePlaybackHan
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private videoPublicAccessDomain: string,
+    private videoPublicAccessOrigin: string,
     private getNow: () => number,
   ) {
     super();
@@ -76,7 +76,7 @@ export class AuthorizeEpisodePlaybackHandler extends AuthorizeEpisodePlaybackHan
     return {
       videoUrl:
         row.episodePremiereTimeMs <= this.getNow()
-          ? `${this.videoPublicAccessDomain}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
+          ? `${this.videoPublicAccessOrigin}/${row.episodeVideoContainerCached.r2RootDirname}/${row.episodeVideoContainerCached.r2MasterPlaylistFilename}`
           : undefined,
     };
   }

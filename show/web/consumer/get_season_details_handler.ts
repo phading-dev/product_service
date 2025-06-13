@@ -20,14 +20,14 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
   public static create(): GetSeasonDetailsHandler {
     return new GetSeasonDetailsHandler(
       SPANNER_DATABASE,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
 
   public constructor(
     private database: Database,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -83,7 +83,7 @@ export class GetSeasonDetailsHandler extends GetSeasonDetailsHandlerInterface {
         name: row.seasonName,
         description: row.seasonDescription,
         coverImageUrl: row.seasonCoverImageR2Filename
-          ? `${this.coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
+          ? `${this.coverImagePublicAccessOrigin}/${row.seasonCoverImageR2Filename}`
           : undefined,
         grade,
         nextGrade,

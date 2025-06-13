@@ -23,14 +23,14 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
   public static create(): GetEpisodeWithSeasonSummaryHandler {
     return new GetEpisodeWithSeasonSummaryHandler(
       SPANNER_DATABASE,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
 
   public constructor(
     private database: Database,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -82,7 +82,7 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
           publisherId: summary.seasonPublisherId,
           name: summary.seasonName,
           coverImageUrl: summary.seasonCoverImageR2Filename
-            ? `${this.coverImagePublicAccessDomain}/${summary.seasonCoverImageR2Filename}`
+            ? `${this.coverImagePublicAccessOrigin}/${summary.seasonCoverImageR2Filename}`
             : undefined,
           grade: grade.seasonGradeGrade,
           averageRating: summary.seasonAverageRating,

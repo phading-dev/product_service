@@ -18,14 +18,14 @@ export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentP
   public static create(): ListSeasonsByRecentPremiereTimeHandler {
     return new ListSeasonsByRecentPremiereTimeHandler(
       SPANNER_DATABASE,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
 
   public constructor(
     private database: Database,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -58,7 +58,7 @@ export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentP
       seasonRows.map(async (row, i) => {
         await getLatestSeasonGradeAndSummarizeSeason(
           this.database,
-          this.coverImagePublicAccessDomain,
+          this.coverImagePublicAccessOrigin,
           todayStr,
           row,
           i,

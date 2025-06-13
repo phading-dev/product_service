@@ -4,6 +4,7 @@ import { ENV_VARS } from "../env_vars";
 
 ENV_VARS.spannerInstanceId = ENV_VARS.balancedSpannerInstanceId;
 ENV_VARS.r2SeasonCoverImageBucketName = "season-cover-image-dev";
-ENV_VARS.r2SeasonCoverImagePublicAccessDomain =
-  "https://season-cover-image-dev.phading.org";
-ENV_VARS.r2VideoPublicAccessDomain = "https://video-dev.phading.org";
+ENV_VARS.r2SeasonCoverImagePublicAccessOrigin =
+  "https://season-cover-image-dev.secount.com";
+ENV_VARS.r2VideoPublicAccessOrigin = "https://video-dev.secount.com";
+ENV_VARS.replicas = 2;

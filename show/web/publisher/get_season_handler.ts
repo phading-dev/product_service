@@ -24,7 +24,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
     return new GetSeasonHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
@@ -32,7 +32,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -100,7 +100,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
         state: season.seasonState,
         description: season.seasonDescription,
         coverImageUrl: season.seasonCoverImageR2Filename
-          ? `${this.coverImagePublicAccessDomain}/${season.seasonCoverImageR2Filename}`
+          ? `${this.coverImagePublicAccessOrigin}/${season.seasonCoverImageR2Filename}`
           : undefined,
         totalPublishedEpisodes: season.seasonTotalPublishedEpisodes,
         createdTimeMs: season.seasonCreatedTimeMs,

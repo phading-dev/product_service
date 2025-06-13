@@ -27,7 +27,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     return new SearchSeasonsHandler(
       SPANNER_DATABASE,
       SERVICE_CLIENT,
-      ENV_VARS.r2SeasonCoverImagePublicAccessDomain,
+      ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
     );
   }
@@ -35,7 +35,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
-    private coverImagePublicAccessDomain: string,
+    private coverImagePublicAccessOrigin: string,
     private getNowDate: () => Date,
   ) {
     super();
@@ -102,7 +102,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
       seasonRows.map(async (row, i) => {
         await getLatestSeasonGradeAndSummarizeSeason(
           this.database,
-          this.coverImagePublicAccessDomain,
+          this.coverImagePublicAccessOrigin,
           todayStr,
           row,
           i,
