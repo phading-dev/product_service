@@ -8,3 +8,5 @@ ENV_VARS.r2SeasonCoverImagePublicAccessOrigin =
   "https://season-cover-image-dev.secount.com";
 ENV_VARS.r2VideoPublicAccessOrigin = "https://video-dev.secount.com";
 ENV_VARS.replicas = 1;
+ENV_VARS.cpu = "400m";
+ENV_VARS.memory = "512Mi";
