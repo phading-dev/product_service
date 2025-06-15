@@ -3,31 +3,45 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   GET_EPISODE_ROW,
   GET_SEASON_ROW,
-  GET_VIDEO_CONTAINER_CREATING_TASK_ROW,
+  GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
   deleteSeasonStatement,
-  deleteVideoContainerCreatingTaskStatement,
+  deleteVideoContainerDeletingTaskStatement,
+  deleteVideoContainerKeyStatement,
   getEpisode,
   getSeason,
-  getVideoContainerCreatingTask,
+  getVideoContainerDeletingTask,
+  getVideoContainerKey,
   insertSeasonStatement,
+  listPendingVideoContainerDeletingTasks,
 } from "../../../db/sql";
 import { CreateEpisodeHandler } from "./create_episode_handler";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { CREATE_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
-import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
+import {
+  FETCH_SESSION_AND_CHECK_CAPABILITY,
+  FetchSessionAndCheckCapabilityResponse,
+} from "@phading/user_session_service_interface/node/interface";
+import {
+  CREATE_VIDEO_CONTAINER,
+  CREATE_VIDEO_CONTAINER_REQUEST_BODY,
+} from "@phading/video_service_interface/node/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
-import { assertReject, assertThat, isArray } from "@selfage/test_matcher";
+import { ClientRequestInterface } from "@selfage/service_descriptor/client_request_interface";
+import { assertReject, assertThat, eq, isArray } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
+
+let TWO_YEAR_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+let ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 TEST_RUNNER.run({
   name: "CreateEpisodeHandlerTest",
   cases: [
     {
-      name: "Success",
+      name: "StalledCreating_ResumedAndSuccess",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -41,22 +55,41 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher1",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
+        let stallResolveFn: () => void;
+        let firstEncounterResolveFn: () => void;
+        let firstEncounterPromise = new Promise<void>(
+          (resolve) => (firstEncounterResolveFn = resolve),
+        );
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+          ): Promise<any> {
+            if (request.descriptor === FETCH_SESSION_AND_CHECK_CAPABILITY) {
+              let response: FetchSessionAndCheckCapabilityResponse = {
+                accountId: "publisher1",
+                capabilities: {
+                  canPublish: true,
+                },
+              };
+              return response;
+            } else {
+              this.request = request;
+              firstEncounterResolveFn();
+              await new Promise<void>((resolve) => (stallResolveFn = resolve));
+              return {};
+            }
+          }
+        })();
+        let id = 0;
         let handler = new CreateEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
-          () => "episode1",
+          () => `uuid${id++}`,
         );
 
         // Execute
-        let response = await handler.handle(
+        let responsePromise = handler.handle(
           "",
           {
             seasonId: "season1",
@@ -64,13 +97,64 @@ TEST_RUNNER.run({
           },
           "sessionStr",
         );
+        await firstEncounterPromise;
+
+        // Verify
+        assertThat(
+          serviceClientMock.request.descriptor,
+          eq(CREATE_VIDEO_CONTAINER),
+          "RC",
+        );
+        assertThat(
+          serviceClientMock.request.body,
+          eqMessage(
+            {
+              seasonId: "season1",
+              episodeId: "uuid1",
+              accountId: "publisher1",
+              videoContainerId: "showuuid0",
+            },
+            CREATE_VIDEO_CONTAINER_REQUEST_BODY,
+          ),
+          "RC body",
+        );
+        assertThat(
+          (
+            await getVideoContainerKey(SPANNER_DATABASE, {
+              videoContainerKeyKeyEq: "showuuid0",
+            })
+          ).length,
+          eq(1),
+          "videoContainerKey",
+        );
+        assertThat(
+          await getVideoContainerDeletingTask(SPANNER_DATABASE, {
+            videoContainerDeletingTaskVideoContainerIdEq: "showuuid0",
+          }),
+          isArray([
+            eqMessage(
+              {
+                videoContainerDeletingTaskVideoContainerId: "showuuid0",
+                videoContainerDeletingTaskRetryCount: 0,
+                videoContainerDeletingTaskExecutionTimeMs: 1000 + ONE_YEAR_MS,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
+              },
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
+            ),
+          ]),
+          "deleting tasks",
+        );
+
+        // Execute
+        stallResolveFn();
+        let response = await responsePromise;
 
         // Verify
         assertThat(
           response,
           eqMessage(
             {
-              episodeId: "episode1",
+              episodeId: "uuid1",
             },
             CREATE_EPISODE_RESPONSE,
           ),
@@ -97,15 +181,16 @@ TEST_RUNNER.run({
         assertThat(
           await getEpisode(SPANNER_DATABASE, {
             episodeSeasonIdEq: "season1",
-            episodeEpisodeIdEq: "episode1",
+            episodeEpisodeIdEq: "uuid1",
           }),
           isArray([
             eqMessage(
               {
                 episodeSeasonId: "season1",
-                episodeEpisodeId: "episode1",
+                episodeEpisodeId: "uuid1",
                 episodeName: "Ep 1",
                 episodeState: EpisodeState.DRAFT,
+                episodeVideoContainerId: "showuuid0",
               },
               GET_EPISODE_ROW,
             ),
@@ -113,32 +198,22 @@ TEST_RUNNER.run({
           "episode",
         );
         assertThat(
-          await getVideoContainerCreatingTask(SPANNER_DATABASE, {
-            videoContainerCreatingTaskSeasonIdEq: "season1",
-            videoContainerCreatingTaskEpisodeIdEq: "episode1",
+          await listPendingVideoContainerDeletingTasks(SPANNER_DATABASE, {
+            videoContainerDeletingTaskExecutionTimeMsLe: TWO_YEAR_MS,
           }),
-          isArray([
-            eqMessage(
-              {
-                videoContainerCreatingTaskSeasonId: "season1",
-                videoContainerCreatingTaskEpisodeId: "episode1",
-                videoContainerCreatingTaskRetryCount: 0,
-                videoContainerCreatingTaskExecutionTimeMs: 1000,
-                videoContainerCreatingTaskCreatedTimeMs: 1000,
-              },
-              GET_VIDEO_CONTAINER_CREATING_TASK_ROW,
-            ),
-          ]),
-          "tasks",
+          isArray([]),
+          "deleting tasks 2",
         );
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: "season1",
-              videoContainerCreatingTaskEpisodeIdEq: "episode1",
+            deleteVideoContainerKeyStatement({
+              videoContainerKeyKeyEq: "showuuid0",
+            }),
+            deleteVideoContainerDeletingTaskStatement({
+              videoContainerDeletingTaskVideoContainerIdEq: "showuuid0",
             }),
           ]);
           await transaction.commit();
@@ -160,18 +235,30 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher1",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
+
+        let serviceClientMock = new (class extends NodeServiceClientMock {
+          public async send(
+            request: ClientRequestInterface<any>,
+          ): Promise<any> {
+            if (request.descriptor === FETCH_SESSION_AND_CHECK_CAPABILITY) {
+              let response: FetchSessionAndCheckCapabilityResponse = {
+                accountId: "publisher1",
+                capabilities: {
+                  canPublish: true,
+                },
+              };
+              return response;
+            } else {
+              return {};
+            }
+          }
+        })();
+        let id = 0;
         let handler = new CreateEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
           () => 1000,
-          () => "episode1",
+          () => `uuid${id++}`,
         );
 
         // Execute
@@ -196,14 +283,42 @@ TEST_RUNNER.run({
           ),
           "error",
         );
+        assertThat(
+          (
+            await getVideoContainerKey(SPANNER_DATABASE, {
+              videoContainerKeyKeyEq: "showuuid0",
+            })
+          ).length,
+          eq(1),
+          "videoContainerKey",
+        );
+        assertThat(
+          await getVideoContainerDeletingTask(SPANNER_DATABASE, {
+            videoContainerDeletingTaskVideoContainerIdEq: "showuuid0",
+          }),
+          isArray([
+            eqMessage(
+              {
+                videoContainerDeletingTaskVideoContainerId: "showuuid0",
+                videoContainerDeletingTaskRetryCount: 0,
+                videoContainerDeletingTaskExecutionTimeMs: 301000,
+                videoContainerDeletingTaskCreatedTimeMs: 1000,
+              },
+              GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
+            ),
+          ]),
+          "deleting tasks",
+        );
       },
       tearDown: async () => {
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
           await transaction.batchUpdate([
             deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: "season1",
-              videoContainerCreatingTaskEpisodeIdEq: "episode1",
+            deleteVideoContainerKeyStatement({
+              videoContainerKeyKeyEq: "showuuid0",
+            }),
+            deleteVideoContainerDeletingTaskStatement({
+              videoContainerDeletingTaskVideoContainerIdEq: "showuuid0",
             }),
           ]);
           await transaction.commit();

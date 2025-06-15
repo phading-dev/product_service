@@ -2,7 +2,6 @@ import "../show/node/cache_video_container_handler_test";
 import "../show/node/get_season_grade_handler_test";
 import "../show/node/process_cover_image_deleting_task_handler_test";
 import "../show/node/process_season_recent_premiere_time_updating_handler_test";
-import "../show/node/process_video_container_creating_task_handler_test";
 import "../show/node/process_video_container_deleting_task_handler_test";
 import "../show/web/consumer/authorize_episode_playback_handler_test";
 import "../show/web/consumer/get_continue_episode_handler_test";

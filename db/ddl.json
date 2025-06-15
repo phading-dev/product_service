@@ -165,29 +165,6 @@
     "createTableDdl": "CREATE TABLE VideoContainerKey (key STRING(MAX) NOT NULL) PRIMARY KEY (key ASC)",
     "indexes": []
   }, {
-    "name": "VideoContainerCreatingTask",
-    "columns": [{
-      "name": "seasonId",
-      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN seasonId STRING(MAX) NOT NULL"
-    }, {
-      "name": "episodeId",
-      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN episodeId STRING(MAX) NOT NULL"
-    }, {
-      "name": "retryCount",
-      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN retryCount FLOAT64"
-    }, {
-      "name": "executionTimeMs",
-      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN executionTimeMs TIMESTAMP"
-    }, {
-      "name": "createdTimeMs",
-      "addColumnDdl": "ALTER TABLE VideoContainerCreatingTask ADD COLUMN createdTimeMs TIMESTAMP"
-    }],
-    "createTableDdl": "CREATE TABLE VideoContainerCreatingTask (seasonId STRING(MAX) NOT NULL, episodeId STRING(MAX) NOT NULL, retryCount FLOAT64, executionTimeMs TIMESTAMP, createdTimeMs TIMESTAMP) PRIMARY KEY (seasonId ASC, episodeId ASC)",
-    "indexes": [{
-      "name": "VideoContainerCreatingTaskByExecutionTimeMs",
-      "createIndexDdl": "CREATE INDEX VideoContainerCreatingTaskByExecutionTimeMs ON VideoContainerCreatingTask(executionTimeMs)"
-    }]
-  }, {
     "name": "VideoContainerDeletingTask",
     "columns": [{
       "name": "videoContainerId",

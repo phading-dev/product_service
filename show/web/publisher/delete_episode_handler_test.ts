@@ -10,9 +10,6 @@ import {
   getVideoContainerDeletingTask,
   insertEpisodeStatement,
   insertSeasonStatement,
-  insertVideoContainerCreatingTaskStatement,
-  listPendingVideoContainerCreatingTasks,
-  listPendingVideoContainerDeletingTasks,
 } from "../../../db/sql";
 import { DeleteEpisodeHandler } from "./delete_episode_handler";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
@@ -110,104 +107,6 @@ TEST_RUNNER.run({
               GET_VIDEO_CONTAINER_DELETING_TASK_ROW,
             ),
           ]),
-          "videoContainerDeletingTasks",
-        );
-      },
-      tearDown: async () => {
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
-            deleteVideoContainerDeletingTaskStatement({
-              videoContainerDeletingTaskVideoContainerIdEq: "videocontainer1",
-            }),
-          ]);
-          await transaction.commit();
-        });
-      },
-    },
-    {
-      name: "DeleteWithoutVideoContainer",
-      execute: async () => {
-        // Prepare
-        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
-          await transaction.batchUpdate([
-            insertSeasonStatement({
-              seasonId: "season1",
-              publisherId: "publisher1",
-              createdTimeMs: 1000,
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-              state: EpisodeState.DRAFT,
-              name: "Ep 2",
-            }),
-            insertVideoContainerCreatingTaskStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-            }),
-          ]);
-          await transaction.commit();
-        });
-        let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "publisher1",
-          capabilities: {
-            canPublish: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new DeleteEpisodeHandler(
-          SPANNER_DATABASE,
-          serviceClientMock,
-          () => 1000,
-        );
-
-        // Execute
-        await handler.handle(
-          "",
-          {
-            seasonId: "season1",
-            episodeId: "episode1",
-          },
-          "sessionStr",
-        );
-
-        // Verify
-        assertThat(
-          await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
-          isArray([
-            eqMessage(
-              {
-                seasonSeasonId: "season1",
-                seasonPublisherId: "publisher1",
-                seasonLastChangeTimeMs: 1000,
-                seasonCreatedTimeMs: 1000,
-              },
-              GET_SEASON_ROW,
-            ),
-          ]),
-          "season",
-        );
-        assertThat(
-          await getEpisode(SPANNER_DATABASE, {
-            episodeSeasonIdEq: "season1",
-            episodeEpisodeIdEq: "episode1",
-          }),
-          isArray([]),
-          "episode",
-        );
-        assertThat(
-          await listPendingVideoContainerCreatingTasks(SPANNER_DATABASE, {
-            videoContainerCreatingTaskExecutionTimeMsLe: 1000000,
-          }),
-          isArray([]),
-          "videoContainerCreatingTasks",
-        );
-        assertThat(
-          await listPendingVideoContainerDeletingTasks(SPANNER_DATABASE, {
-            videoContainerDeletingTaskExecutionTimeMsLe: 1000000,
-          }),
-          isArray([]),
           "videoContainerDeletingTasks",
         );
       },

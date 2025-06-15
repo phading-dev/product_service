@@ -3,7 +3,6 @@ import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
-  deleteVideoContainerCreatingTaskStatement,
   getSeasonForPublisher,
   insertCoverImageDeletingTaskStatement,
   insertVideoContainerDeletingTaskStatement,
@@ -97,23 +96,14 @@ export class DeleteSeasonHandler extends DeleteSeasonHandlerInterface {
         );
       }
       for (let episode of episodeRows) {
-        if (episode.episodeVideoContainerId) {
-          statements.push(
-            insertVideoContainerDeletingTaskStatement({
-              videoContainerId: episode.episodeVideoContainerId,
-              retryCount: 0,
-              executionTimeMs: now,
-              createdTimeMs: now,
-            }),
-          );
-        } else {
-          statements.push(
-            deleteVideoContainerCreatingTaskStatement({
-              videoContainerCreatingTaskSeasonIdEq: body.seasonId,
-              videoContainerCreatingTaskEpisodeIdEq: episode.episodeEpisodeId,
-            }),
-          );
-        }
+        statements.push(
+          insertVideoContainerDeletingTaskStatement({
+            videoContainerId: episode.episodeVideoContainerId,
+            retryCount: 0,
+            executionTimeMs: now,
+            createdTimeMs: now,
+          }),
+        );
       }
       await transaction.batchUpdate(statements);
       await transaction.commit();

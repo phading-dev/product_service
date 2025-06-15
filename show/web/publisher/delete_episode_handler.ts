@@ -2,7 +2,6 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   deleteEpisodeStatement,
-  deleteVideoContainerCreatingTaskStatement,
   getSeasonAndEpisodeForPublisher,
   insertVideoContainerDeletingTaskStatement,
   updateSeasonLastChangeTimeStatement,
@@ -89,24 +88,13 @@ export class DeleteEpisodeHandler extends DeleteEpisodeHandlerInterface {
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,
         }),
+        insertVideoContainerDeletingTaskStatement({
+          videoContainerId: seasonAndEpisode.episodeVideoContainerId,
+          retryCount: 0,
+          executionTimeMs: now,
+          createdTimeMs: now,
+        }),
       ];
-      if (seasonAndEpisode.episodeVideoContainerId) {
-        statements.push(
-          insertVideoContainerDeletingTaskStatement({
-            videoContainerId: seasonAndEpisode.episodeVideoContainerId,
-            retryCount: 0,
-            executionTimeMs: now,
-            createdTimeMs: now,
-          }),
-        );
-      } else {
-        statements.push(
-          deleteVideoContainerCreatingTaskStatement({
-            videoContainerCreatingTaskSeasonIdEq: body.seasonId,
-            videoContainerCreatingTaskEpisodeIdEq: body.episodeId,
-          }),
-        );
-      }
       await transaction.batchUpdate(statements);
       await transaction.commit();
     });

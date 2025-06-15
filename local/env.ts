@@ -1,4 +1,4 @@
-import "../env_const";
+import "../dev/env";
 import "@phading/cluster/dev/env";
 import { ENV_VARS } from "../env_vars";
 

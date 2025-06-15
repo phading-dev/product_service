@@ -249,26 +249,6 @@
       delete: DeleteVideoContainerKey
       get: GetVideoContainerKey
     - kind: TaskTable
-      name: VideoContainerCreatingTask
-      columns:
-        - name: seasonId
-          type: string
-        - name: episodeId
-          type: string
-      retryCountColumn: retryCount
-      executionTimeColumn: executionTimeMs
-      createdTimeColumn: createdTimeMs
-      primaryKeys:
-        - seasonId
-        - episodeId
-      executionTimeIndex: VideoContainerCreatingTaskByExecutionTimeMs
-      insert: InsertVideoContainerCreatingTask
-      delete: DeleteVideoContainerCreatingTask
-      get: GetVideoContainerCreatingTask
-      listPendingTasks: ListPendingVideoContainerCreatingTasks
-      getMetadata: GetVideoContainerCreatingTaskMetadata
-      updateMetadata: UpdateVideoContainerCreatingTaskMetadata
-    - kind: TaskTable
       name: VideoContainerDeletingTask
       columns:
         - name: videoContainerId

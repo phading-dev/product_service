@@ -6,7 +6,6 @@ import {
   deleteCoverImageDeletingTaskStatement,
   deleteSeasonRecentPremiereTimeUpdatingTasksOfSeasonStatement,
   deleteSeasonStatement,
-  deleteVideoContainerCreatingTaskStatement,
   deleteVideoContainerDeletingTaskStatement,
   getCoverImageDeletingTask,
   getSeason,
@@ -14,11 +13,9 @@ import {
   insertEpisodeStatement,
   insertSeasonRecentPremiereTimeUpdatingTaskStatement,
   insertSeasonStatement,
-  insertVideoContainerCreatingTaskStatement,
   listAllVideoContainersForPublisher,
   listPendingCoverImageDeletingTasks,
   listPendingSeasonRecentPremiereTimeUpdatingTasks,
-  listPendingVideoContainerCreatingTasks,
 } from "../../../db/sql";
 import { DeleteSeasonHandler } from "./delete_season_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -36,22 +33,6 @@ async function cleanUpAll() {
       deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
       deleteCoverImageDeletingTaskStatement({
         coverImageDeletingTaskR2FilenameEq: "cover1",
-      }),
-      deleteVideoContainerCreatingTaskStatement({
-        videoContainerCreatingTaskSeasonIdEq: "season1",
-        videoContainerCreatingTaskEpisodeIdEq: "episode1",
-      }),
-      deleteVideoContainerCreatingTaskStatement({
-        videoContainerCreatingTaskSeasonIdEq: "season1",
-        videoContainerCreatingTaskEpisodeIdEq: "episode2",
-      }),
-      deleteVideoContainerCreatingTaskStatement({
-        videoContainerCreatingTaskSeasonIdEq: "season1",
-        videoContainerCreatingTaskEpisodeIdEq: "episode3",
-      }),
-      deleteVideoContainerCreatingTaskStatement({
-        videoContainerCreatingTaskSeasonIdEq: "season1",
-        videoContainerCreatingTaskEpisodeIdEq: "episode4",
       }),
       deleteVideoContainerDeletingTaskStatement({
         videoContainerDeletingTaskVideoContainerIdEq: "videoContainer1",
@@ -77,7 +58,7 @@ TEST_RUNNER.run({
   name: "DeleteSeasonHandlerTest",
   cases: [
     {
-      name: "SeasonWithCoverImageWithEpisodesWithRecentPremiereTimeUpdatingTaskWithAndWithoutVideoContainer",
+      name: "SeasonWithCoverImageWithEpisodesWithRecentPremiereTimeUpdatingTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -94,31 +75,13 @@ TEST_RUNNER.run({
               seasonId: "season1",
               episodeId: "episode1",
               name: "Ep 1",
+              videoContainerId: "videoContainer1",
             }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode2",
               name: "Ep 2",
               videoContainerId: "videoContainer2",
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode3",
-              name: "Ep 3",
-            }),
-            insertEpisodeStatement({
-              seasonId: "season1",
-              episodeId: "episode4",
-              name: "Ep 4",
-              videoContainerId: "videoContainer4",
-            }),
-            insertVideoContainerCreatingTaskStatement({
-              seasonId: "season1",
-              episodeId: "episode1",
-            }),
-            insertVideoContainerCreatingTaskStatement({
-              seasonId: "season1",
-              episodeId: "episode3",
             }),
             insertSeasonRecentPremiereTimeUpdatingTaskStatement({
               seasonId: "season1",
@@ -194,20 +157,13 @@ TEST_RUNNER.run({
           "episodes",
         );
         assertThat(
-          await listPendingVideoContainerCreatingTasks(SPANNER_DATABASE, {
-            videoContainerCreatingTaskExecutionTimeMsLe: 1000000,
-          }),
-          isArray([]),
-          "videoContainerCreatingTasks",
-        );
-        assertThat(
           await getVideoContainerDeletingTask(SPANNER_DATABASE, {
-            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer2",
+            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer1",
           }),
           isArray([
             eqMessage(
               {
-                videoContainerDeletingTaskVideoContainerId: "videoContainer2",
+                videoContainerDeletingTaskVideoContainerId: "videoContainer1",
                 videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
                 videoContainerDeletingTaskCreatedTimeMs: 1000,
@@ -219,12 +175,12 @@ TEST_RUNNER.run({
         );
         assertThat(
           await getVideoContainerDeletingTask(SPANNER_DATABASE, {
-            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer4",
+            videoContainerDeletingTaskVideoContainerIdEq: "videoContainer2",
           }),
           isArray([
             eqMessage(
               {
-                videoContainerDeletingTaskVideoContainerId: "videoContainer4",
+                videoContainerDeletingTaskVideoContainerId: "videoContainer2",
                 videoContainerDeletingTaskRetryCount: 0,
                 videoContainerDeletingTaskExecutionTimeMs: 1000,
                 videoContainerDeletingTaskCreatedTimeMs: 1000,
