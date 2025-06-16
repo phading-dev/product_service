@@ -14,6 +14,7 @@ import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
 import { AuthorizeEpisodePlaybackHandler } from "./show/web/consumer/authorize_episode_playback_handler";
 import { GetContinueEpisodeHandler } from "./show/web/consumer/get_continue_episode_handler";
+import { GetEpisodeHandler as ConsumerGetEpisodeHandler } from "./show/web/consumer/get_episode_handler";
 import { GetEpisodeWithSeasonSummaryHandler } from "./show/web/consumer/get_episode_with_season_summary_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
 import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
@@ -37,7 +38,7 @@ import { CreateSeasonHandler } from "./show/web/publisher/create_season_handler"
 import { DeleteEpisodeHandler } from "./show/web/publisher/delete_episode_handler";
 import { DeleteNextSeasonGradeHandler } from "./show/web/publisher/delete_next_season_grade_handler";
 import { DeleteSeasonHandler } from "./show/web/publisher/delete_season_handler";
-import { GetEpisodeHandler } from "./show/web/publisher/get_episode_handler";
+import { GetEpisodeHandler as PublisherGetEpisodeHandler } from "./show/web/publisher/get_episode_handler";
 import { GetSeasonHandler } from "./show/web/publisher/get_season_handler";
 import { ListDraftEpisodesHandler } from "./show/web/publisher/list_draft_episodes_handler";
 import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_published_episodes_handler";
@@ -87,7 +88,7 @@ async function main() {
     .addHandlerRegister(PRODUCT_WEB_SERVICE)
     .add(AuthorizeEpisodePlaybackHandler.create())
     .add(GetContinueEpisodeHandler.create())
-    .add(GetEpisodeHandler.create())
+    .add(ConsumerGetEpisodeHandler.create())
     .add(GetEpisodeWithSeasonSummaryHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
     .add(GetSeasonDetailsHandler.create())
@@ -111,7 +112,7 @@ async function main() {
     .add(DeleteEpisodeHandler.create())
     .add(DeleteNextSeasonGradeHandler.create())
     .add(DeleteSeasonHandler.create())
-    .add(GetEpisodeHandler.create())
+    .add(PublisherGetEpisodeHandler.create())
     .add(GetSeasonHandler.create())
     .add(ListDraftEpisodesHandler.create())
     .add(ListPublishedEpisodesHandler.create())
