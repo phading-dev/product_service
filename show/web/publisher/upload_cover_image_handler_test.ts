@@ -243,7 +243,11 @@ TEST_RUNNER.run({
         );
 
         // Verify
-        assertThat(error, eqError(new Error("Input buffer contains unsupported image format")), "error");
+        assertThat(
+          error.name,
+          eq("AbortError"),
+          "error",
+        );
         assertThat(
           await getSeason(SPANNER_DATABASE, { seasonSeasonIdEq: "season1" }),
           isArray([

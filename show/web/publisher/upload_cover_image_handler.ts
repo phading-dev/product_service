@@ -117,6 +117,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
 
     try {
       await this.uploadAndFinalize(
+        loggingPrefix,
         body,
         coverImageR2Filename,
         accountId,
@@ -141,6 +142,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
   }
 
   private async uploadAndFinalize(
+    loggingPrefix: string,
     body: Readable,
     coverImageR2Filename: string,
     accountId: string,
@@ -160,7 +162,7 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
         ContentType: "image/jpeg",
       },
     });
-    await pipeline(
+    pipeline(
       sharp(data)
         .resize(COVER_IMAGE_WIDTH, COVER_IMAGE_HEIGHT, { fit: "contain" })
         .jpeg({
@@ -168,7 +170,13 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
           progressive: true,
         }),
       passThrough,
-    );
+    ).catch((err) => {
+      console.error(
+        `${loggingPrefix} Error while processing cover image:`,
+        err,
+      );
+      upload.abort();
+    });
     await upload.done();
     await this.database.runTransactionAsync(async (transaction) => {
       let seasonRows = await getSeasonForPublisher(this.database, {
