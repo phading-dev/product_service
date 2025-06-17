@@ -170,11 +170,8 @@ export class UploadCoverImageHandler extends UploadCoverImageHandlerInterface {
           progressive: true,
         }),
       passThrough,
-    ).catch((err) => {
-      console.error(
-        `${loggingPrefix} Error while processing cover image:`,
-        err,
-      );
+    ).catch((e) => {
+      console.error(`${loggingPrefix} Error while processing cover image:`, e);
       upload.abort();
     });
     await upload.done();
