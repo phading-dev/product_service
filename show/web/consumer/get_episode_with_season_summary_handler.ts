@@ -85,6 +85,7 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
             ? `${this.coverImagePublicAccessOrigin}/${summary.seasonCoverImageR2Filename}`
             : undefined,
           grade: grade.seasonGradeGrade,
+          totalEpisodes: summary.seasonTotalPublishedEpisodes,
           averageRating: summary.seasonAverageRating,
           ratingsCount: summary.seasonRatingsCount,
         },
