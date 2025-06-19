@@ -12,10 +12,13 @@ import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 
 export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
   public static create(): GetEpisodeHandler {
-    return new GetEpisodeHandler(SPANNER_DATABASE);
+    return new GetEpisodeHandler(SPANNER_DATABASE, () => Date.now());
   }
 
-  public constructor(private database: Database) {
+  public constructor(
+    private database: Database,
+    private getNow: () => number,
+  ) {
     super();
   }
 
@@ -49,6 +52,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         resolution: row.episodeVideoContainerCached.resolution,
         videoDurationSec: row.episodeVideoContainerCached.durationSec,
         premiereTimeMs: row.episodePremiereTimeMs,
+        canPlay: row.episodePremiereTimeMs <= this.getNow(),
       },
     };
   }

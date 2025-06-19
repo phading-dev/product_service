@@ -30,7 +30,7 @@ TEST_RUNNER.run({
   name: "ListContinueWatchingSeasonsHandlerTest",
   cases: [
     {
-      name: "ListThatOneSeasonAndContinueWithLatestEpisode_OneWithoutRatingAndContinueWithNextEpisode_OneWithLatestEpisodeNotFound_OneWithNextEpisodeNotFound_OneWithSeasonNotFound",
+      name: "ListThatOneSeasonAndContinueWithLatestEpisode_OneWithoutRatingAndContinueWithNextEpisode_OneWithLatestEpisodeNotFound_OneWithLatestEpisodeNotPremiered_OneWithNextEpisodeNotFound_OneWithNextEpisodeNotPremiered_OneWithSeasonNotFound",
       async execute() {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -64,6 +64,7 @@ TEST_RUNNER.run({
               state: EpisodeState.PUBLISHED,
               premiereTimeMs: 1000,
             }),
+
             insertSeasonStatement({
               seasonId: "season2",
               publisherId: "publisher2",
@@ -78,7 +79,7 @@ TEST_RUNNER.run({
               gradeId: "grade2",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 22,
+              grade: 11,
             }),
             insertEpisodeStatement({
               seasonId: "season2",
@@ -100,8 +101,9 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 2000,
+              premiereTimeMs: 1000,
             }),
+
             insertSeasonStatement({
               seasonId: "season3",
               publisherId: "publisher3",
@@ -117,8 +119,9 @@ TEST_RUNNER.run({
               gradeId: "grade3",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 33,
+              grade: 11,
             }),
+
             insertSeasonStatement({
               seasonId: "season4",
               publisherId: "publisher4",
@@ -134,7 +137,7 @@ TEST_RUNNER.run({
               gradeId: "grade4",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 44,
+              grade: 11,
             }),
             insertEpisodeStatement({
               seasonId: "season4",
@@ -142,10 +145,79 @@ TEST_RUNNER.run({
               index: 1,
               name: "S4E1",
               videoContainerCached: {
-                durationSec: 240,
+                durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 4000,
+              premiereTimeMs: 2000,
+            }),
+
+            insertSeasonStatement({
+              seasonId: "season5",
+              publisherId: "publisher5",
+              state: SeasonState.PUBLISHED,
+              name: "name5",
+              coverImageR2Filename: "cover5",
+              ratingsCount: 0,
+              averageRating: 0,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season5",
+              gradeId: "grade5",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season5",
+              episodeId: "episode1",
+              index: 1,
+              name: "S5E1",
+              videoContainerCached: {
+                durationSec: 120,
+              },
+              state: EpisodeState.PUBLISHED,
+              premiereTimeMs: 1000,
+            }),
+
+            insertSeasonStatement({
+              seasonId: "season6",
+              publisherId: "publisher6",
+              state: SeasonState.PUBLISHED,
+              name: "name6",
+              coverImageR2Filename: "cover6",
+              ratingsCount: 0,
+              averageRating: 0,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season6",
+              gradeId: "grade6",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season6",
+              episodeId: "episode1",
+              index: 1,
+              name: "S6E1",
+              videoContainerCached: {
+                durationSec: 120,
+              },
+              state: EpisodeState.PUBLISHED,
+              premiereTimeMs: 1000,
+            }),
+            insertEpisodeStatement({
+              seasonId: "season6",
+              episodeId: "episode2",
+              index: 2,
+              name: "S6E2",
+              videoContainerCached: {
+                durationSec: 180,
+              },
+              state: EpisodeState.PUBLISHED,
+              premiereTimeMs: 2000,
             }),
           ]);
           await transaction.commit();
@@ -185,10 +257,20 @@ TEST_RUNNER.run({
                     {
                       seasonId: "season4",
                       latestEpisodeId: "episode1",
-                      latestWatchedVideoTimeMs: 230000,
+                      latestWatchedVideoTimeMs: 30000,
                     },
                     {
                       seasonId: "season5",
+                      latestEpisodeId: "episode1",
+                      latestWatchedVideoTimeMs: 110000,
+                    },
+                    {
+                      seasonId: "season6",
+                      latestEpisodeId: "episode1",
+                      latestWatchedVideoTimeMs: 110000,
+                    },
+                    {
+                      seasonId: "season7",
                       latestEpisodeId: "episode1",
                       latestWatchedVideoTimeMs: 30000,
                     },
@@ -236,6 +318,7 @@ TEST_RUNNER.run({
                     name: "S1E1",
                     videoDurationSec: 60,
                     premiereTimeMs: 1000,
+                    canPlay: true,
                   },
                   continueTimeMs: 30000,
                 },
@@ -244,7 +327,7 @@ TEST_RUNNER.run({
                     seasonId: "season2",
                     publisherId: "publisher2",
                     name: "name2",
-                    grade: 22,
+                    grade: 11,
                     ratingsCount: 0,
                     averageRating: 0,
                   },
@@ -253,7 +336,8 @@ TEST_RUNNER.run({
                     index: 2,
                     name: "S2E2",
                     videoDurationSec: 180,
-                    premiereTimeMs: 2000,
+                    premiereTimeMs: 1000,
+                    canPlay: true,
                   },
                   continueTimeMs: 0,
                 },
@@ -292,6 +376,12 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season5",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season6",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season7",
             }),
           ]);
           await transaction.commit();

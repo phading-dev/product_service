@@ -168,6 +168,9 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         1000 *
         NEXT_EPISODE_WATCH_TIME_THRESHOLD
     ) {
+      if (latestEpisode.episodePremiereTimeMs > this.getNowDate().getTime()) {
+        return undefined;
+      }
       return {
         episode: {
           episodeId: latestEpisode.episodeEpisodeId,
@@ -177,6 +180,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
             latestEpisode.episodeVideoContainerCached.durationSec,
           resolution: latestEpisode.episodeVideoContainerCached.resolution,
           premiereTimeMs: latestEpisode.episodePremiereTimeMs,
+          canPlay: true,
         },
         continueTimeMs: latestWatchedVideoTimeMs,
       };
@@ -193,6 +197,9 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
       return undefined;
     }
     let nextEpisode = nextEpisodeRows[0];
+    if (nextEpisode.episodePremiereTimeMs > this.getNowDate().getTime()) {
+      return undefined;
+    }
     return {
       episode: {
         episodeId: nextEpisode.episodeEpisodeId,
@@ -201,6 +208,7 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
         videoDurationSec: nextEpisode.episodeVideoContainerCached.durationSec,
         resolution: nextEpisode.episodeVideoContainerCached.resolution,
         premiereTimeMs: nextEpisode.episodePremiereTimeMs,
+        canPlay: true,
       },
       continueTimeMs: 0,
     };

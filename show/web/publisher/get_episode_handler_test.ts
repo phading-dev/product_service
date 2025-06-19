@@ -83,6 +83,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://example.com",
+          () => 300,
         );
 
         // Execute
@@ -118,6 +119,7 @@ TEST_RUNNER.run({
                 },
                 state: EpisodeState.PUBLISHED,
                 premiereTimeMs: 300,
+                canPlay: true,
               },
             },
             GET_EPISODE_RESPONSE,
@@ -180,6 +182,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://example.com",
+          () => 200,
         );
 
         // Execute
@@ -203,6 +206,7 @@ TEST_RUNNER.run({
                 episodeIndex: 1,
                 state: EpisodeState.DRAFT,
                 premiereTimeMs: 300,
+                canPlay: false,
               },
             },
             GET_EPISODE_RESPONSE,

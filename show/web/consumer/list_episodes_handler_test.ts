@@ -74,7 +74,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ListEpisodesHandler(SPANNER_DATABASE);
+        let handler = new ListEpisodesHandler(SPANNER_DATABASE, () => 1000);
 
         // Execute
         let response = await handler.handle("", {
@@ -95,6 +95,7 @@ TEST_RUNNER.run({
                   index: 1,
                   videoDurationSec: 60,
                   premiereTimeMs: 1000,
+                  canPlay: true,
                 },
                 {
                   episodeId: "episode2",
@@ -102,6 +103,7 @@ TEST_RUNNER.run({
                   index: 2,
                   videoDurationSec: 120,
                   premiereTimeMs: 2000,
+                  canPlay: false,
                 },
               ],
               indexCursor: 2,
@@ -131,6 +133,7 @@ TEST_RUNNER.run({
                   index: 3,
                   videoDurationSec: 180,
                   premiereTimeMs: 3000,
+                  canPlay: false,
                 },
               ],
             },
@@ -208,7 +211,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ListEpisodesHandler(SPANNER_DATABASE);
+        let handler = new ListEpisodesHandler(SPANNER_DATABASE, () => 2000);
 
         // Execute
         let response = await handler.handle("", {
@@ -229,6 +232,7 @@ TEST_RUNNER.run({
                   index: 3,
                   videoDurationSec: 180,
                   premiereTimeMs: 3000,
+                  canPlay: false,
                 },
                 {
                   episodeId: "episode2",
@@ -236,6 +240,7 @@ TEST_RUNNER.run({
                   index: 2,
                   videoDurationSec: 120,
                   premiereTimeMs: 2000,
+                  canPlay: true,
                 },
               ],
               indexCursor: 2,
@@ -265,6 +270,7 @@ TEST_RUNNER.run({
                   index: 1,
                   videoDurationSec: 60,
                   premiereTimeMs: 1000,
+                  canPlay: true,
                 },
               ],
             },
@@ -298,7 +304,7 @@ TEST_RUNNER.run({
           ]);
           await transaction.commit();
         });
-        let handler = new ListEpisodesHandler(SPANNER_DATABASE);
+        let handler = new ListEpisodesHandler(SPANNER_DATABASE, () => 1000);
 
         // Execute
         let response = await handler.handle("", {

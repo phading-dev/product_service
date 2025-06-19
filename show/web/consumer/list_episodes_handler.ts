@@ -19,10 +19,13 @@ import { newBadRequestError } from "@selfage/http_error";
 
 export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
   public static create(): ListEpisodesHandler {
-    return new ListEpisodesHandler(SPANNER_DATABASE);
+    return new ListEpisodesHandler(SPANNER_DATABASE, () => Date.now());
   }
 
-  public constructor(private database: Database) {
+  public constructor(
+    private database: Database,
+    private getNow: () => number,
+  ) {
     super();
   }
 
@@ -57,6 +60,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
         limit: body.limit,
       });
     }
+    let now = this.getNow();
     return {
       episodes: rows.map(
         (row): Episode => ({
@@ -66,6 +70,7 @@ export class ListEpisodesHandler extends ListEpisodesHandlerInterface {
           videoDurationSec: row.episodeVideoContainerCached.durationSec,
           resolution: row.episodeVideoContainerCached.resolution,
           premiereTimeMs: row.episodePremiereTimeMs,
+          canPlay: row.episodePremiereTimeMs <= now,
         }),
       ),
       indexCursor:

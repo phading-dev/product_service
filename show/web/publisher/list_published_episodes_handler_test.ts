@@ -98,6 +98,7 @@ TEST_RUNNER.run({
         let handler = new ListPublishedEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 1000,
         );
 
         // Execute
@@ -126,6 +127,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 1000,
+                  canPlay: true,
                 },
                 {
                   episodeId: "episode2",
@@ -136,6 +138,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 2000,
+                  canPlay: false,
                 },
               ],
               indexCursor: 2,
@@ -172,6 +175,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 4000,
+                  canPlay: false,
                 },
               ],
             },
@@ -199,6 +203,7 @@ TEST_RUNNER.run({
         let handler = new ListPublishedEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 2000,
         );
 
         // Execute
@@ -227,6 +232,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 4000,
+                  canPlay: false,
                 },
                 {
                   episodeId: "episode2",
@@ -237,6 +243,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 2000,
+                  canPlay: true,
                 },
               ],
               indexCursor: 2,
@@ -273,6 +280,7 @@ TEST_RUNNER.run({
                   },
                   state: EpisodeState.PUBLISHED,
                   premiereTimeMs: 1000,
+                  canPlay: true,
                 },
               ],
             },
@@ -320,6 +328,7 @@ TEST_RUNNER.run({
         let handler = new ListPublishedEpisodesHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 1000,
         );
 
         // Execute

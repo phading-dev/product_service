@@ -24,6 +24,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
       SPANNER_DATABASE,
       SERVICE_CLIENT,
       ENV_VARS.r2VideoPublicAccessOrigin,
+      () => Date.now(),
     );
   }
 
@@ -31,6 +32,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     private database: Database,
     private serviceClient: NodeServiceClient,
     private videoPublicAccessOrigin: string,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -91,6 +93,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
         videoContainer,
         state: row.episodeState,
         premiereTimeMs: row.episodePremiereTimeMs,
+        canPlay: row.episodePremiereTimeMs <= this.getNow(),
       },
     };
   }

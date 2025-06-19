@@ -22,12 +22,17 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class ListPublishedEpisodesHandler extends ListPublishedEpisodesHandlerInterface {
   public static create(): ListPublishedEpisodesHandler {
-    return new ListPublishedEpisodesHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new ListPublishedEpisodesHandler(
+      SPANNER_DATABASE,
+      SERVICE_CLIENT,
+      () => Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -81,6 +86,7 @@ export class ListPublishedEpisodesHandler extends ListPublishedEpisodesHandlerIn
         limit: body.limit,
       });
     }
+    let now = this.getNow();
     return {
       episodes: rows.map(
         (row): EpisodeSummary => ({
@@ -90,6 +96,7 @@ export class ListPublishedEpisodesHandler extends ListPublishedEpisodesHandlerIn
           index: row.episodeIndex,
           videoContainer: row.episodeVideoContainerCached,
           premiereTimeMs: row.episodePremiereTimeMs,
+          canPlay: row.episodePremiereTimeMs <= now,
         }),
       ),
       indexCursor:

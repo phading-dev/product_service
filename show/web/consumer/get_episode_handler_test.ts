@@ -53,7 +53,7 @@ TEST_RUNNER.run({
             canConsume: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new GetEpisodeHandler(SPANNER_DATABASE);
+        let handler = new GetEpisodeHandler(SPANNER_DATABASE, () => 300);
 
         // Execute
         let response = await handler.handle("", {
@@ -73,6 +73,7 @@ TEST_RUNNER.run({
                 resolution: "1080p",
                 videoDurationSec: 60,
                 premiereTimeMs: 300,
+                canPlay: true,
               },
             },
             GET_EPISODE_RESPONSE,
@@ -124,7 +125,7 @@ TEST_RUNNER.run({
             canConsume: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new GetEpisodeHandler(SPANNER_DATABASE);
+        let handler = new GetEpisodeHandler(SPANNER_DATABASE, () => 300);
 
         // Execute
         let error = await assertReject(
@@ -187,7 +188,7 @@ TEST_RUNNER.run({
             canConsume: true,
           },
         } as FetchSessionAndCheckCapabilityResponse;
-        let handler = new GetEpisodeHandler(SPANNER_DATABASE);
+        let handler = new GetEpisodeHandler(SPANNER_DATABASE, () => 300);
 
         // Execute
         let error = await assertReject(

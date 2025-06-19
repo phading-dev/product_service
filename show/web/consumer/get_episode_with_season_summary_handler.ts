@@ -96,6 +96,7 @@ export class GetEpisodeWithSeasonSummaryHandler extends GetEpisodeWithSeasonSumm
           videoDurationSec: summary.episodeVideoContainerCached.durationSec,
           resolution: summary.episodeVideoContainerCached.resolution,
           premiereTimeMs: summary.episodePremiereTimeMs,
+          canPlay: summary.episodePremiereTimeMs <= this.getNowDate().getTime(),
         },
       },
     };

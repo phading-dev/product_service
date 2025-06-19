@@ -2,6 +2,8 @@ import { NEXT_EPISODE_WATCH_TIME_THRESHOLD } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
+  GetPublishedEpisodeRow,
+  ListNextPublishedEpisodesRow,
   getPublishedEpisode,
   listNextPublishedEpisodes,
 } from "../../../db/sql";
@@ -25,12 +27,15 @@ import { NodeServiceClient } from "@selfage/node_service_client";
 
 export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterface {
   public static create(): GetContinueEpisodeHandler {
-    return new GetContinueEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT);
+    return new GetContinueEpisodeHandler(SPANNER_DATABASE, SERVICE_CLIENT, () =>
+      Date.now(),
+    );
   }
 
   public constructor(
     private database: Database,
     private serviceClient: NodeServiceClient,
+    private getNow: () => number,
   ) {
     super();
   }
@@ -89,14 +94,7 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
           NEXT_EPISODE_WATCH_TIME_THRESHOLD
       ) {
         return {
-          episode: {
-            episodeId: latestEpisode.episodeEpisodeId,
-            name: latestEpisode.episodeName,
-            index: latestEpisode.episodeIndex,
-            videoDurationSec: latestEpisode.episodeVideoContainerCached.durationSec,
-            resolution: latestEpisode.episodeVideoContainerCached.resolution,
-            premiereTimeMs: latestEpisode.episodePremiereTimeMs,
-          },
+          episode: this.summarizeEpisode(latestEpisode),
           rewatching: false,
         };
       }
@@ -117,14 +115,7 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
 
       let nextEpisode = nextEpisodeRows[0];
       return {
-        episode: {
-          episodeId: nextEpisode.episodeEpisodeId,
-          name: nextEpisode.episodeName,
-          index: nextEpisode.episodeIndex,
-          videoDurationSec: nextEpisode.episodeVideoContainerCached.durationSec,
-          resolution: nextEpisode.episodeVideoContainerCached.resolution,
-          premiereTimeMs: nextEpisode.episodePremiereTimeMs,
-        },
+        episode: this.summarizeEpisode(nextEpisode),
         rewatching: false,
       };
     }
@@ -142,13 +133,20 @@ export class GetContinueEpisodeHandler extends GetContinueEpisodeHandlerInterfac
       throw newNotFoundError(`Season ${seasonId} doesn't have first episode.`);
     }
     let firstEpisode = firstEpisodeRows[0];
+    return this.summarizeEpisode(firstEpisode);
+  }
+
+  private summarizeEpisode(
+    episodeRow: ListNextPublishedEpisodesRow | GetPublishedEpisodeRow,
+  ): Episode {
     return {
-      episodeId: firstEpisode.episodeEpisodeId,
-      name: firstEpisode.episodeName,
-      index: firstEpisode.episodeIndex,
-      videoDurationSec: firstEpisode.episodeVideoContainerCached.durationSec,
-      resolution: firstEpisode.episodeVideoContainerCached.resolution,
-      premiereTimeMs: firstEpisode.episodePremiereTimeMs,
+      episodeId: episodeRow.episodeEpisodeId,
+      name: episodeRow.episodeName,
+      index: episodeRow.episodeIndex,
+      videoDurationSec: episodeRow.episodeVideoContainerCached.durationSec,
+      resolution: episodeRow.episodeVideoContainerCached.resolution,
+      premiereTimeMs: episodeRow.episodePremiereTimeMs,
+      canPlay: episodeRow.episodePremiereTimeMs <= this.getNow(),
     };
   }
 }

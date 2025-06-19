@@ -94,6 +94,7 @@ TEST_RUNNER.run({
                   premiereTimeMs: 24000,
                   videoDurationSec: 3600,
                   resolution: "1080p",
+                  canPlay: true,
                 },
               },
             },

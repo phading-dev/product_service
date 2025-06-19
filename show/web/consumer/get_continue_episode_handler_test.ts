@@ -126,6 +126,7 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 100,
         );
 
         // Execute
@@ -147,6 +148,7 @@ TEST_RUNNER.run({
                 videoDurationSec: 120,
                 resolution: "1080p",
                 premiereTimeMs: 100,
+                canPlay: true,
               },
               rewatching: false,
             },
@@ -188,6 +190,7 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 100,
         );
 
         // Execute
@@ -209,6 +212,7 @@ TEST_RUNNER.run({
                 videoDurationSec: 120,
                 resolution: "1080p",
                 premiereTimeMs: 100,
+                canPlay: true,
               },
               rewatching: false,
             },
@@ -251,6 +255,7 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 200,
         );
 
         // Execute
@@ -272,6 +277,7 @@ TEST_RUNNER.run({
                 videoDurationSec: 150,
                 resolution: "1080p",
                 premiereTimeMs: 200,
+                canPlay: true,
               },
               rewatching: false,
             },
@@ -314,6 +320,7 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 200,
         );
 
         // Execute
@@ -335,6 +342,7 @@ TEST_RUNNER.run({
                 videoDurationSec: 180,
                 resolution: "1080p",
                 premiereTimeMs: 300,
+                canPlay: false,
               },
               rewatching: false,
             },
@@ -377,6 +385,7 @@ TEST_RUNNER.run({
         let handler = new GetContinueEpisodeHandler(
           SPANNER_DATABASE,
           serviceClientMock,
+          () => 200,
         );
 
         // Execute
@@ -398,6 +407,7 @@ TEST_RUNNER.run({
                 videoDurationSec: 120,
                 resolution: "1080p",
                 premiereTimeMs: 100,
+                canPlay: true,
               },
               rewatching: true,
             },
