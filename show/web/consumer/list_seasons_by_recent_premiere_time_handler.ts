@@ -2,7 +2,7 @@ import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listPublishedSeasonsByPremiereTime } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
-import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
+import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ListSeasonsByRecentPremiereTimeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
@@ -48,15 +48,17 @@ export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentP
     ).toLocalDateISOString();
     let seasonRows = await listPublishedSeasonsByPremiereTime(this.database, {
       seasonStateEq: SeasonState.PUBLISHED,
-      seasonRecentPremiereTimeMsLt: body.premiereTimeCursor ?? nowDate.getTime(),
-      seasonRecentPremiereTimeMsEq: body.premiereTimeCursor ?? nowDate.getTime(),
+      seasonRecentPremiereTimeMsLt:
+        body.premiereTimeCursor ?? nowDate.getTime(),
+      seasonRecentPremiereTimeMsEq:
+        body.premiereTimeCursor ?? nowDate.getTime(),
       seasonCreatedTimeMsLt: body.createdTimeCursor ?? nowDate.getTime(),
       limit: body.limit,
     });
     let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
       seasonRows.map(async (row, i) => {
-        await getLatestSeasonGradeAndSummarizeSeason(
+        await getCurrentSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessOrigin,
           todayStr,

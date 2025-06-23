@@ -1,13 +1,13 @@
 import {
   ListSeasonsForPublisherRow,
   SearchSeasonsForPublisherRow,
-  getLastSeasonGrades,
+  getSeasonGrade,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { SeasonSummary } from "@phading/product_service_interface/show/web/publisher/summary";
 import { newInternalServerErrorError } from "@selfage/http_error";
 
-export async function getLatestSeasonGradeAndSummarizeSeason(
+export async function getCurrentSeasonGradeAndSummarizeSeason(
   database: Database,
   coverImagePublicAccessDomain: string,
   todayStr: string,
@@ -15,10 +15,10 @@ export async function getLatestSeasonGradeAndSummarizeSeason(
   i: number,
   seasons: Array<SeasonSummary>,
 ): Promise<void> {
-  let gradeRows = await getLastSeasonGrades(database, {
+  let gradeRows = await getSeasonGrade(database, {
     seasonGradeSeasonIdEq: row.seasonSeasonId,
+    seasonGradeStartDateLe: todayStr,
     seasonGradeEndDateGt: todayStr,
-    limit: 1,
   });
   if (gradeRows.length === 0) {
     throw newInternalServerErrorError(

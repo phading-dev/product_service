@@ -111,7 +111,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://cover_image_public_access_domain",
-          () => new Date(1000),
+          () => new Date("2023-10-23"),
         );
 
         // Execute

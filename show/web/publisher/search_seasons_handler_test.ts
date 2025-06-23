@@ -120,7 +120,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
-          () => new Date(1000),
+          () => new Date("2023-10-23"),
         );
 
         // Execute

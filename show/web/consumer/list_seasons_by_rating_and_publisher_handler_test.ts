@@ -117,7 +117,7 @@ TEST_RUNNER.run({
         let handler = new ListSeasonsByRatingAndPublisherHandler(
           SPANNER_DATABASE,
           "https://test.com",
-          () => new Date(1000),
+          () => new Date("2023-10-23"),
         );
 
         {

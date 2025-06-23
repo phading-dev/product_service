@@ -3,7 +3,7 @@ import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { listSeasonsForPublisher } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
-import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
+import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { ListSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
@@ -76,7 +76,7 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     let seasons = new Array<SeasonSummary>(rows.length);
     await Promise.all(
       rows.map(async (row, i) => {
-        await getLatestSeasonGradeAndSummarizeSeason(
+        await getCurrentSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessOrigin,
           todayStr,

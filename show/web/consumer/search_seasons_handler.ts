@@ -8,7 +8,7 @@ import {
   searchPublishedSeasons,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
-import { getLatestSeasonGradeAndSummarizeSeason } from "./common/get_latest_season_grade_and_summarize_season";
+import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
@@ -100,7 +100,7 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
       seasonRows.map(async (row, i) => {
-        await getLatestSeasonGradeAndSummarizeSeason(
+        await getCurrentSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessOrigin,
           todayStr,
