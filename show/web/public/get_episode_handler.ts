@@ -3,11 +3,11 @@ import { getPublishedEpisode } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { GetEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { GetEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
 import {
   GetEpisodeRequestBody,
   GetEpisodeResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 import { newBadRequestError, newNotFoundError } from "@selfage/http_error";
 
 export class GetEpisodeHandler extends GetEpisodeHandlerInterface {

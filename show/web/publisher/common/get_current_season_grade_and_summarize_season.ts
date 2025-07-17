@@ -1,4 +1,5 @@
 import {
+  ListSeasonsByStateForPublisherRow,
   ListSeasonsForPublisherRow,
   SearchSeasonsForPublisherRow,
   getSeasonGrade,
@@ -11,7 +12,10 @@ export async function getCurrentSeasonGradeAndSummarizeSeason(
   database: Database,
   coverImagePublicAccessDomain: string,
   todayStr: string,
-  row: ListSeasonsForPublisherRow | SearchSeasonsForPublisherRow,
+  row:
+    | ListSeasonsForPublisherRow
+    | ListSeasonsByStateForPublisherRow
+    | SearchSeasonsForPublisherRow,
   i: number,
   seasons: Array<SeasonSummary>,
 ): Promise<void> {
@@ -32,6 +36,8 @@ export async function getCurrentSeasonGradeAndSummarizeSeason(
       ? `${coverImagePublicAccessDomain}/${row.seasonCoverImageR2Filename}`
       : undefined,
     totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
+    state: row.seasonState,
+    takeDownReason: row.seasonTakenDownReason,
     lastChangeTimeMs: row.seasonLastChangeTimeMs,
     ratingsCount: row.seasonRatingsCount,
     averageRating: row.seasonAverageRating,

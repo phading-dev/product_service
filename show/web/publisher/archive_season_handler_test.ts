@@ -64,7 +64,7 @@ TEST_RUNNER.run({
   name: "ArchiveSeasonHandlerTest",
   cases: [
     {
-      name: "SeasonWithEpisodesAndWithOneGrade",
+      name: "PublishedSeasonWithEpisodesAndWithOneGrade",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -253,7 +253,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "SeasonWithoutCoverImageAndWithMultipleGrades",
+      name: "TakenDownSeasonWithoutCoverImageAndWithMultipleGrades",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -261,7 +261,7 @@ TEST_RUNNER.run({
             insertSeasonStatement({
               seasonId: "season1",
               publisherId: "publisher1",
-              state: SeasonState.PUBLISHED,
+              state: SeasonState.TAKEN_DOWN,
               createdTimeMs: 1000,
             }),
             insertSeasonGradeStatement({
@@ -360,7 +360,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "SeasonNotPublished",
+      name: "SeasonNotPublishedOrTakenDown",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -400,7 +400,7 @@ TEST_RUNNER.run({
           error,
           eqHttpError(
             newBadRequestError(
-              "Season season1 is not in PUBLISHED state and cannot be archived.",
+              "Season season1 is not in PUBLISHED or TAKEN_DOWN state and cannot be archived.",
             ),
           ),
           "error",

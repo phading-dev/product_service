@@ -9,12 +9,12 @@ import { Database } from "@google-cloud/spanner";
 import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { Episode } from "@phading/product_service_interface/show/web/consumer/info";
+import { ListEpisodesHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
+import { Episode } from "@phading/product_service_interface/show/web/public/info";
 import {
   ListEpisodesRequestBody,
   ListEpisodesResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 import { newBadRequestError } from "@selfage/http_error";
 
 export class ListEpisodesHandler extends ListEpisodesHandlerInterface {

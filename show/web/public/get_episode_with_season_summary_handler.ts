@@ -7,11 +7,11 @@ import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { GetEpisodeWithSeasonSummaryHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { GetEpisodeWithSeasonSummaryHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
 import {
   GetEpisodeWithSeasonSummaryRequestBody,
   GetEpisodeWithSeasonSummaryResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 import {
   newBadRequestError,
   newInternalServerErrorError,

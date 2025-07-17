@@ -8,7 +8,7 @@ import {
   getSeasonGrade,
 } from "../../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/public/info";
 import { newInternalServerErrorError } from "@selfage/http_error";
 
 export async function getCurrentSeasonGradeAndSummarizeSeason(

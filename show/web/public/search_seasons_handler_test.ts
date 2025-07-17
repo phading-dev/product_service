@@ -7,8 +7,8 @@ import {
 } from "../../../db/sql";
 import { SearchSeasonsHandler } from "./search_seasons_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/consumer/info";
-import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { SEASON_SUMMARY } from "@phading/product_service_interface/show/web/public/info";
+import { SEARCH_SEASONS_RESPONSE } from "@phading/product_service_interface/show/web/public/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { NodeServiceClientMock } from "@selfage/node_service_client/client_mock";
@@ -107,12 +107,8 @@ TEST_RUNNER.run({
           await transaction.commit();
         });
         let serviceClientMock = new NodeServiceClientMock();
-        serviceClientMock.response = {
-          accountId: "account1",
-          capabilities: {
-            canConsume: true,
-          },
-        } as FetchSessionAndCheckCapabilityResponse;
+        serviceClientMock.response =
+          {} as FetchSessionAndCheckCapabilityResponse;
         let handler = new SearchSeasonsHandler(
           SPANNER_DATABASE,
           serviceClientMock,

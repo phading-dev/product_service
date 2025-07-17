@@ -1,7 +1,12 @@
 import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { listSeasonsForPublisher } from "../../../db/sql";
+import {
+  ListSeasonsByStateForPublisherRow,
+  ListSeasonsForPublisherRow,
+  listSeasonsByStateForPublisher,
+  listSeasonsForPublisher,
+} from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
@@ -40,9 +45,6 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
     body: ListSeasonsRequestBody,
     sessionStr: string,
   ): Promise<ListSeasonsResponse> {
-    if (!body.state) {
-      throw newBadRequestError(`"state" is required.`);
-    }
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
@@ -67,12 +69,25 @@ export class ListSeasonsHandler extends ListSeasonsHandlerInterface {
       nowDate,
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
-    let rows = await listSeasonsForPublisher(this.database, {
-      seasonPublisherIdEq: accountId,
-      seasonStateEq: body.state,
-      seasonLastChangeTimeMsLt: body.lastChangeTimeCursor ?? nowDate.getTime(),
-      limit: body.limit,
-    });
+    let rows:
+      | Array<ListSeasonsForPublisherRow>
+      | Array<ListSeasonsByStateForPublisherRow>;
+    if (!body.state) {
+      rows = await listSeasonsForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonLastChangeTimeMsLt:
+          body.lastChangeTimeCursor ?? nowDate.getTime(),
+        limit: body.limit,
+      });
+    } else {
+      rows = await listSeasonsByStateForPublisher(this.database, {
+        seasonPublisherIdEq: accountId,
+        seasonStateEq: body.state,
+        seasonLastChangeTimeMsLt:
+          body.lastChangeTimeCursor ?? nowDate.getTime(),
+        limit: body.limit,
+      });
+    }
     let seasons = new Array<SeasonSummary>(rows.length);
     await Promise.all(
       rows.map(async (row, i) => {

@@ -45,9 +45,6 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     body: SearchSeasonsRequestBody,
     sessionStr: string,
   ): Promise<SearchSeasonsResponse> {
-    if (!body.state) {
-      throw newBadRequestError(`"state" is required.`);
-    }
     if (!body.query) {
       throw newBadRequestError(`"query" is required.`);
     }
@@ -76,7 +73,6 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     if (!body.scoreCursor) {
       seasonRows = await searchSeasonsForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
-        seasonStateEq: body.state,
         seasonFullTextSearch: body.query,
         seasonFullTextScoreOrderBy: body.query,
         limit: body.limit,
@@ -85,7 +81,6 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     } else {
       seasonRows = await continuedSearchSeasonsForPublisher(this.database, {
         seasonPublisherIdEq: accountId,
-        seasonStateEq: body.state,
         seasonFullTextSearch: body.query,
         seasonFullTextScoreWhereLt: body.query,
         seasonFullTextScoreLt: body.scoreCursor,
@@ -101,9 +96,12 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
       this.getNowDate(),
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
-    let seasons = new Array<SeasonSummary>(seasonRows.length);
+    let filteredSeasonRows = seasonRows.filter(
+      (row) => !body.state || row.seasonState === body.state,
+    );
+    let seasons = new Array<SeasonSummary>(filteredSeasonRows.length);
     await Promise.all(
-      seasonRows.map(async (row, i) => {
+      filteredSeasonRows.map(async (row, i) => {
         await getCurrentSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessOrigin,

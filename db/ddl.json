@@ -11,6 +11,9 @@
       "name": "state",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN state FLOAT64"
     }, {
+      "name": "takenDownReason",
+      "addColumnDdl": "ALTER TABLE Season ADD COLUMN takenDownReason STRING(MAX)"
+    }, {
       "name": "name",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN name STRING(MAX)"
     }, {
@@ -50,10 +53,13 @@
       "name": "fullText",
       "addColumnDdl": "ALTER TABLE Season ADD COLUMN fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN"
     }],
-    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, name STRING(MAX), coverImageR2Filename STRING(MAX), totalPublishedEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremiereTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, publishedTimeMs FLOAT64, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
+    "createTableDdl": "CREATE TABLE Season (seasonId STRING(MAX) NOT NULL, publisherId STRING(MAX), state FLOAT64, takenDownReason STRING(MAX), name STRING(MAX), coverImageR2Filename STRING(MAX), totalPublishedEpisodes FLOAT64, lastChangeTimeMs FLOAT64, recentPremiereTimeMs FLOAT64, description STRING(MAX), createdTimeMs INT64 NOT NULL, publishedTimeMs FLOAT64, totalRatings FLOAT64, ratingsCount FLOAT64, averageRating FLOAT64, ratingUpdatedTimeMs FLOAT64, fullText TOKENLIST AS (TOKENIZE_FULLTEXT(name || ' ' || description)) HIDDEN) PRIMARY KEY (seasonId ASC)",
     "indexes": [{
-      "name": "ByLastChangeTimeMs",
-      "createIndexDdl": "CREATE INDEX ByLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
+      "name": "ByPublisherAndStateAndLastChangeTimeMs",
+      "createIndexDdl": "CREATE INDEX ByPublisherAndStateAndLastChangeTimeMs ON Season(publisherId, state, lastChangeTimeMs DESC)"
+    }, {
+      "name": "ByPublisherLastChangeTimeMs",
+      "createIndexDdl": "CREATE INDEX ByPublisherLastChangeTimeMs ON Season(publisherId, lastChangeTimeMs DESC)"
     }, {
       "name": "ByRecentPremiereTimeMs",
       "createIndexDdl": "CREATE INDEX ByRecentPremiereTimeMs ON Season(state, recentPremiereTimeMs DESC, createdTimeMs DESC)"
@@ -70,8 +76,8 @@
       "name": "ByFullText",
       "createIndexDdl": "CREATE SEARCH INDEX ByFullText ON Season(fullText) PARTITION BY state ORDER BY createdTimeMs"
     }, {
-      "name": "ByPublisherAndFullText",
-      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherAndFullText ON Season(fullText) PARTITION BY publisherId, state ORDER BY createdTimeMs"
+      "name": "ByPublisherOnlyAndFullText",
+      "createIndexDdl": "CREATE SEARCH INDEX ByPublisherOnlyAndFullText ON Season(fullText) PARTITION BY publisherId ORDER BY createdTimeMs"
     }]
   }, {
     "name": "SeasonGrade",
@@ -147,6 +153,26 @@
       "addColumnDdl": "ALTER TABLE IndividualSeasonRating ADD COLUMN ratedTimeMs FLOAT64"
     }],
     "createTableDdl": "CREATE TABLE IndividualSeasonRating (raterId STRING(MAX) NOT NULL, seasonId STRING(MAX) NOT NULL, rating FLOAT64, ratedTimeMs FLOAT64) PRIMARY KEY (raterId ASC, seasonId ASC)",
+    "indexes": []
+  }, {
+    "name": "SeasonFlagReport",
+    "columns": [{
+      "name": "reporterId",
+      "addColumnDdl": "ALTER TABLE SeasonFlagReport ADD COLUMN reporterId STRING(MAX) NOT NULL"
+    }, {
+      "name": "seasonId",
+      "addColumnDdl": "ALTER TABLE SeasonFlagReport ADD COLUMN seasonId STRING(MAX) NOT NULL"
+    }, {
+      "name": "reason",
+      "addColumnDdl": "ALTER TABLE SeasonFlagReport ADD COLUMN reason FLOAT64"
+    }, {
+      "name": "comment",
+      "addColumnDdl": "ALTER TABLE SeasonFlagReport ADD COLUMN comment STRING(MAX)"
+    }, {
+      "name": "flagTimeMs",
+      "addColumnDdl": "ALTER TABLE SeasonFlagReport ADD COLUMN flagTimeMs FLOAT64"
+    }],
+    "createTableDdl": "CREATE TABLE SeasonFlagReport (reporterId STRING(MAX) NOT NULL, seasonId STRING(MAX) NOT NULL, reason FLOAT64, comment STRING(MAX), flagTimeMs FLOAT64) PRIMARY KEY (reporterId ASC, seasonId ASC)",
     "indexes": []
   }, {
     "name": "CoverImageFile",

@@ -13,6 +13,9 @@
           type: SeasonState
           import: "@phading/product_service_interface/show/season_state"
           nullable: true
+        - name: takenDownReason
+          type: string
+          nullable: true
         - name: name
           type: string
           nullable: true
@@ -54,6 +57,7 @@
             - seasonId
             - publisherId
             - state
+            - takenDownReason
             - name
             - coverImageR2Filename
             - totalPublishedEpisodes
@@ -75,10 +79,15 @@
       primaryKeys:
         - seasonId
       indexes:
-        - name: ByLastChangeTimeMs
+        - name: ByPublisherAndStateAndLastChangeTimeMs
           columns:
             - publisherId
             - state
+            - name: lastChangeTimeMs
+              desc: true
+        - name: ByPublisherLastChangeTimeMs
+          columns:
+            - publisherId
             - name: lastChangeTimeMs
               desc: true
         - name: ByRecentPremiereTimeMs
@@ -119,14 +128,13 @@
             - createdTimeMs
           partitionByColumns:
             - state
-        - name: ByPublisherAndFullText
+        - name: ByPublisherOnlyAndFullText
           columns:
             - fullText
           orderByColumns:
             - createdTimeMs
           partitionByColumns:
             - publisherId
-            - state
       insert: InsertSeason
       delete: DeleteSeason
       get: GetSeason
@@ -228,6 +236,29 @@
       delete: DeleteIndividualSeasonRating
       get: GetIndividualSeasonRating
       update: UpdateIndividualSeasonRating
+    - kind: Table
+      name: SeasonFlagReport
+      columns:
+        - name: reporterId
+          type: string
+        - name: seasonId
+          type: string
+        - name: reason
+          type: SeasonFlagReason
+          import: "@phading/product_service_interface/show/season_flag_reason"
+          nullable: true
+        - name: comment
+          type: string
+          nullable: true
+        - name: flagTimeMs
+          type: float64
+          nullable: true
+      primaryKeys:
+        - reporterId
+        - seasonId
+      insert: InsertSeasonFlagReport
+      delete: DeleteSeasonFlagReport
+      get: GetSeasonFlagReport
     - kind: Table
       name: CoverImageFile
       columns:
@@ -360,6 +391,14 @@
         - totalPublishedEpisodes
         - lastChangeTimeMs
         - publishedTimeMs
+    - name: TakeDownSeason # Restore as well
+      table: Season
+      where:
+        op: =
+        lColumn: seasonId
+      set:
+        - state
+        - takenDownReason
     - name: UpdateSeasonRecentPremiereTime
       table: Season
       where:
@@ -555,6 +594,21 @@
         exprs:
           - op: =
             lColumn: publisherId
+          - op: <
+            lColumn: lastChangeTimeMs
+      orderBy:
+        - column: lastChangeTimeMs
+          desc: true
+      withLimit: true
+      get:
+        - columnGroup: main
+    - name: ListSeasonsByStateForPublisher
+      from: Season
+      where:
+        op: AND
+        exprs:
+          - op: =
+            lColumn: publisherId
           - op: =
             lColumn: state
           - op: <
@@ -572,8 +626,6 @@
         exprs:
           - op: =
             lColumn: publisherId
-          - op: =
-            lColumn: state
           - op: SEARCH
             lColumn: fullText
       orderBy:
@@ -594,8 +646,6 @@
         exprs:
           - op: =
             lColumn: publisherId
-          - op: =
-            lColumn: state
           - op: SEARCH
             lColumn: fullText
           - op: OR

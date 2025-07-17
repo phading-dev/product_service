@@ -1,5 +1,6 @@
 import http = require("http");
 import { initS3Client } from "./common/s3_client";
+import { initSendgridClient } from "./common/sendgrid_client";
 import { ENV_VARS } from "./env_vars";
 import { CacheVideoContainerHandler } from "./show/node/cache_video_container_handler";
 import { CheckPresenceOfEpisodeHandler } from "./show/node/check_presence_of_episode_handler";
@@ -14,21 +15,22 @@ import { ProcessSeasonRecentPremiereTimeUpdatingTaskHandler } from "./show/node/
 import { ProcessVideoContainerDeletingTaskHandler } from "./show/node/process_video_container_deleting_task_handler";
 import { AuthorizeEpisodePlaybackHandler } from "./show/web/consumer/authorize_episode_playback_handler";
 import { GetContinueEpisodeHandler } from "./show/web/consumer/get_continue_episode_handler";
-import { GetEpisodeHandler as ConsumerGetEpisodeHandler } from "./show/web/consumer/get_episode_handler";
-import { GetEpisodeWithSeasonSummaryHandler } from "./show/web/consumer/get_episode_with_season_summary_handler";
 import { GetIndividualSeasonRatingHandler } from "./show/web/consumer/get_individual_season_rating_handler";
-import { GetSeasonDetailsHandler } from "./show/web/consumer/get_season_details_handler";
-import { GetSeasonNameHandler } from "./show/web/consumer/get_season_name_handler";
-import { GetSeasonSummaryHandler } from "./show/web/consumer/get_season_summary_handler";
 import { ListContinueWatchingSeasonsHandler } from "./show/web/consumer/list_continue_watching_seasons_handler";
-import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/consumer/list_episodes_handler";
-import { ListSeasonsByRatingAndPublisherHandler } from "./show/web/consumer/list_seasons_by_rating_and_publisher_handler";
-import { ListSeasonsByRatingHandler } from "./show/web/consumer/list_seasons_by_rating_handler";
-import { ListSeasonsByRecentPremiereTimeAndPublisherHandler } from "./show/web/consumer/list_seasons_by_recent_premiere_time_and_publisher_handler";
-import { ListSeasonsByRecentPremiereTimeHandler } from "./show/web/consumer/list_seasons_by_recent_premiere_time_handler";
 import { RateSeasonHandler } from "./show/web/consumer/rate_season_handler";
-import { SearchSeasonsHandler as SearchSeasonsForConsumerHandler } from "./show/web/consumer/search_seasons_handler";
 import { UnrateSeasonHandler } from "./show/web/consumer/unrate_season_handler";
+import { FlagSeasonHandler } from "./show/web/public/flag_season_handler";
+import { GetEpisodeHandler as PublicGetEpisodeHandler } from "./show/web/public/get_episode_handler";
+import { GetEpisodeWithSeasonSummaryHandler } from "./show/web/public/get_episode_with_season_summary_handler";
+import { GetSeasonDetailsHandler } from "./show/web/public/get_season_details_handler";
+import { GetSeasonNameHandler } from "./show/web/public/get_season_name_handler";
+import { GetSeasonSummaryHandler } from "./show/web/public/get_season_summary_handler";
+import { ListEpisodesHandler as ListEpisodesForConsumerHandler } from "./show/web/public/list_episodes_handler";
+import { ListSeasonsByRatingAndPublisherHandler } from "./show/web/public/list_seasons_by_rating_and_publisher_handler";
+import { ListSeasonsByRatingHandler } from "./show/web/public/list_seasons_by_rating_handler";
+import { ListSeasonsByRecentPremiereTimeAndPublisherHandler } from "./show/web/public/list_seasons_by_recent_premiere_time_and_publisher_handler";
+import { ListSeasonsByRecentPremiereTimeHandler } from "./show/web/public/list_seasons_by_recent_premiere_time_handler";
+import { SearchSeasonsHandler as PublicSearchSeasonsHandler } from "./show/web/public/search_seasons_handler";
 import { ArchiveSeasonHandler } from "./show/web/publisher/archive_season_handler";
 import { CancelUploadingHandler } from "./show/web/publisher/cancel_uploading_handler";
 import { CommitEpisodeStagingDataHandler } from "./show/web/publisher/commit_episode_staging_data_handler";
@@ -45,7 +47,7 @@ import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_publishe
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
 import { SaveEpisodeStagingDataHandler } from "./show/web/publisher/save_episode_staging_data_handler";
-import { SearchSeasonsHandler as SearchSeasonsForPublisherHandler } from "./show/web/publisher/search_seasons_handler";
+import { SearchSeasonsHandler as PublisherSearchSeasonsHandler } from "./show/web/publisher/search_seasons_handler";
 import { StartUploadingHandler } from "./show/web/publisher/start_uploading_handler";
 import { UnpublishEpisodeHandler } from "./show/web/publisher/unpublish_episode_handler";
 import { UpdateEpisodeIndexHandler } from "./show/web/publisher/update_episode_index_handler";
@@ -60,9 +62,11 @@ import {
   PRODUCT_WEB_SERVICE,
 } from "@phading/product_service_interface/service";
 import { ServiceHandler } from "@selfage/service_handler/service_handler";
+import { AdminRestoreSeasonHandler } from "./show/node/admin_restore_season_handler";
+import { AdminTakeDownSeasonHandler } from "./show/node/admin_take_down_season_handler";
 
 async function main() {
-  await initS3Client();
+  await Promise.all([initS3Client(), initSendgridClient()]);
   let service = ServiceHandler.create(
     http.createServer(),
     ENV_VARS.externalOrigin,
@@ -73,6 +77,8 @@ async function main() {
     .addMetricsHandler();
   service
     .addHandlerRegister(PRODUCT_NODE_SERVICE)
+    .add(AdminRestoreSeasonHandler.create())
+    .add(AdminTakeDownSeasonHandler.create())
     .add(CacheVideoContainerHandler.create())
     .add(CheckPresenceOfEpisodeHandler.create())
     .add(CheckPresenceOfSeasonHandler.create())
@@ -88,21 +94,22 @@ async function main() {
     .addHandlerRegister(PRODUCT_WEB_SERVICE)
     .add(AuthorizeEpisodePlaybackHandler.create())
     .add(GetContinueEpisodeHandler.create())
-    .add(ConsumerGetEpisodeHandler.create())
-    .add(GetEpisodeWithSeasonSummaryHandler.create())
     .add(GetIndividualSeasonRatingHandler.create())
+    .add(ListContinueWatchingSeasonsHandler.create())
+    .add(RateSeasonHandler.create())
+    .add(UnrateSeasonHandler.create())
+    .add(FlagSeasonHandler.create())
+    .add(PublicGetEpisodeHandler.create())
+    .add(GetEpisodeWithSeasonSummaryHandler.create())
     .add(GetSeasonDetailsHandler.create())
     .add(GetSeasonNameHandler.create())
     .add(GetSeasonSummaryHandler.create())
-    .add(ListContinueWatchingSeasonsHandler.create())
     .add(ListEpisodesForConsumerHandler.create())
     .add(ListSeasonsByRatingAndPublisherHandler.create())
     .add(ListSeasonsByRatingHandler.create())
     .add(ListSeasonsByRecentPremiereTimeAndPublisherHandler.create())
     .add(ListSeasonsByRecentPremiereTimeHandler.create())
-    .add(RateSeasonHandler.create())
-    .add(SearchSeasonsForConsumerHandler.create())
-    .add(UnrateSeasonHandler.create())
+    .add(PublicSearchSeasonsHandler.create())
     .add(ArchiveSeasonHandler.create())
     .add(CancelUploadingHandler.create())
     .add(CommitEpisodeStagingDataHandler.create())
@@ -119,7 +126,7 @@ async function main() {
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
     .add(SaveEpisodeStagingDataHandler.create())
-    .add(SearchSeasonsForPublisherHandler.create())
+    .add(PublisherSearchSeasonsHandler.create())
     .add(StartUploadingHandler.create())
     .add(UnpublishEpisodeHandler.create())
     .add(UpdateEpisodeIndexHandler.create())

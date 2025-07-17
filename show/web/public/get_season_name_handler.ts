@@ -1,11 +1,11 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import { getSeasonName } from "../../../db/sql";
 import { Database } from "@google-cloud/spanner";
-import { GetSeasonNameHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
+import { GetSeasonNameHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
 import {
   GetSeasonNameRequestBody,
   GetSeasonNameResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 
 export class GetSeasonNameHandler extends GetSeasonNameHandlerInterface {
   public static create(): GetSeasonNameHandler {

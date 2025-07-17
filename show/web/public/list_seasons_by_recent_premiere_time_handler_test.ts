@@ -5,15 +5,15 @@ import {
   insertSeasonGradeStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { ListSeasonsByRecentPremiereTimeAndPublisherHandler } from "./list_seasons_by_recent_premiere_time_and_publisher_handler";
+import { ListSeasonsByRecentPremiereTimeHandler } from "./list_seasons_by_recent_premiere_time_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE } from "@phading/product_service_interface/show/web/public/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "ListSeasonsByRecentPremiereTimeAndPublisherHandlerTest",
+  name: "ListSeasonsByRecentPremiereTimeHandlerTest",
   cases: [
     {
       name: "ListOneBatch_ListAgainButNoMore",
@@ -42,7 +42,7 @@ TEST_RUNNER.run({
             }),
             insertSeasonStatement({
               seasonId: "season4",
-              publisherId: "publisher1",
+              publisherId: "publisher4",
               state: SeasonState.PUBLISHED,
               name: "name4",
               coverImageR2Filename: "cover4",
@@ -61,7 +61,7 @@ TEST_RUNNER.run({
             }),
             insertSeasonStatement({
               seasonId: "season3",
-              publisherId: "publisher1",
+              publisherId: "publisher3",
               state: SeasonState.ARCHIVED,
               name: "name3",
               coverImageR2Filename: "cover3",
@@ -80,7 +80,7 @@ TEST_RUNNER.run({
             }),
             insertSeasonStatement({
               seasonId: "season2",
-              publisherId: "publisher1",
+              publisherId: "publisher2",
               state: SeasonState.PUBLISHED,
               name: "name2",
               coverImageR2Filename: "cover2",
@@ -97,29 +97,10 @@ TEST_RUNNER.run({
               endDate: "9999-12-31",
               grade: 40,
             }),
-            insertSeasonStatement({
-              seasonId: "season5",
-              publisherId: "publisher2",
-              state: SeasonState.PUBLISHED,
-              name: "name5",
-              coverImageR2Filename: "cover5",
-              totalPublishedEpisodes: 25,
-              ratingsCount: 3,
-              averageRating: 4.0,
-              recentPremiereTimeMs: 50,
-              createdTimeMs: 15,
-            }),
-            insertSeasonGradeStatement({
-              seasonId: "season5",
-              gradeId: "grade5",
-              startDate: "1970-01-01",
-              endDate: "9999-12-31",
-              grade: 15,
-            }),
           ]);
           await transaction.commit();
         });
-        let handler = new ListSeasonsByRecentPremiereTimeAndPublisherHandler(
+        let handler = new ListSeasonsByRecentPremiereTimeHandler(
           SPANNER_DATABASE,
           "https://test.com",
           () => new Date("2023-10-23"),
@@ -127,10 +108,7 @@ TEST_RUNNER.run({
 
         {
           // Execute
-          let response = await handler.handle("", {
-            publisherId: "publisher1",
-            limit: 2,
-          });
+          let response = await handler.handle("", { limit: 2 });
 
           // Verify
           assertThat(
@@ -140,7 +118,7 @@ TEST_RUNNER.run({
                 seasons: [
                   {
                     seasonId: "season4",
-                    publisherId: "publisher1",
+                    publisherId: "publisher4",
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
                     grade: 10,
@@ -150,7 +128,7 @@ TEST_RUNNER.run({
                   },
                   {
                     seasonId: "season2",
-                    publisherId: "publisher1",
+                    publisherId: "publisher2",
                     name: "name2",
                     coverImageUrl: "https://test.com/cover2",
                     grade: 40,
@@ -171,7 +149,6 @@ TEST_RUNNER.run({
         {
           // Execute
           let response = await handler.handle("", {
-            publisherId: "publisher1",
             premiereTimeCursor: 20,
             createdTimeCursor: 20,
             limit: 2,
@@ -215,9 +192,6 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season4",
-            }),
-            deleteSeasonStatement({
-              seasonSeasonIdEq: "season5",
             }),
           ]);
           await transaction.commit();

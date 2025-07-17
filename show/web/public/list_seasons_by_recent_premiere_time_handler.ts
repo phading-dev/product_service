@@ -1,23 +1,22 @@
 import { MAX_LIST_SEASONS_ITEMS } from "../../../common/constants";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { listPublishedSeasonsByRatingAndPublisher } from "../../../db/sql";
+import { listPublishedSeasonsByPremiereTime } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
-import { VALID_RATINGS } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListSeasonsByRatingAndPublisherHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
+import { ListSeasonsByRecentPremiereTimeHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/public/info";
 import {
-  ListSeasonsByRatingAndPublisherRequestBody,
-  ListSeasonsByRatingAndPublisherResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+  ListSeasonsByRecentPremiereTimeRequestBody,
+  ListSeasonsByRecentPremiereTimeResponse,
+} from "@phading/product_service_interface/show/web/public/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { TzDate } from "@selfage/tz_date";
 
-export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingAndPublisherHandlerInterface {
-  public static create(): ListSeasonsByRatingAndPublisherHandler {
-    return new ListSeasonsByRatingAndPublisherHandler(
+export class ListSeasonsByRecentPremiereTimeHandler extends ListSeasonsByRecentPremiereTimeHandlerInterface {
+  public static create(): ListSeasonsByRecentPremiereTimeHandler {
+    return new ListSeasonsByRecentPremiereTimeHandler(
       SPANNER_DATABASE,
       ENV_VARS.r2SeasonCoverImagePublicAccessOrigin,
       () => new Date(),
@@ -34,11 +33,8 @@ export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingA
 
   public async handle(
     loggingPrefix: string,
-    body: ListSeasonsByRatingAndPublisherRequestBody,
-  ): Promise<ListSeasonsByRatingAndPublisherResponse> {
-    if (!body.publisherId) {
-      throw newBadRequestError(`"publisherId" is required.`);
-    }
+    body: ListSeasonsByRecentPremiereTimeRequestBody,
+  ): Promise<ListSeasonsByRecentPremiereTimeResponse> {
     if (!body.limit) {
       throw newBadRequestError(`"limit" is required.`);
     }
@@ -50,19 +46,18 @@ export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingA
       nowDate,
       ENV_VARS.timezoneNegativeOffset,
     ).toLocalDateISOString();
-    let ratingCursor =
-      body.ratingCursor ?? VALID_RATINGS[VALID_RATINGS.length - 1] + 1;
-    let rows = await listPublishedSeasonsByRatingAndPublisher(this.database, {
+    let seasonRows = await listPublishedSeasonsByPremiereTime(this.database, {
       seasonStateEq: SeasonState.PUBLISHED,
-      seasonPublisherIdEq: body.publisherId,
-      seasonAverageRatingLt: ratingCursor,
-      seasonAverageRatingEq: ratingCursor,
+      seasonRecentPremiereTimeMsLt:
+        body.premiereTimeCursor ?? nowDate.getTime(),
+      seasonRecentPremiereTimeMsEq:
+        body.premiereTimeCursor ?? nowDate.getTime(),
       seasonCreatedTimeMsLt: body.createdTimeCursor ?? nowDate.getTime(),
       limit: body.limit,
     });
-    let seasons = new Array<SeasonSummary>(rows.length);
+    let seasons = new Array<SeasonSummary>(seasonRows.length);
     await Promise.all(
-      rows.map(async (row, i) => {
+      seasonRows.map(async (row, i) => {
         await getCurrentSeasonGradeAndSummarizeSeason(
           this.database,
           this.coverImagePublicAccessOrigin,
@@ -75,13 +70,13 @@ export class ListSeasonsByRatingAndPublisherHandler extends ListSeasonsByRatingA
     );
     return {
       seasons,
-      ratingCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].seasonAverageRating
+      premiereTimeCursor:
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonRecentPremiereTimeMs
           : undefined,
       createdTimeCursor:
-        rows.length === body.limit
-          ? rows[rows.length - 1].seasonCreatedTimeMs
+        seasonRows.length === body.limit
+          ? seasonRows[seasonRows.length - 1].seasonCreatedTimeMs
           : undefined,
     };
   }

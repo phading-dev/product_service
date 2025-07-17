@@ -7,7 +7,7 @@ import {
 } from "../../../db/sql";
 import { ListSeasonsByRatingAndPublisherHandler } from "./list_seasons_by_rating_and_publisher_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/public/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";

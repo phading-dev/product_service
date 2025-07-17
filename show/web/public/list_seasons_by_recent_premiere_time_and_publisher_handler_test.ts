@@ -5,15 +5,15 @@ import {
   insertSeasonGradeStatement,
   insertSeasonStatement,
 } from "../../../db/sql";
-import { ListSeasonsByRatingHandler } from "./list_seasons_by_rating_handler";
+import { ListSeasonsByRecentPremiereTimeAndPublisherHandler } from "./list_seasons_by_recent_premiere_time_and_publisher_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { LIST_SEASONS_BY_RATING_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE } from "@phading/product_service_interface/show/web/public/interface";
 import { eqMessage } from "@selfage/message/test_matcher";
 import { assertThat } from "@selfage/test_matcher";
 import { TEST_RUNNER } from "@selfage/test_runner";
 
 TEST_RUNNER.run({
-  name: "ListSeasonsByRatingHandlerTest",
+  name: "ListSeasonsByRecentPremiereTimeAndPublisherHandlerTest",
   cases: [
     {
       name: "ListOneBatch_ListAgainButNoMore",
@@ -28,75 +28,98 @@ TEST_RUNNER.run({
               name: "name1",
               coverImageR2Filename: "cover1",
               totalPublishedEpisodes: 21,
-              ratingsCount: 1,
-              averageRating: 5,
-              createdTimeMs: 1000,
+              ratingsCount: 2,
+              averageRating: 4.5,
+              recentPremiereTimeMs: 20,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season1",
               gradeId: "grade1",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 11,
+              grade: 5,
             }),
             insertSeasonStatement({
               seasonId: "season4",
-              publisherId: "publisher4",
+              publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               name: "name4",
               coverImageR2Filename: "cover4",
               totalPublishedEpisodes: 24,
               ratingsCount: 4,
-              averageRating: 5,
-              createdTimeMs: 2000,
+              averageRating: 3.5,
+              recentPremiereTimeMs: 40,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season4",
               gradeId: "grade4",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 44,
+              grade: 10,
             }),
             insertSeasonStatement({
               seasonId: "season3",
-              publisherId: "publisher3",
+              publisherId: "publisher1",
               state: SeasonState.ARCHIVED,
               name: "name3",
               coverImageR2Filename: "cover3",
               totalPublishedEpisodes: 23,
-              ratingsCount: 3,
+              ratingsCount: 1,
               averageRating: 3,
-              createdTimeMs: 3000,
+              recentPremiereTimeMs: 30,
+              createdTimeMs: 10,
             }),
             insertSeasonGradeStatement({
               seasonId: "season3",
               gradeId: "grade3",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 33,
+              grade: 20,
             }),
             insertSeasonStatement({
               seasonId: "season2",
-              publisherId: "publisher2",
+              publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
               name: "name2",
               coverImageR2Filename: "cover2",
               totalPublishedEpisodes: 22,
-              ratingsCount: 2,
-              averageRating: 3,
-              createdTimeMs: 1000,
+              ratingsCount: 0,
+              averageRating: 0,
+              recentPremiereTimeMs: 20,
+              createdTimeMs: 20,
             }),
             insertSeasonGradeStatement({
               seasonId: "season2",
               gradeId: "grade2",
               startDate: "1970-01-01",
               endDate: "9999-12-31",
-              grade: 22,
+              grade: 40,
+            }),
+            insertSeasonStatement({
+              seasonId: "season5",
+              publisherId: "publisher2",
+              state: SeasonState.PUBLISHED,
+              name: "name5",
+              coverImageR2Filename: "cover5",
+              totalPublishedEpisodes: 25,
+              ratingsCount: 3,
+              averageRating: 4.0,
+              recentPremiereTimeMs: 50,
+              createdTimeMs: 15,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season5",
+              gradeId: "grade5",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 15,
             }),
           ]);
           await transaction.commit();
         });
-        let handler = new ListSeasonsByRatingHandler(
+        let handler = new ListSeasonsByRecentPremiereTimeAndPublisherHandler(
           SPANNER_DATABASE,
           "https://test.com",
           () => new Date("2023-10-23"),
@@ -104,12 +127,10 @@ TEST_RUNNER.run({
 
         {
           // Execute
-          let response = await handler.handle(
-            "",
-            {
-              limit: 2,
-            },
-          );
+          let response = await handler.handle("", {
+            publisherId: "publisher1",
+            limit: 2,
+          });
 
           // Verify
           assertThat(
@@ -119,29 +140,29 @@ TEST_RUNNER.run({
                 seasons: [
                   {
                     seasonId: "season4",
-                    publisherId: "publisher4",
+                    publisherId: "publisher1",
                     name: "name4",
                     coverImageUrl: "https://test.com/cover4",
-                    grade: 44,
+                    grade: 10,
                     totalEpisodes: 24,
                     ratingsCount: 4,
-                    averageRating: 5,
+                    averageRating: 3.5,
                   },
                   {
-                    seasonId: "season1",
+                    seasonId: "season2",
                     publisherId: "publisher1",
-                    name: "name1",
-                    coverImageUrl: "https://test.com/cover1",
-                    grade: 11,
-                    totalEpisodes: 21,
-                    ratingsCount: 1,
-                    averageRating: 5,
+                    name: "name2",
+                    coverImageUrl: "https://test.com/cover2",
+                    grade: 40,
+                    totalEpisodes: 22,
+                    ratingsCount: 0,
+                    averageRating: 0,
                   },
                 ],
-                ratingCursor: 5,
-                createdTimeCursor: 1000,
+                premiereTimeCursor: 20,
+                createdTimeCursor: 20,
               },
-              LIST_SEASONS_BY_RATING_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE,
             ),
             "response 1",
           );
@@ -149,14 +170,12 @@ TEST_RUNNER.run({
 
         {
           // Execute
-          let response = await handler.handle(
-            "",
-            {
-              ratingCursor: 5,
-              createdTimeCursor: 1000,
-              limit: 2,
-            },
-          );
+          let response = await handler.handle("", {
+            publisherId: "publisher1",
+            premiereTimeCursor: 20,
+            createdTimeCursor: 20,
+            limit: 2,
+          });
 
           // Verify
           assertThat(
@@ -165,18 +184,18 @@ TEST_RUNNER.run({
               {
                 seasons: [
                   {
-                    seasonId: "season2",
-                    publisherId: "publisher2",
-                    name: "name2",
-                    coverImageUrl: "https://test.com/cover2",
-                    grade: 22,
-                    totalEpisodes: 22,
+                    seasonId: "season1",
+                    publisherId: "publisher1",
+                    name: "name1",
+                    coverImageUrl: "https://test.com/cover1",
+                    grade: 5,
+                    totalEpisodes: 21,
                     ratingsCount: 2,
-                    averageRating: 3,
+                    averageRating: 4.5,
                   },
                 ],
               },
-              LIST_SEASONS_BY_RATING_RESPONSE,
+              LIST_SEASONS_BY_RECENT_PREMIERE_TIME_RESPONSE,
             ),
             "response 2",
           );
@@ -196,6 +215,9 @@ TEST_RUNNER.run({
             }),
             deleteSeasonStatement({
               seasonSeasonIdEq: "season4",
+            }),
+            deleteSeasonStatement({
+              seasonSeasonIdEq: "season5",
             }),
           ]);
           await transaction.commit();

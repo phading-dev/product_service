@@ -16,15 +16,15 @@ import { newListRecentlyWatchedSeasonsRequest } from "@phading/play_activity_ser
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { ListContinueWatchingSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import {
-  ContinueSeason,
-  Episode,
-  SeasonSummary,
-} from "@phading/product_service_interface/show/web/consumer/info";
+import { ContinueSeason } from "@phading/product_service_interface/show/web/consumer/info";
 import {
   ListContinueWatchingSeasonsRequestBody,
   ListContinueWatchingSeasonsResponse,
 } from "@phading/product_service_interface/show/web/consumer/interface";
+import {
+  Episode,
+  SeasonSummary,
+} from "@phading/product_service_interface/show/web/public/info";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
 import {
   newBadRequestError,

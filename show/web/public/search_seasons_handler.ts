@@ -11,14 +11,14 @@ import { ENV_VARS } from "../../../env_vars";
 import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_season_grade_and_summarize_season";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
+import { SearchSeasonsHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/public/info";
 import {
   SearchSeasonsRequestBody,
   SearchSeasonsResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 import { newFetchSessionAndCheckCapabilityRequest } from "@phading/user_session_service_interface/node/client";
-import { newBadRequestError, newUnauthorizedError } from "@selfage/http_error";
+import { newBadRequestError } from "@selfage/http_error";
 import { NodeServiceClient } from "@selfage/node_service_client";
 import { TzDate } from "@selfage/tz_date";
 
@@ -55,19 +55,11 @@ export class SearchSeasonsHandler extends SearchSeasonsHandlerInterface {
     if (body.limit > MAX_LIST_SEASONS_ITEMS) {
       throw newBadRequestError(`"limit" is too large.`);
     }
-    let { accountId, capabilities } = await this.serviceClient.send(
+    await this.serviceClient.send(
       newFetchSessionAndCheckCapabilityRequest({
         signedSession: sessionStr,
-        capabilitiesMask: {
-          checkCanConsume: true,
-        },
       }),
     );
-    if (!capabilities.canConsume) {
-      throw newUnauthorizedError(
-        `Account ${accountId} is not allowed to search seasons.`,
-      );
-    }
     let seasonRows: Array<
       SearchPublishedSeasonsRow | ContinuedSearchPublishedSeasonsRow
     >;

@@ -6,12 +6,12 @@ import { getCurrentSeasonGradeAndSummarizeSeason } from "./common/get_current_se
 import { Database } from "@google-cloud/spanner";
 import { VALID_RATINGS } from "@phading/constants/show";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { ListSeasonsByRatingHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { SeasonSummary } from "@phading/product_service_interface/show/web/consumer/info";
+import { ListSeasonsByRatingHandlerInterface } from "@phading/product_service_interface/show/web/public/handler";
+import { SeasonSummary } from "@phading/product_service_interface/show/web/public/info";
 import {
   ListSeasonsByRatingRequestBody,
   ListSeasonsByRatingResponse,
-} from "@phading/product_service_interface/show/web/consumer/interface";
+} from "@phading/product_service_interface/show/web/public/interface";
 import { newBadRequestError } from "@selfage/http_error";
 import { TzDate } from "@selfage/tz_date";
 

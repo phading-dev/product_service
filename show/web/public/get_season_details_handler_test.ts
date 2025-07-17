@@ -7,7 +7,7 @@ import {
 } from "../../../db/sql";
 import { GetSeasonDetailsHandler } from "./get_season_details_handler";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
-import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/consumer/interface";
+import { GET_SEASON_DETAILS_RESPONSE } from "@phading/product_service_interface/show/web/public/interface";
 import { FetchSessionAndCheckCapabilityResponse } from "@phading/user_session_service_interface/node/interface";
 import { newNotFoundError } from "@selfage/http_error";
 import { eqHttpError } from "@selfage/http_error/test_matcher";

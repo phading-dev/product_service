@@ -78,9 +78,12 @@ export class ArchiveSeasonHandler extends ArchiveSeasonHandlerInterface {
         throw newNotFoundError(`Season ${body.seasonId} is not found.`);
       }
       let season = seasonRows[0];
-      if (season.seasonState !== SeasonState.PUBLISHED) {
+      if (
+        season.seasonState !== SeasonState.PUBLISHED &&
+        season.seasonState !== SeasonState.TAKEN_DOWN
+      ) {
         throw newBadRequestError(
-          `Season ${body.seasonId} is not in PUBLISHED state and cannot be archived.`,
+          `Season ${body.seasonId} is not in PUBLISHED or TAKEN_DOWN state and cannot be archived.`,
         );
       }
       let todayStr = TzDate.fromNewDate(

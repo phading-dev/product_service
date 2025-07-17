@@ -12,7 +12,7 @@ import { newGetLatestWatchedEpisodeRequest } from "@phading/play_activity_servic
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GetContinueEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/consumer/handler";
-import { Episode } from "@phading/product_service_interface/show/web/consumer/info";
+import { Episode } from "@phading/product_service_interface/show/web/public/info";
 import {
   GetContinueEpisodeRequestBody,
   GetContinueEpisodeResponse,

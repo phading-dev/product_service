@@ -18,6 +18,196 @@ TEST_RUNNER.run({
   name: "ListSeasonsHandlerTest",
   cases: [
     {
+      name: "ListUntilEnd",
+      execute: async () => {
+        // Prepare
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            insertSeasonStatement({
+              seasonId: "season1",
+              publisherId: "publisher1",
+              state: SeasonState.PUBLISHED,
+              name: "Season 1",
+              coverImageR2Filename: "season1.jpg",
+              lastChangeTimeMs: 100,
+              totalPublishedEpisodes: 1,
+              ratingsCount: 2,
+              averageRating: 4.5,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade1",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 11,
+            }),
+            insertSeasonStatement({
+              seasonId: "season2",
+              publisherId: "publisher1",
+              state: SeasonState.ARCHIVED,
+              name: "Season 2",
+              coverImageR2Filename: "season2.jpg",
+              lastChangeTimeMs: 200,
+              totalPublishedEpisodes: 2,
+              ratingsCount: 0,
+              averageRating: 0,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season2",
+              gradeId: "grade2",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 22,
+            }),
+            insertSeasonStatement({
+              seasonId: "season3",
+              publisherId: "publisher1",
+              state: SeasonState.DRAFT,
+              name: "Season 3",
+              lastChangeTimeMs: 300,
+              totalPublishedEpisodes: 3,
+              ratingsCount: 3,
+              averageRating: 4,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season3",
+              gradeId: "grade3",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 33,
+            }),
+            insertSeasonStatement({
+              seasonId: "season4",
+              publisherId: "publisher2",
+              state: SeasonState.PUBLISHED,
+              name: "Season 4",
+              lastChangeTimeMs: 400,
+              totalPublishedEpisodes: 4,
+              ratingsCount: 0,
+              averageRating: 0,
+              createdTimeMs: 1000,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season4",
+              gradeId: "grade4",
+              startDate: "1970-01-01",
+              endDate: "9999-12-31",
+              grade: 44,
+            }),
+          ]);
+          await transaction.commit();
+        });
+        let serviceClientMock = new NodeServiceClientMock();
+        serviceClientMock.response = {
+          accountId: "publisher1",
+          capabilities: {
+            canPublish: true,
+          },
+        } as FetchSessionAndCheckCapabilityResponse;
+        let handler = new ListSeasonsHandler(
+          SPANNER_DATABASE,
+          serviceClientMock,
+          "https://cover_image_public_access_domain",
+          () => new Date("2023-10-23"),
+        );
+
+        // Execute
+        let response = await handler.handle(
+          "",
+          {
+            limit: 2,
+          },
+          "sessionStr",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              seasons: [
+                {
+                  seasonId: "season3",
+                  name: "Season 3",
+                  totalPublishedEpisodes: 3,
+                  state: SeasonState.DRAFT,
+                  lastChangeTimeMs: 300,
+                  ratingsCount: 3,
+                  averageRating: 4,
+                  grade: 33,
+                },
+                {
+                  seasonId: "season2",
+                  name: "Season 2",
+                  coverImageUrl:
+                    "https://cover_image_public_access_domain/season2.jpg",
+                  totalPublishedEpisodes: 2,
+                  state: SeasonState.ARCHIVED,
+                  lastChangeTimeMs: 200,
+                  ratingsCount: 0,
+                  averageRating: 0,
+                  grade: 22,
+                },
+              ],
+              lastChangeTimeCursor: 200,
+            },
+            LIST_SEASONS_RESPONSE,
+          ),
+          "response",
+        );
+
+        // Execute
+        response = await handler.handle(
+          "",
+          {
+            state: SeasonState.PUBLISHED,
+            limit: 2,
+            lastChangeTimeCursor: 200,
+          },
+          "sessionStr",
+        );
+
+        // Verify
+        assertThat(
+          response,
+          eqMessage(
+            {
+              seasons: [
+                {
+                  seasonId: "season1",
+                  name: "Season 1",
+                  coverImageUrl:
+                    "https://cover_image_public_access_domain/season1.jpg",
+                  totalPublishedEpisodes: 1,
+                  state: SeasonState.PUBLISHED,
+                  lastChangeTimeMs: 100,
+                  ratingsCount: 2,
+                  averageRating: 4.5,
+                  grade: 11,
+                },
+              ],
+            },
+            LIST_SEASONS_RESPONSE,
+          ),
+          "response 2",
+        );
+      },
+      tearDown: async () => {
+        await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
+          await transaction.batchUpdate([
+            deleteSeasonStatement({ seasonSeasonIdEq: "season1" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season2" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season3" }),
+            deleteSeasonStatement({ seasonSeasonIdEq: "season4" }),
+          ]);
+          await transaction.commit();
+        });
+      },
+    },
+    {
       name: "ListPublishedUntilEnd",
       execute: async () => {
         // Prepare
@@ -134,6 +324,7 @@ TEST_RUNNER.run({
                   seasonId: "season3",
                   name: "Season 3",
                   totalPublishedEpisodes: 3,
+                  state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 300,
                   ratingsCount: 3,
                   averageRating: 4,
@@ -145,6 +336,7 @@ TEST_RUNNER.run({
                   coverImageUrl:
                     "https://cover_image_public_access_domain/season2.jpg",
                   totalPublishedEpisodes: 2,
+                  state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 200,
                   ratingsCount: 0,
                   averageRating: 0,
@@ -181,6 +373,7 @@ TEST_RUNNER.run({
                   coverImageUrl:
                     "https://cover_image_public_access_domain/season1.jpg",
                   totalPublishedEpisodes: 1,
+                  state: SeasonState.PUBLISHED,
                   lastChangeTimeMs: 100,
                   ratingsCount: 2,
                   averageRating: 4.5,
