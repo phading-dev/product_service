@@ -98,6 +98,7 @@ export class GetSeasonHandler extends GetSeasonHandlerInterface {
       seasonDetails: {
         name: season.seasonName,
         state: season.seasonState,
+        takenDownReason: season.seasonTakenDownReason,
         description: season.seasonDescription,
         coverImageUrl: season.seasonCoverImageR2Filename
           ? `${this.coverImagePublicAccessOrigin}/${season.seasonCoverImageR2Filename}`

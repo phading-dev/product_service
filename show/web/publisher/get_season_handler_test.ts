@@ -32,6 +32,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               state: SeasonState.PUBLISHED,
+              takenDownReason: "Inappropriate content",
               name: "Season 1",
               lastChangeTimeMs: 100,
               recentPremiereTimeMs: 100,
@@ -94,6 +95,7 @@ TEST_RUNNER.run({
               seasonDetails: {
                 name: "Season 1",
                 state: SeasonState.PUBLISHED,
+                takenDownReason: "Inappropriate content",
                 description: "",
                 totalPublishedEpisodes: 3,
                 createdTimeMs: 50,

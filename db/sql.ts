@@ -2040,7 +2040,6 @@ export interface GetSeasonForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2065,36 +2064,32 @@ export let GET_SEASON_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeasonForPublisher
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2107,7 +2102,7 @@ export async function getSeasonForPublisher(
   }
 ): Promise<Array<GetSeasonForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.seasonId = @seasonSeasonIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonSeasonIdEq: args.seasonSeasonIdEq,
@@ -2123,14 +2118,13 @@ export async function getSeasonForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
@@ -2270,7 +2264,6 @@ export interface ListSeasonsForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2295,36 +2288,32 @@ export let LIST_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<ListSeasonsForPubli
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2338,7 +2327,7 @@ export async function listSeasonsForPublisher(
   }
 ): Promise<Array<ListSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.lastChangeTimeMs < @seasonLastChangeTimeMsLt) ORDER BY Season.lastChangeTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.lastChangeTimeMs < @seasonLastChangeTimeMsLt) ORDER BY Season.lastChangeTimeMs DESC LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonLastChangeTimeMsLt: args.seasonLastChangeTimeMsLt == null ? null : Spanner.float(args.seasonLastChangeTimeMsLt),
@@ -2356,14 +2345,13 @@ export async function listSeasonsForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
@@ -2373,7 +2361,6 @@ export interface ListSeasonsByStateForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2398,36 +2385,32 @@ export let LIST_SEASONS_BY_STATE_FOR_PUBLISHER_ROW: MessageDescriptor<ListSeason
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2442,7 +2425,7 @@ export async function listSeasonsByStateForPublisher(
   }
 ): Promise<Array<ListSeasonsByStateForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.state = @seasonStateEq AND Season.lastChangeTimeMs < @seasonLastChangeTimeMsLt) ORDER BY Season.lastChangeTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND Season.state = @seasonStateEq AND Season.lastChangeTimeMs < @seasonLastChangeTimeMsLt) ORDER BY Season.lastChangeTimeMs DESC LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -2462,14 +2445,13 @@ export async function listSeasonsByStateForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
@@ -2479,7 +2461,6 @@ export interface SearchSeasonsForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2506,44 +2487,40 @@ export let SEARCH_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<SearchSeasonsForP
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonFullTextScore',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2559,7 +2536,7 @@ export async function searchSeasonsForPublisher(
   }
 ): Promise<Array<SearchSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonFullTextSearch: args.seasonFullTextSearch,
@@ -2581,16 +2558,15 @@ export async function searchSeasonsForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonFullTextScore: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonCreatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonFullTextScore: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
     });
   }
   return resRows;
@@ -2600,7 +2576,6 @@ export interface ContinuedSearchSeasonsForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2627,44 +2602,40 @@ export let CONTINUED_SEARCH_SEASONS_FOR_PUBLISHER_ROW: MessageDescriptor<Continu
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonFullTextScore',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2685,7 +2656,7 @@ export async function continuedSearchSeasonsForPublisher(
   }
 ): Promise<Array<ContinuedSearchSeasonsForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.publisherId = @seasonPublisherIdEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       seasonFullTextSearch: args.seasonFullTextSearch,
@@ -2717,16 +2688,15 @@ export async function continuedSearchSeasonsForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonFullTextScore: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonCreatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonFullTextScore: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
     });
   }
   return resRows;
@@ -2736,7 +2706,6 @@ export interface ListPublishedSeasonsByPremiereTimeRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2762,40 +2731,36 @@ export let LIST_PUBLISHED_SEASONS_BY_PREMIERE_TIME_ROW: MessageDescriptor<ListPu
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2811,7 +2776,7 @@ export async function listPublishedSeasonsByPremiereTime(
   }
 ): Promise<Array<ListPublishedSeasonsByPremiereTimeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND (Season.recentPremiereTimeMs < @seasonRecentPremiereTimeMsLt OR (Season.recentPremiereTimeMs = @seasonRecentPremiereTimeMsEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.recentPremiereTimeMs DESC, Season.createdTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND (Season.recentPremiereTimeMs < @seasonRecentPremiereTimeMsLt OR (Season.recentPremiereTimeMs = @seasonRecentPremiereTimeMsEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.recentPremiereTimeMs DESC, Season.createdTimeMs DESC LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonRecentPremiereTimeMsLt: args.seasonRecentPremiereTimeMsLt == null ? null : Spanner.float(args.seasonRecentPremiereTimeMsLt),
@@ -2833,15 +2798,14 @@ export async function listPublishedSeasonsByPremiereTime(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonCreatedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.valueOf(),
     });
   }
   return resRows;
@@ -2851,7 +2815,6 @@ export interface ListPublishedSeasonsByRatingRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2877,40 +2840,36 @@ export let LIST_PUBLISHED_SEASONS_BY_RATING_ROW: MessageDescriptor<ListPublished
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -2926,7 +2885,7 @@ export async function listPublishedSeasonsByRating(
   }
 ): Promise<Array<ListPublishedSeasonsByRatingRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND (Season.averageRating < @seasonAverageRatingLt OR (Season.averageRating = @seasonAverageRatingEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.averageRating DESC, Season.createdTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND (Season.averageRating < @seasonAverageRatingLt OR (Season.averageRating = @seasonAverageRatingEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.averageRating DESC, Season.createdTimeMs DESC LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonAverageRatingLt: args.seasonAverageRatingLt == null ? null : Spanner.float(args.seasonAverageRatingLt),
@@ -2948,15 +2907,14 @@ export async function listPublishedSeasonsByRating(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonCreatedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.valueOf(),
     });
   }
   return resRows;
@@ -2966,7 +2924,6 @@ export interface ListPublishedSeasonsByPremiereTimeAndPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -2992,40 +2949,36 @@ export let LIST_PUBLISHED_SEASONS_BY_PREMIERE_TIME_AND_PUBLISHER_ROW: MessageDes
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3042,7 +2995,7 @@ export async function listPublishedSeasonsByPremiereTimeAndPublisher(
   }
 ): Promise<Array<ListPublishedSeasonsByPremiereTimeAndPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND Season.publisherId = @seasonPublisherIdEq AND (Season.recentPremiereTimeMs < @seasonRecentPremiereTimeMsLt OR (Season.recentPremiereTimeMs = @seasonRecentPremiereTimeMsEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.recentPremiereTimeMs DESC, Season.createdTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND Season.publisherId = @seasonPublisherIdEq AND (Season.recentPremiereTimeMs < @seasonRecentPremiereTimeMsLt OR (Season.recentPremiereTimeMs = @seasonRecentPremiereTimeMsEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.recentPremiereTimeMs DESC, Season.createdTimeMs DESC LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
@@ -3066,15 +3019,14 @@ export async function listPublishedSeasonsByPremiereTimeAndPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonCreatedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.valueOf(),
     });
   }
   return resRows;
@@ -3084,7 +3036,6 @@ export interface ListPublishedSeasonsByRatingAndPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -3110,40 +3061,36 @@ export let LIST_PUBLISHED_SEASONS_BY_RATING_AND_PUBLISHER_ROW: MessageDescriptor
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3160,7 +3107,7 @@ export async function listPublishedSeasonsByRatingAndPublisher(
   }
 ): Promise<Array<ListPublishedSeasonsByRatingAndPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND Season.publisherId = @seasonPublisherIdEq AND (Season.averageRating < @seasonAverageRatingLt OR (Season.averageRating = @seasonAverageRatingEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.averageRating DESC, Season.createdTimeMs DESC LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND Season.publisherId = @seasonPublisherIdEq AND (Season.averageRating < @seasonAverageRatingLt OR (Season.averageRating = @seasonAverageRatingEq AND Season.createdTimeMs < @seasonCreatedTimeMsLt))) ORDER BY Season.averageRating DESC, Season.createdTimeMs DESC LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
@@ -3184,15 +3131,14 @@ export async function listPublishedSeasonsByRatingAndPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonCreatedTimeMs: row.at(10).value == null ? undefined : row.at(10).value.valueOf(),
     });
   }
   return resRows;
@@ -3202,7 +3148,6 @@ export interface GetPublishedSeasonRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -3227,36 +3172,32 @@ export let GET_PUBLISHED_SEASON_ROW: MessageDescriptor<GetPublishedSeasonRow> = 
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3269,7 +3210,7 @@ export async function getPublishedSeason(
   }
 ): Promise<Array<GetPublishedSeasonRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating FROM Season WHERE (Season.seasonId = @seasonSeasonIdEq AND Season.state = @seasonStateEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -3285,14 +3226,13 @@ export async function getPublishedSeason(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
     });
   }
   return resRows;
@@ -3302,7 +3242,6 @@ export interface GetPublishedSeasonAndEpisodeRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -3335,68 +3274,64 @@ export let GET_PUBLISHED_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetPublishedS
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeSeasonId',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeEpisodeId',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeIndex',
-    index: 14,
+    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeName',
-    index: 15,
+    index: 14,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerId',
-    index: 16,
+    index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerCached',
-    index: 17,
+    index: 16,
     messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
-    index: 18,
+    index: 17,
     enumType: EPISODE_STATE,
   }, {
     name: 'episodePremiereTimeMs',
-    index: 19,
+    index: 18,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3411,7 +3346,7 @@ export async function getPublishedSeasonAndEpisode(
   }
 ): Promise<Array<GetPublishedSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.takenDownReason, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (s.seasonId = @seasonSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Season AS s INNER JOIN Episode AS e ON s.seasonId = e.seasonId WHERE (s.seasonId = @seasonSeasonIdEq AND s.state = @seasonStateEq AND e.episodeId = @episodeEpisodeIdEq AND e.state = @episodeStateEq)",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
@@ -3431,22 +3366,21 @@ export async function getPublishedSeasonAndEpisode(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      episodeSeasonId: row.at(11).value == null ? undefined : row.at(11).value,
-      episodeEpisodeId: row.at(12).value == null ? undefined : row.at(12).value,
-      episodeIndex: row.at(13).value == null ? undefined : row.at(13).value.value,
-      episodeName: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainerId: row.at(15).value == null ? undefined : row.at(15).value,
-      episodeVideoContainerCached: row.at(16).value == null ? undefined : deserializeMessage(row.at(16).value, VIDEO_CONTAINER_CACHED),
-      episodeState: row.at(17).value == null ? undefined : toEnumFromNumber(row.at(17).value.value, EPISODE_STATE),
-      episodePremiereTimeMs: row.at(18).value == null ? undefined : row.at(18).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      episodeSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      episodeEpisodeId: row.at(11).value == null ? undefined : row.at(11).value,
+      episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
+      episodeName: row.at(13).value == null ? undefined : row.at(13).value,
+      episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
+      episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
+      episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });
   }
   return resRows;
@@ -3644,7 +3578,6 @@ export interface SearchPublishedSeasonsRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -3671,44 +3604,40 @@ export let SEARCH_PUBLISHED_SEASONS_ROW: MessageDescriptor<SearchPublishedSeason
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonFullTextScore',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3724,7 +3653,7 @@ export async function searchPublishedSeasons(
   }
 ): Promise<Array<SearchPublishedSeasonsRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch)) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonFullTextSearch: args.seasonFullTextSearch,
@@ -3746,16 +3675,15 @@ export async function searchPublishedSeasons(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonFullTextScore: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonCreatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonFullTextScore: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
     });
   }
   return resRows;
@@ -3765,7 +3693,6 @@ export interface ContinuedSearchPublishedSeasonsRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -3792,44 +3719,40 @@ export let CONTINUED_SEARCH_PUBLISHED_SEASONS_ROW: MessageDescriptor<ContinuedSe
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonFullTextScore',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonCreatedTimeMs',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -3850,7 +3773,7 @@ export async function continuedSearchPublishedSeasons(
   }
 ): Promise<Array<ContinuedSearchPublishedSeasonsRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.takenDownReason, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
+    sql: "SELECT Season.seasonId, Season.publisherId, Season.state, Season.name, Season.coverImageR2Filename, Season.totalPublishedEpisodes, Season.lastChangeTimeMs, Season.recentPremiereTimeMs, Season.ratingsCount, Season.averageRating, SCORE(Season.fullText, @seasonFullTextScoreSelect), Season.createdTimeMs FROM Season WHERE (Season.state = @seasonStateEq AND SEARCH(Season.fullText, @seasonFullTextSearch) AND (SCORE(Season.fullText, @seasonFullTextScoreWhereLt) < @seasonFullTextScoreLt OR (SCORE(Season.fullText, @seasonFullTextScoreWhereEq) = @seasonFullTextScoreEq AND Season.createdTimeMs > @seasonCreatedTimeMsGt))) ORDER BY SCORE(Season.fullText, @seasonFullTextScoreOrderBy) DESC, Season.createdTimeMs LIMIT @limit",
     params: {
       seasonStateEq: args.seasonStateEq == null ? null : Spanner.float(args.seasonStateEq),
       seasonFullTextSearch: args.seasonFullTextSearch,
@@ -3882,16 +3805,15 @@ export async function continuedSearchPublishedSeasons(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      seasonFullTextScore: row.at(11).value == null ? undefined : row.at(11).value.value,
-      seasonCreatedTimeMs: row.at(12).value == null ? undefined : row.at(12).value.valueOf(),
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      seasonFullTextScore: row.at(10).value == null ? undefined : row.at(10).value.value,
+      seasonCreatedTimeMs: row.at(11).value == null ? undefined : row.at(11).value.valueOf(),
     });
   }
   return resRows;
@@ -4829,7 +4751,6 @@ export interface GetSeasonAndEpisodeRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -4862,68 +4783,64 @@ export let GET_SEASON_AND_EPISODE_ROW: MessageDescriptor<GetSeasonAndEpisodeRow>
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeSeasonId',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeEpisodeId',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeIndex',
-    index: 14,
+    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeName',
-    index: 15,
+    index: 14,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerId',
-    index: 16,
+    index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerCached',
-    index: 17,
+    index: 16,
     messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
-    index: 18,
+    index: 17,
     enumType: EPISODE_STATE,
   }, {
     name: 'episodePremiereTimeMs',
-    index: 19,
+    index: 18,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -4936,7 +4853,7 @@ export async function getSeasonAndEpisode(
   }
 ): Promise<Array<GetSeasonAndEpisodeRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.takenDownReason, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
     params: {
       episodeSeasonIdEq: args.episodeSeasonIdEq,
       episodeEpisodeIdEq: args.episodeEpisodeIdEq,
@@ -4952,22 +4869,21 @@ export async function getSeasonAndEpisode(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      episodeSeasonId: row.at(11).value == null ? undefined : row.at(11).value,
-      episodeEpisodeId: row.at(12).value == null ? undefined : row.at(12).value,
-      episodeIndex: row.at(13).value == null ? undefined : row.at(13).value.value,
-      episodeName: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainerId: row.at(15).value == null ? undefined : row.at(15).value,
-      episodeVideoContainerCached: row.at(16).value == null ? undefined : deserializeMessage(row.at(16).value, VIDEO_CONTAINER_CACHED),
-      episodeState: row.at(17).value == null ? undefined : toEnumFromNumber(row.at(17).value.value, EPISODE_STATE),
-      episodePremiereTimeMs: row.at(18).value == null ? undefined : row.at(18).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      episodeSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      episodeEpisodeId: row.at(11).value == null ? undefined : row.at(11).value,
+      episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
+      episodeName: row.at(13).value == null ? undefined : row.at(13).value,
+      episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
+      episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
+      episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });
   }
   return resRows;
@@ -4977,7 +4893,6 @@ export interface GetSeasonAndEpisodeForPublisherRow {
   seasonSeasonId?: string,
   seasonPublisherId?: string,
   seasonState?: SeasonState,
-  seasonTakenDownReason?: string,
   seasonName?: string,
   seasonCoverImageR2Filename?: string,
   seasonTotalPublishedEpisodes?: number,
@@ -5010,68 +4925,64 @@ export let GET_SEASON_AND_EPISODE_FOR_PUBLISHER_ROW: MessageDescriptor<GetSeason
     index: 3,
     enumType: SEASON_STATE,
   }, {
-    name: 'seasonTakenDownReason',
+    name: 'seasonName',
     index: 4,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonName',
+    name: 'seasonCoverImageR2Filename',
     index: 5,
     primitiveType: PrimitiveType.STRING,
   }, {
-    name: 'seasonCoverImageR2Filename',
-    index: 6,
-    primitiveType: PrimitiveType.STRING,
-  }, {
     name: 'seasonTotalPublishedEpisodes',
-    index: 7,
+    index: 6,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonLastChangeTimeMs',
-    index: 8,
+    index: 7,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRecentPremiereTimeMs',
-    index: 9,
+    index: 8,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonRatingsCount',
-    index: 10,
+    index: 9,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'seasonAverageRating',
-    index: 11,
+    index: 10,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeSeasonId',
-    index: 12,
+    index: 11,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeEpisodeId',
-    index: 13,
+    index: 12,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeIndex',
-    index: 14,
+    index: 13,
     primitiveType: PrimitiveType.NUMBER,
   }, {
     name: 'episodeName',
-    index: 15,
+    index: 14,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerId',
-    index: 16,
+    index: 15,
     primitiveType: PrimitiveType.STRING,
   }, {
     name: 'episodeVideoContainerCached',
-    index: 17,
+    index: 16,
     messageType: VIDEO_CONTAINER_CACHED,
   }, {
     name: 'episodeState',
-    index: 18,
+    index: 17,
     enumType: EPISODE_STATE,
   }, {
     name: 'episodePremiereTimeMs',
-    index: 19,
+    index: 18,
     primitiveType: PrimitiveType.NUMBER,
   }],
 };
@@ -5085,7 +4996,7 @@ export async function getSeasonAndEpisodeForPublisher(
   }
 ): Promise<Array<GetSeasonAndEpisodeForPublisherRow>> {
   let [rows] = await runner.run({
-    sql: "SELECT s.seasonId, s.publisherId, s.state, s.takenDownReason, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
+    sql: "SELECT s.seasonId, s.publisherId, s.state, s.name, s.coverImageR2Filename, s.totalPublishedEpisodes, s.lastChangeTimeMs, s.recentPremiereTimeMs, s.ratingsCount, s.averageRating, e.seasonId, e.episodeId, e.index, e.name, e.videoContainerId, e.videoContainerCached, e.state, e.premiereTimeMs FROM Episode AS e INNER JOIN Season AS s ON e.seasonId = s.seasonId WHERE (s.publisherId = @seasonPublisherIdEq AND e.seasonId = @episodeSeasonIdEq AND e.episodeId = @episodeEpisodeIdEq)",
     params: {
       seasonPublisherIdEq: args.seasonPublisherIdEq == null ? null : args.seasonPublisherIdEq,
       episodeSeasonIdEq: args.episodeSeasonIdEq,
@@ -5103,22 +5014,21 @@ export async function getSeasonAndEpisodeForPublisher(
       seasonSeasonId: row.at(0).value == null ? undefined : row.at(0).value,
       seasonPublisherId: row.at(1).value == null ? undefined : row.at(1).value,
       seasonState: row.at(2).value == null ? undefined : toEnumFromNumber(row.at(2).value.value, SEASON_STATE),
-      seasonTakenDownReason: row.at(3).value == null ? undefined : row.at(3).value,
-      seasonName: row.at(4).value == null ? undefined : row.at(4).value,
-      seasonCoverImageR2Filename: row.at(5).value == null ? undefined : row.at(5).value,
-      seasonTotalPublishedEpisodes: row.at(6).value == null ? undefined : row.at(6).value.value,
-      seasonLastChangeTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
-      seasonRecentPremiereTimeMs: row.at(8).value == null ? undefined : row.at(8).value.value,
-      seasonRatingsCount: row.at(9).value == null ? undefined : row.at(9).value.value,
-      seasonAverageRating: row.at(10).value == null ? undefined : row.at(10).value.value,
-      episodeSeasonId: row.at(11).value == null ? undefined : row.at(11).value,
-      episodeEpisodeId: row.at(12).value == null ? undefined : row.at(12).value,
-      episodeIndex: row.at(13).value == null ? undefined : row.at(13).value.value,
-      episodeName: row.at(14).value == null ? undefined : row.at(14).value,
-      episodeVideoContainerId: row.at(15).value == null ? undefined : row.at(15).value,
-      episodeVideoContainerCached: row.at(16).value == null ? undefined : deserializeMessage(row.at(16).value, VIDEO_CONTAINER_CACHED),
-      episodeState: row.at(17).value == null ? undefined : toEnumFromNumber(row.at(17).value.value, EPISODE_STATE),
-      episodePremiereTimeMs: row.at(18).value == null ? undefined : row.at(18).value.value,
+      seasonName: row.at(3).value == null ? undefined : row.at(3).value,
+      seasonCoverImageR2Filename: row.at(4).value == null ? undefined : row.at(4).value,
+      seasonTotalPublishedEpisodes: row.at(5).value == null ? undefined : row.at(5).value.value,
+      seasonLastChangeTimeMs: row.at(6).value == null ? undefined : row.at(6).value.value,
+      seasonRecentPremiereTimeMs: row.at(7).value == null ? undefined : row.at(7).value.value,
+      seasonRatingsCount: row.at(8).value == null ? undefined : row.at(8).value.value,
+      seasonAverageRating: row.at(9).value == null ? undefined : row.at(9).value.value,
+      episodeSeasonId: row.at(10).value == null ? undefined : row.at(10).value,
+      episodeEpisodeId: row.at(11).value == null ? undefined : row.at(11).value,
+      episodeIndex: row.at(12).value == null ? undefined : row.at(12).value.value,
+      episodeName: row.at(13).value == null ? undefined : row.at(13).value,
+      episodeVideoContainerId: row.at(14).value == null ? undefined : row.at(14).value,
+      episodeVideoContainerCached: row.at(15).value == null ? undefined : deserializeMessage(row.at(15).value, VIDEO_CONTAINER_CACHED),
+      episodeState: row.at(16).value == null ? undefined : toEnumFromNumber(row.at(16).value.value, EPISODE_STATE),
+      episodePremiereTimeMs: row.at(17).value == null ? undefined : row.at(17).value.value,
     });
   }
   return resRows;

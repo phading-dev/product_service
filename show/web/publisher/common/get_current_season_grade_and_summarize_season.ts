@@ -37,7 +37,6 @@ export async function getCurrentSeasonGradeAndSummarizeSeason(
       : undefined,
     totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,
     state: row.seasonState,
-    takeDownReason: row.seasonTakenDownReason,
     lastChangeTimeMs: row.seasonLastChangeTimeMs,
     ratingsCount: row.seasonRatingsCount,
     averageRating: row.seasonAverageRating,
