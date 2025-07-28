@@ -5,9 +5,9 @@ import {
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
-  getLastSeasonGrades,
   getPublishedEpisode,
   getPublishedSeason,
+  getSeasonGrade,
   listNextPublishedEpisodes,
 } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
@@ -94,10 +94,10 @@ export class ListContinueWatchingSeasonsHandler extends ListContinueWatchingSeas
           seasonSeasonIdEq: recentSeason.seasonId,
           seasonStateEq: SeasonState.PUBLISHED,
         });
-        let seasonGradeRowsPromise = getLastSeasonGrades(this.database, {
+        let seasonGradeRowsPromise = getSeasonGrade(this.database, {
           seasonGradeSeasonIdEq: recentSeason.seasonId,
+          seasonGradeStartDateLe: todayStr,
           seasonGradeEndDateGt: todayStr,
-          limit: 1,
         });
         let getContinueEpisodePromise = this.getContinueEpisode(
           recentSeason.seasonId,

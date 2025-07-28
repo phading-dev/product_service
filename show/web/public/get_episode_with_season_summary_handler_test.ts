@@ -44,6 +44,13 @@ TEST_RUNNER.run({
               endDate: "2020-12-01",
               grade: 10,
             }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2020-12-01",
+              endDate: "9999-12-31",
+              grade: 20,
+            }),
             insertEpisodeStatement({
               seasonId: "season1",
               episodeId: "episode1",

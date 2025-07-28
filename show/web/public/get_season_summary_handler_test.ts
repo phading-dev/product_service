@@ -38,8 +38,15 @@ TEST_RUNNER.run({
               seasonId: "season1",
               gradeId: "grade1",
               startDate: "1970-01-01",
-              endDate: "9999-12-31",
+              endDate: "2020-12-01",
               grade: 10,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2020-12-01",
+              endDate: "9999-12-31",
+              grade: 20,
             }),
           ]);
           await transaction.commit();

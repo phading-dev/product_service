@@ -1,5 +1,5 @@
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
-import { getLastSeasonGrades, getPublishedSeason } from "../../../db/sql";
+import { getPublishedSeason, getSeasonGrade } from "../../../db/sql";
 import { ENV_VARS } from "../../../env_vars";
 import { Database } from "@google-cloud/spanner";
 import { SeasonState } from "@phading/product_service_interface/show/season_state";
@@ -48,10 +48,10 @@ export class GetSeasonSummaryHandler extends GetSeasonSummaryHandlerInterface {
         seasonSeasonIdEq: body.seasonId,
         seasonStateEq: SeasonState.PUBLISHED,
       }),
-      getLastSeasonGrades(this.database, {
+      getSeasonGrade(this.database, {
         seasonGradeSeasonIdEq: body.seasonId,
+        seasonGradeStartDateLe: todayStr,
         seasonGradeEndDateGt: todayStr,
-        limit: 1,
       }),
     ]);
     if (seasonRows.length === 0) {

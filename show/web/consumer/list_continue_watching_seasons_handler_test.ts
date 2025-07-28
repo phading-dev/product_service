@@ -50,8 +50,15 @@ TEST_RUNNER.run({
               seasonId: "season1",
               gradeId: "grade1",
               startDate: "1970-01-01",
-              endDate: "9999-12-31",
+              endDate: "2020-12-01",
               grade: 11,
+            }),
+            insertSeasonGradeStatement({
+              seasonId: "season1",
+              gradeId: "grade2",
+              startDate: "2020-12-01",
+              endDate: "9999-12-31",
+              grade: 20,
             }),
             insertEpisodeStatement({
               seasonId: "season1",
@@ -62,9 +69,8 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 1000,
+              premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
             }),
-
             insertSeasonStatement({
               seasonId: "season2",
               publisherId: "publisher2",
@@ -90,7 +96,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 2000,
+              premiereTimeMs: new Date("2020-03-01T08:00:00.000Z").getTime(),
             }),
             insertEpisodeStatement({
               seasonId: "season2",
@@ -101,9 +107,8 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 1000,
+              premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
             }),
-
             insertSeasonStatement({
               seasonId: "season3",
               publisherId: "publisher3",
@@ -121,7 +126,6 @@ TEST_RUNNER.run({
               endDate: "9999-12-31",
               grade: 11,
             }),
-
             insertSeasonStatement({
               seasonId: "season4",
               publisherId: "publisher4",
@@ -148,9 +152,8 @@ TEST_RUNNER.run({
                 durationSec: 60,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 2000,
+              premiereTimeMs: new Date("2020-03-01T08:00:00.000Z").getTime(),
             }),
-
             insertSeasonStatement({
               seasonId: "season5",
               publisherId: "publisher5",
@@ -177,9 +180,8 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 1000,
+              premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
             }),
-
             insertSeasonStatement({
               seasonId: "season6",
               publisherId: "publisher6",
@@ -206,7 +208,7 @@ TEST_RUNNER.run({
                 durationSec: 120,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 1000,
+              premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
             }),
             insertEpisodeStatement({
               seasonId: "season6",
@@ -217,7 +219,7 @@ TEST_RUNNER.run({
                 durationSec: 180,
               },
               state: EpisodeState.PUBLISHED,
-              premiereTimeMs: 2000,
+              premiereTimeMs: new Date("2020-03-01T08:00:00.000Z").getTime(),
             }),
           ]);
           await transaction.commit();
@@ -283,7 +285,7 @@ TEST_RUNNER.run({
           SPANNER_DATABASE,
           serviceClientMock,
           "https://test.com",
-          () => new Date(1000),
+          () => new Date("2020-02-01T08:00:00.000Z"),
         );
 
         // Execute
@@ -317,7 +319,7 @@ TEST_RUNNER.run({
                     index: 1,
                     name: "S1E1",
                     videoDurationSec: 60,
-                    premiereTimeMs: 1000,
+                    premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
                     canPlay: true,
                   },
                   continueTimeMs: 30000,
@@ -336,7 +338,7 @@ TEST_RUNNER.run({
                     index: 2,
                     name: "S2E2",
                     videoDurationSec: 180,
-                    premiereTimeMs: 1000,
+                    premiereTimeMs: new Date("2020-01-01T08:00:00.000Z").getTime(),
                     canPlay: true,
                   },
                   continueTimeMs: 0,
