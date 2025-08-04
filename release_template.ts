@@ -1,8 +1,5 @@
 import { ENV_VARS } from "./env_vars";
-import {
-  K8S_SERVICE_NAME,
-  K8S_SERVICE_PORT,
-} from "@phading/product_service_interface/service_const";
+import { PRODUCT_NODE_SERVICE, PRODUCT_WEB_SERVICE } from "@phading/product_service_interface/service";
 import { writeFileSync } from "fs";
 
 export function generate(env: string) {
@@ -142,7 +139,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${K8S_SERVICE_NAME}
+  name: ${ENV_VARS.releaseServiceName}
   annotations:
     cloud.google.com/neg: '{"ingress": true}'
     beta.cloud.google.com/backend-config: '{"default": "${ENV_VARS.releaseServiceName}-neg-health-check"}'
@@ -151,9 +148,45 @@ spec:
     app: ${ENV_VARS.releaseServiceName}-pod
   ports:
     - protocol: TCP
-      port: ${K8S_SERVICE_PORT}
+      port: ${ENV_VARS.port}
       targetPort: ${ENV_VARS.port}
   type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ${ENV_VARS.releaseServiceName}-route-internal
+spec:
+  parentRefs:
+  - name: ${ENV_VARS.internalGatewayName}
+    sectionName: http
+  rules:
+  - matches:
+    - path:
+        type: Prefix
+        value: ${PRODUCT_NODE_SERVICE.path}
+    backendRefs:
+    - serviceName: ${ENV_VARS.releaseServiceName}
+      port: ${ENV_VARS.port}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ${ENV_VARS.releaseServiceName}-route-external
+spec:
+  parentRefs:
+  - name: ${ENV_VARS.externalGatewayName}
+    sectionName: https
+  hostnames:
+  - ${ENV_VARS.externalDomain}
+  rules:
+  - matches:
+    - path:
+        type: Prefix
+        value: ${PRODUCT_WEB_SERVICE.path}
+    backendRefs:
+    - serviceName: ${ENV_VARS.releaseServiceName}
+      port: ${ENV_VARS.port}
 `;
   writeFileSync(`${env}/service.yaml`, serviceTemplate);
 
