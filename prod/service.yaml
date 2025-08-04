@@ -51,23 +51,10 @@ spec:
     path: /metricsz
     interval: 30s
 ---
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: product-service-neg-health-check
-spec:
-  healthCheck:
-    port: 8080
-    type: HTTP
-    requestPath: /healthz
----
 apiVersion: v1
 kind: Service
 metadata:
   name: product-service
-  annotations:
-    cloud.google.com/neg: '{"ingress": true}'
-    beta.cloud.google.com/backend-config: '{"default": "product-service-neg-health-check"}'
 spec:
   selector:
     app: product-service-pod
@@ -76,6 +63,22 @@ spec:
       port: 8080
       targetPort: 8080
   type: ClusterIP
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: product-service-lb-health-check
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /healthz
+  targetRef:
+    group: ""
+    kind: Service
+    name: product-service
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -88,10 +91,10 @@ spec:
   rules:
   - matches:
     - path:
-        type: Prefix
+        type: PathPrefix
         value: /pn
     backendRefs:
-    - serviceName: product-service
+    - name: product-service
       port: 8080
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -107,8 +110,8 @@ spec:
   rules:
   - matches:
     - path:
-        type: Prefix
+        type: PathPrefix
         value: /pw
     backendRefs:
-    - serviceName: product-service
+    - name: product-service
       port: 8080

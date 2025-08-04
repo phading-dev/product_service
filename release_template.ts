@@ -126,23 +126,10 @@ spec:
     path: /metricsz
     interval: 30s
 ---
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
-metadata:
-  name: ${ENV_VARS.releaseServiceName}-neg-health-check
-spec:
-  healthCheck:
-    port: ${ENV_VARS.port}
-    type: HTTP
-    requestPath: /healthz
----
 apiVersion: v1
 kind: Service
 metadata:
   name: ${ENV_VARS.releaseServiceName}
-  annotations:
-    cloud.google.com/neg: '{"ingress": true}'
-    beta.cloud.google.com/backend-config: '{"default": "${ENV_VARS.releaseServiceName}-neg-health-check"}'
 spec:
   selector:
     app: ${ENV_VARS.releaseServiceName}-pod
@@ -151,6 +138,22 @@ spec:
       port: ${ENV_VARS.port}
       targetPort: ${ENV_VARS.port}
   type: ClusterIP
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: ${ENV_VARS.releaseServiceName}-lb-health-check
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /healthz
+  targetRef:
+    group: ""
+    kind: Service
+    name: ${ENV_VARS.releaseServiceName}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -163,10 +166,10 @@ spec:
   rules:
   - matches:
     - path:
-        type: Prefix
+        type: PathPrefix
         value: ${PRODUCT_NODE_SERVICE.path}
     backendRefs:
-    - serviceName: ${ENV_VARS.releaseServiceName}
+    - name: ${ENV_VARS.releaseServiceName}
       port: ${ENV_VARS.port}
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -182,10 +185,10 @@ spec:
   rules:
   - matches:
     - path:
-        type: Prefix
+        type: PathPrefix
         value: ${PRODUCT_WEB_SERVICE.path}
     backendRefs:
-    - serviceName: ${ENV_VARS.releaseServiceName}
+    - name: ${ENV_VARS.releaseServiceName}
       port: ${ENV_VARS.port}
 `;
   writeFileSync(`${env}/service.yaml`, serviceTemplate);
