@@ -148,7 +148,7 @@ spec:
     config:
       type: HTTP
       httpHealthCheck:
-        port: 8080
+        port: ${ENV_VARS.port}
         requestPath: /healthz
   targetRef:
     group: ""
