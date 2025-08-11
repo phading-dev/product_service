@@ -1490,24 +1490,21 @@ export function publishSeasonStatement(
   args: {
     seasonSeasonIdEq: string,
     setState?: SeasonState,
-    setTotalPublishedEpisodes?: number,
     setLastChangeTimeMs?: number,
     setPublishedTimeMs?: number,
   }
 ): Statement {
   return {
-    sql: "UPDATE Season SET state = @setState, totalPublishedEpisodes = @setTotalPublishedEpisodes, lastChangeTimeMs = @setLastChangeTimeMs, publishedTimeMs = @setPublishedTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
+    sql: "UPDATE Season SET state = @setState, lastChangeTimeMs = @setLastChangeTimeMs, publishedTimeMs = @setPublishedTimeMs WHERE Season.seasonId = @seasonSeasonIdEq",
     params: {
       seasonSeasonIdEq: args.seasonSeasonIdEq,
       setState: args.setState == null ? null : Spanner.float(args.setState),
-      setTotalPublishedEpisodes: args.setTotalPublishedEpisodes == null ? null : Spanner.float(args.setTotalPublishedEpisodes),
       setLastChangeTimeMs: args.setLastChangeTimeMs == null ? null : Spanner.float(args.setLastChangeTimeMs),
       setPublishedTimeMs: args.setPublishedTimeMs == null ? null : Spanner.float(args.setPublishedTimeMs),
     },
     types: {
       seasonSeasonIdEq: { type: "string" },
       setState: { type: "float64" },
-      setTotalPublishedEpisodes: { type: "float64" },
       setLastChangeTimeMs: { type: "float64" },
       setPublishedTimeMs: { type: "float64" },
     }

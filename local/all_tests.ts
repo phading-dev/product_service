@@ -36,6 +36,7 @@ import "../show/web/publisher/list_draft_episodes_handler_test";
 import "../show/web/publisher/list_published_episodes_handler_test";
 import "../show/web/publisher/list_seasons_handler_test";
 import "../show/web/publisher/publish_episode_handler_test";
+import "../show/web/publisher/publish_season_handler_test";
 import "../show/web/publisher/search_seasons_handler_test";
 import "../show/web/publisher/unpublish_episode_handler_test";
 import "../show/web/publisher/update_episode_name_handler_test";

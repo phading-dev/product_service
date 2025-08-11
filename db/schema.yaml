@@ -387,7 +387,6 @@
         lColumn: seasonId
       set:
         - state
-        - totalPublishedEpisodes
         - lastChangeTimeMs
         - publishedTimeMs
     - name: TakeDownSeason # Restore as well

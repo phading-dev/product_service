@@ -1,16 +1,14 @@
-import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { SERVICE_CLIENT } from "../../../common/service_client";
 import { SPANNER_DATABASE } from "../../../common/spanner_database";
 import {
   getSeasonAndEpisodeForPublisher,
   publishEpisodeStatement,
-  publishSeasonStatement,
   updateSeasonTotalPublishedEpisodesStatement,
 } from "../../../db/sql";
 import { updateSeasonRecentPremiereTime } from "./common/update_season_recent_premiere_time";
 import { Database } from "@google-cloud/spanner";
+import { MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON } from "@phading/constants/show";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
-import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { PublishEpisodeHandlerInterface } from "@phading/product_service_interface/show/web/publisher/handler";
 import {
   PublishEpisodeRequestBody,
@@ -81,7 +79,10 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
           `Season ${body.seasonId} episode ${body.episodeId} is not in DRAFT state.`,
         );
       }
-      if (row.seasonTotalPublishedEpisodes >= MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON) {
+      if (
+        row.seasonTotalPublishedEpisodes >=
+        MAX_NUM_OF_PUBLISHED_EPISODES_PER_SEASON
+      ) {
         throw newBadRequestError(
           `Season ${body.seasonId} has reached maximum number of published episodes.`,
         );
@@ -95,23 +96,11 @@ export class PublishEpisodeHandler extends PublishEpisodeHandlerInterface {
       let premiereTimeMs = body.premiereTimeMs ?? now;
       let totalPublishedEpisodes = row.seasonTotalPublishedEpisodes + 1;
       await transaction.batchUpdate([
-        ...(row.seasonState === SeasonState.DRAFT
-          ? [
-              publishSeasonStatement({
-                seasonSeasonIdEq: body.seasonId,
-                setState: SeasonState.PUBLISHED,
-                setTotalPublishedEpisodes: totalPublishedEpisodes,
-                setLastChangeTimeMs: now,
-                setPublishedTimeMs: now,
-              }),
-            ]
-          : [
-              updateSeasonTotalPublishedEpisodesStatement({
-                seasonSeasonIdEq: body.seasonId,
-                setTotalPublishedEpisodes: totalPublishedEpisodes,
-                setLastChangeTimeMs: now,
-              }),
-            ]),
+        updateSeasonTotalPublishedEpisodesStatement({
+          seasonSeasonIdEq: body.seasonId,
+          setTotalPublishedEpisodes: totalPublishedEpisodes,
+          setLastChangeTimeMs: now,
+        }),
         publishEpisodeStatement({
           episodeSeasonIdEq: body.seasonId,
           episodeEpisodeIdEq: body.episodeId,

@@ -83,6 +83,7 @@ export class GetEpisodeHandler extends GetEpisodeHandlerInterface {
     return {
       episode: {
         seasonName: row.seasonName,
+        seasonState: row.seasonState,
         episodeName: row.episodeName,
         episodeIndex: row.episodeIndex,
         totalPublishedEpisodes: row.seasonTotalPublishedEpisodes,

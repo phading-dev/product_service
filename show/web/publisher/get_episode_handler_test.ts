@@ -7,6 +7,7 @@ import {
 } from "../../../db/sql";
 import { GetEpisodeHandler } from "./get_episode_handler";
 import { EpisodeState } from "@phading/product_service_interface/show/episode_state";
+import { SeasonState } from "@phading/product_service_interface/show/season_state";
 import { GET_EPISODE_RESPONSE } from "@phading/product_service_interface/show/web/publisher/interface";
 import {
   FETCH_SESSION_AND_CHECK_CAPABILITY,
@@ -35,6 +36,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
+              state: SeasonState.DRAFT,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -103,6 +105,7 @@ TEST_RUNNER.run({
             {
               episode: {
                 seasonName: "Season 1",
+                seasonState: SeasonState.DRAFT,
                 episodeName: "Ep 1",
                 episodeIndex: 1,
                 videoContainerCached: {
@@ -158,6 +161,7 @@ TEST_RUNNER.run({
               seasonId: "season1",
               publisherId: "publisher1",
               name: "Season 1",
+              state: SeasonState.PUBLISHED,
               createdTimeMs: 1000,
             }),
             insertEpisodeStatement({
@@ -202,6 +206,7 @@ TEST_RUNNER.run({
             {
               episode: {
                 seasonName: "Season 1",
+                seasonState: SeasonState.PUBLISHED,
                 episodeName: "Ep 1",
                 episodeIndex: 1,
                 state: EpisodeState.DRAFT,

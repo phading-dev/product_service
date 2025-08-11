@@ -29,7 +29,7 @@ TEST_RUNNER.run({
   name: "PublishEpisodeHandlerTest",
   cases: [
     {
-      name: "PublishWithoutPremiereTimeAndAlsoPublishDraftSeason",
+      name: "PublishWithoutPremiereTimeWithDraftSeason",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
@@ -83,12 +83,11 @@ TEST_RUNNER.run({
               {
                 seasonSeasonId: "season1",
                 seasonPublisherId: "publisher1",
-                seasonState: SeasonState.PUBLISHED,
+                seasonState: SeasonState.DRAFT,
                 seasonTotalPublishedEpisodes: 1,
                 seasonLastChangeTimeMs: 1000,
                 seasonRecentPremiereTimeMs: 1000,
                 seasonCreatedTimeMs: 10,
-                seasonPublishedTimeMs: 1000,
               },
               GET_SEASON_ROW,
             ),
@@ -139,7 +138,7 @@ TEST_RUNNER.run({
       },
     },
     {
-      name: "PublishWithFuturePremiereTimeAndSeasonAlreadyPublishedAndRecentPremiereTimeUpdatingTask",
+      name: "PublishWithFuturePremiereTimeAndPublishedSeasonAndRecentPremiereTimeUpdatingTask",
       execute: async () => {
         // Prepare
         await SPANNER_DATABASE.runTransactionAsync(async (transaction) => {
