@@ -2,6 +2,8 @@ import http = require("http");
 import { initS3Client } from "./common/s3_client";
 import { initSendgridClient } from "./common/sendgrid_client";
 import { ENV_VARS } from "./env_vars";
+import { AdminRestoreSeasonHandler } from "./show/node/admin_restore_season_handler";
+import { AdminTakeDownSeasonHandler } from "./show/node/admin_take_down_season_handler";
 import { CacheVideoContainerHandler } from "./show/node/cache_video_container_handler";
 import { CheckPresenceOfEpisodeHandler } from "./show/node/check_presence_of_episode_handler";
 import { CheckPresenceOfSeasonHandler } from "./show/node/check_presence_of_season_handler";
@@ -46,6 +48,7 @@ import { ListDraftEpisodesHandler } from "./show/web/publisher/list_draft_episod
 import { ListPublishedEpisodesHandler } from "./show/web/publisher/list_published_episodes_handler";
 import { ListSeasonsHandler } from "./show/web/publisher/list_seasons_handler";
 import { PublishEpisodeHandler } from "./show/web/publisher/publish_episode_handler";
+import { PublishSeasonHandler } from "./show/web/publisher/publish_season_handler";
 import { SaveEpisodeStagingDataHandler } from "./show/web/publisher/save_episode_staging_data_handler";
 import { SearchSeasonsHandler as PublisherSearchSeasonsHandler } from "./show/web/publisher/search_seasons_handler";
 import { StartUploadingHandler } from "./show/web/publisher/start_uploading_handler";
@@ -62,8 +65,6 @@ import {
   PRODUCT_WEB_SERVICE,
 } from "@phading/product_service_interface/service";
 import { ServiceHandler } from "@selfage/service_handler/service_handler";
-import { AdminRestoreSeasonHandler } from "./show/node/admin_restore_season_handler";
-import { AdminTakeDownSeasonHandler } from "./show/node/admin_take_down_season_handler";
 
 async function main() {
   await Promise.all([initS3Client(), initSendgridClient()]);
@@ -125,6 +126,7 @@ async function main() {
     .add(ListPublishedEpisodesHandler.create())
     .add(ListSeasonsHandler.create())
     .add(PublishEpisodeHandler.create())
+    .add(PublishSeasonHandler.create())
     .add(SaveEpisodeStagingDataHandler.create())
     .add(PublisherSearchSeasonsHandler.create())
     .add(StartUploadingHandler.create())
